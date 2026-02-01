@@ -10,9 +10,14 @@ from sqlalchemy import select, desc
 
 from app.database import get_db
 from app.models import ScanHistory
-from app.schemas.scan import ScanRequest, ScanResponse, ScanHistoryResponse, OSINTData
+from app.schemas.scan_new import (
+    ScanRequest, ScanResponse, ScanHistoryResponse,
+    VerdictData, NetworkData, ForensicsData, 
+    ContentData, AdvancedData, IntelligenceData
+)
 from app.services.ai_engine import phishing_predictor
 from app.services.osint import collect_osint_data, get_osint_summary
+from app.services.response_builder import response_builder
 
 logger = logging.getLogger(__name__)
 
@@ -69,26 +74,24 @@ async def scan_url(
         logger.info(f"Prediction: {'PHISHING' if is_phishing else 'SAFE'} (Confidence: {confidence_score:.2f}%)")
         
         # Collect OSINT data if requested
-        osint_data = None
+        osint_dict = None
         if scan_request.include_osint:
             try:
                 logger.info("Collecting OSINT data...")
                 osint_full = collect_osint_data(url_str)
-                osint_summary = get_osint_summary(osint_full)
-                osint_data = OSINTData(**osint_summary)
-                logger.info(f"[OK] OSINT data collected: {osint_summary.get('server_location')}")
+                osint_dict = get_osint_summary(osint_full)
+                logger.info(f"[OK] OSINT data collected: {osint_dict.get('server_location')}")
             except Exception as e:
                 logger.warning(f"Failed to collect OSINT data: {e}")
-                # Continue without OSINT data
         
         # Save to database
         scan_record = ScanHistory(
-            url=str(scan_request.url),
+            url=url_str,
             is_phishing=is_phishing,
             confidence_score=round(confidence_score, 2),
             threat_type=threat_type,
             scanned_at=datetime.utcnow(),
-            user_id=None  # TODO: Add user_id when authentication is implemented
+            user_id=None
         )
         
         db.add(scan_record)
@@ -97,15 +100,29 @@ async def scan_url(
         
         logger.info(f"Scan result saved to database (ID: {scan_record.id})")
         
-        return ScanResponse(
-            id=scan_record.id,
-            url=scan_record.url,
-            is_phishing=scan_record.is_phishing,
-            confidence_score=scan_record.confidence_score,
-            threat_type=scan_record.threat_type,
+        # Build complete response using ResponseBuilder with deep analysis
+        response_data = response_builder.build_complete_response(
+            scan_id=scan_record.id,
+            url=url_str,
             scanned_at=scan_record.scanned_at,
-            user_id=scan_record.user_id,
-            osint=osint_data
+            is_phishing=is_phishing,
+            confidence_score=confidence_score,
+            threat_type=threat_type,
+            osint_data=osint_dict,
+            deep_analysis=scan_request.deep_analysis
+        )
+        
+        # Convert to Pydantic models
+        return ScanResponse(
+            id=response_data['id'],
+            url=response_data['url'],
+            scanned_at=response_data['scanned_at'],
+            verdict=VerdictData(**response_data['verdict']),
+            network=NetworkData(**response_data['network']),
+            forensics=ForensicsData(**response_data['forensics']),
+            content=ContentData(**response_data['content']),
+            advanced=AdvancedData(**response_data['advanced']),
+            intelligence=IntelligenceData(**response_data['intelligence'])
         )
         
     except HTTPException:

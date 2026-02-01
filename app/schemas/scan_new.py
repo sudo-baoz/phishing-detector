@@ -49,7 +49,8 @@ class ContentData(BaseModel):
 
 class AdvancedData(BaseModel):
     """Advanced detection features"""
-    telegram_bot_detected: bool = Field(False, description="Telegram bot detected")
+    telegram_bot_detected: bool = Field(False, description="Telegram bot API detected")
+    discord_webhook_detected: Optional[bool] = Field(None, description="Discord webhook detected")
     ssl_issuer: Optional[str] = Field(None, description="SSL certificate issuer")
     ssl_validity: Optional[str] = Field(None, description="SSL validity period")
 
