@@ -49,12 +49,12 @@ class PhishingPredictor:
             
             self._initialized = True
     
-    def load_model(self, model_path: str = "models/phishing_model.pkl") -> bool:
+    def load_model(self, model_path: str = "advanced_model.pkl") -> bool:
         """
         Load trained ML model from file
         
         Args:
-            model_path: Path to the pickled model file
+            model_path: Path to the pickled model file (default: advanced_model.pkl)
             
         Returns:
             bool: True if successful, False otherwise
@@ -77,9 +77,17 @@ class PhishingPredictor:
             self.scaler = model_package['scaler']
             self.feature_names = model_package['feature_names']
             
-            logger.info("[OK] ML Model loaded successfully")
-            logger.info(f"  - Model type: {type(self.model).__name__}")
-            logger.info(f"  - Features: {len(self.feature_names)}")
+            # Log additional info from advanced model
+            if 'best_params' in model_package:
+                logger.info("[OK] Advanced ML Model loaded successfully")
+                logger.info(f"  - Model type: {type(self.model).__name__} (Optimized with RandomizedSearchCV)")
+                logger.info(f"  - Features: {len(self.feature_names)}")
+                logger.info(f"  - CV F1 Score: {model_package.get('cv_score', 'N/A')}")
+                logger.info(f"  - Test Accuracy: {model_package.get('test_accuracy', 'N/A')}")
+            else:
+                logger.info("[OK] ML Model loaded successfully")
+                logger.info(f"  - Model type: {type(self.model).__name__}")
+                logger.info(f"  - Features: {len(self.feature_names)}")
             
             return True
             
@@ -114,12 +122,10 @@ class PhishingPredictor:
         return entropy
     
     def count_suspicious_words(self, url: str) -> int:
-        """Count occurrences of suspicious keywords commonly used in phishing"""
+        """Count occurrences of suspicious keywords (matches train_pro.py)"""
         suspicious_keywords = [
-            'secure', 'account', 'verify', 'update', 'login', 'signin',
-            'banking', 'confirm', 'suspended', 'unusual', 'click', 'here',
-            'urgent', 'immediately', 'password', 'credential', 'authentication',
-            'validate', 'restore', 'limited', 'ssn', 'social'
+            'login', 'verify', 'update', 'banking', 'secure',
+            'account', 'signin', 'confirm', 'suspend', 'password'
         ]
         
         url_lower = url.lower()
@@ -151,42 +157,63 @@ class PhishingPredictor:
     
     def extract_features(self, url: str) -> Dict[str, Any]:
         """
-        Extract comprehensive features from URL for ML model
-        Includes original features + entropy + suspicious words + subdomain count
+        Extract 18 comprehensive features from URL for advanced ML model
+        Matches train_pro.py feature extraction
         
         Args:
             url: URL string to extract features from
             
         Returns:
-            Dictionary of feature names and values
+            Dictionary of 18 feature names and values
         """
         try:
             parsed = urlparse(url)
             domain = parsed.netloc
+            path = parsed.path
+            query = parsed.query
         except:
             parsed = None
             domain = ""
+            path = ""
+            query = ""
         
-        # Original features
+        # Count letters for digit ratio
+        letter_count = sum(c.isalpha() for c in url)
+        digit_count = sum(c.isdigit() for c in url)
+        
+        # 18 features matching train_pro.py
         features = {
+            # Lexical features (6)
             'url_length': len(url),
             'dot_count': url.count('.'),
-            'has_at_symbol': 1 if '@' in url else 0,
-            'is_https': 1 if url.startswith('https://') else 0,
-            'digit_count': sum(c.isdigit() for c in url),
-            'hyphen_count': url.count('-'),
-            'underscore_count': url.count('_'),
-            'slash_count': url.count('/'),
-            'question_count': url.count('?'),
-            'ampersand_count': url.count('&'),
-            'domain_length': len(domain),
-            'has_suspicious_tld': 1 if any(url.endswith(tld) for tld in ['.tk', '.ml', '.ga', '.cf', '.xyz', '.gq']) else 0,
+            'at_count': url.count('@'),
+            'dash_count': url.count('-'),
+            'double_slash_count': url.count('//'),
+            'has_https': 1 if url.startswith('https://') else 0,
+            
+            # Entropy feature (1)
+            'domain_entropy': self.calculate_entropy(domain),
+            
+            # Suspicious keyword feature (1)
+            'suspicious_word_count': self.count_suspicious_words(url),
+            
+            # Digit analysis (3)
+            'digit_count': digit_count,
+            'letter_count': letter_count,
+            'digit_ratio': digit_count / letter_count if letter_count > 0 else 0.0,
+            
+            # Advanced detection features (7)
+            'subdomain_count': self.count_subdomains(url),
+            'has_ip': 1 if any(c.isdigit() for c in domain.split('.')) and 
+                          all(part.isdigit() and 0 <= int(part) <= 255 
+                              for part in domain.split('.') if part.isdigit()) else 0,
+            'special_char_count': sum(c in '!@#$%^&*()_+=[]{}|;:,<>?~`' for c in url),
+            'path_length': len(path),
+            'has_port': 1 if ':' in domain and any(c.isdigit() for c in domain.split(':')[-1]) else 0,
+            'query_length': len(query),
+            'tld_suspicious': 1 if any(url.endswith(tld) for tld in 
+                                       ['.tk', '.ml', '.ga', '.cf', '.xyz', '.gq', '.top', '.club']) else 0,
         }
-        
-        # Advanced features
-        features['domain_entropy'] = self.calculate_entropy(domain)
-        features['suspicious_word_count'] = self.count_suspicious_words(url)
-        features['subdomain_count'] = self.count_subdomains(url)
         
         return features
     
