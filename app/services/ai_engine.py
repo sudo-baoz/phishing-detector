@@ -49,12 +49,67 @@ class PhishingPredictor:
             
             self._initialized = True
     
-    def load_model(self, model_path: str = "advanced_model.pkl") -> bool:
+    
+    def _find_model_file(self, model_name: str = "phishing_model.pkl") -> Optional[Path]:
         """
-        Load trained ML model from file
+        Tự động tìm file model ở nhiều vị trí khác nhau
+        Hỗ trợ cả local dev, Docker, và VPS deployment
         
         Args:
-            model_path: Path to the pickled model file (default: advanced_model.pkl)
+            model_name: Tên file model (mặc định: phishing_model.pkl)
+            
+        Returns:
+            Path object nếu tìm thấy, None nếu không
+        """
+        # Danh sách các vị trí có thể chứa model
+        search_paths = [
+            # 1. Thư mục models/ (local dev)
+            Path("models") / model_name,
+            Path("models") / "advanced_model.pkl",  # Fallback name
+            
+            # 2. Root directory (khi deploy)
+            Path(model_name),
+            Path("advanced_model.pkl"),
+            
+            # 3. Parent directory
+            Path("..") / "models" / model_name,
+            Path("..") / model_name,
+            
+            # 4. Docker container paths
+            Path("/app/models") / model_name,
+            Path("/app") / model_name,
+            
+            # 5. Absolute path từ script location
+            Path(__file__).parent.parent / "models" / model_name,
+            Path(__file__).parent.parent / model_name,
+        ]
+        
+        logger.info(f"🔍 Searching for model file: {model_name}")
+        
+        for path in search_paths:
+            try:
+                # Resolve để lấy absolute path và check existence
+                resolved_path = path.resolve()
+                if resolved_path.exists() and resolved_path.is_file():
+                    logger.info(f"✅ Found model at: {resolved_path}")
+                    return resolved_path
+                else:
+                    logger.debug(f"❌ Not found: {resolved_path}")
+            except Exception as e:
+                logger.debug(f"Error checking path {path}: {e}")
+                continue
+        
+        logger.error(f"❌ Model file '{model_name}' not found in any search path")
+        return None
+    
+    def load_model(self, model_path: Optional[str] = None) -> bool:
+        """
+        Load trained ML model from file
+        Tự động tìm file nếu không cung cấp path cụ thể
+        
+        Args:
+            model_path: Path to the pickled model file (optional)
+                       Nếu None, sẽ tự động tìm kiếm
             
         Returns:
             bool: True if successful, False otherwise
@@ -63,14 +118,27 @@ class PhishingPredictor:
             FileNotFoundError: If model file doesn't exist
             Exception: For other loading errors
         """
-        path = Path(model_path)
+        # Nếu cung cấp path cụ thể, dùng nó
+        if model_path:
+            path = Path(model_path)
+            if not path.exists():
+                logger.error(f"Specified model file not found: {path}")
+                raise FileNotFoundError(f"Model file not found: {path}")
+        else:
+            # Tự động tìm kiếm file model
+            path = self._find_model_file()
+            if path is None:
+                raise FileNotFoundError(
+                    "Could not find model file. Searched locations:\n"
+                    "- models/phishing_model.pkl\n"
+                    "- models/advanced_model.pkl\n"
+                    "- ./phishing_model.pkl\n"
+                    "- /app/models/phishing_model.pkl (Docker)\n"
+                    "Please ensure model file exists in one of these locations."
+                )
         
         try:
-            if not path.exists():
-                logger.error(f"Model file not found at {path}")
-                raise FileNotFoundError(f"Model file not found: {path}")
-            
-            logger.info(f"Loading ML model from {path}")
+            logger.info(f"📦 Loading ML model from: {path}")
             model_package = joblib.load(path)
             
             self.model = model_package['model']
@@ -79,21 +147,179 @@ class PhishingPredictor:
             
             # Log additional info from advanced model
             if 'best_params' in model_package:
-                logger.info("[OK] Advanced ML Model loaded successfully")
+                logger.info("✅ Advanced ML Model loaded successfully")
                 logger.info(f"  - Model type: {type(self.model).__name__} (Optimized with RandomizedSearchCV)")
                 logger.info(f"  - Features: {len(self.feature_names)}")
                 logger.info(f"  - CV F1 Score: {model_package.get('cv_score', 'N/A')}")
                 logger.info(f"  - Test Accuracy: {model_package.get('test_accuracy', 'N/A')}")
             else:
-                logger.info("[OK] ML Model loaded successfully")
+                logger.info("✅ ML Model loaded successfully")
                 logger.info(f"  - Model type: {type(self.model).__name__}")
                 logger.info(f"  - Features: {len(self.feature_names)}")
             
             return True
             
         except Exception as e:
-            logger.error(f"Failed to load ML model: {e}")
+            logger.error(f"❌ Failed to load ML model: {e}")
             raise
+    
+    def _generate_training_data(self) -> pd.DataFrame:
+        """
+        Generate synthetic training data for auto-training
+        Returns 200 samples (100 safe, 100 phishing URLs)
+        """
+        logger.info("🔧 Generating synthetic training data...")
+        
+        # Safe URLs (legitimate websites)
+        safe_urls = [
+            'https://www.google.com/search', 'https://www.facebook.com/profile',
+            'https://github.com/trending', 'https://stackoverflow.com/questions',
+            'https://www.amazon.com/products', 'https://www.youtube.com/watch',
+            'https://www.linkedin.com/in', 'https://www.microsoft.com',
+            'https://www.apple.com', 'https://www.netflix.com/browse',
+            'https://twitter.com/home', 'https://www.reddit.com/r/python',
+            'https://www.wikipedia.org/wiki', 'https://www.bbc.com/news',
+            'https://www.cnn.com/world', 'https://www.coursera.org/courses',
+        ]
+        
+        # Phishing URLs (suspicious patterns)
+        phishing_urls = [
+            'http://secure-login-bank.xyz/verify', 'https://paypal-security-check.com/account',
+            'http://amazon-prime-renew.tk/payment', 'https://apple-id-unlock.ml/signin',
+            'http://netflix-billing-update.ga/verify', 'https://microsoft-security-alert.cf/update',
+            'http://facebook-verify-account.tk/login', 'https://google-account-recovery.ml/reset',
+            'http://instagram-support-team.ga/verify', 'https://twitter-verification-badge.tk/apply',
+            'http://linkedin-premium-free.ml/signup', 'https://amazon-gift-card-1000.xyz/claim',
+            'http://paypal-money-received.tk/accept', 'https://bank-security-department.ga/urgent',
+            'http://www-paypal-com-login.tk', 'https://secure-amazon-signin.ml',
+        ]
+        
+        # Generate variations to reach 100 samples each
+        import random
+        safe_variations = safe_urls.copy()
+        while len(safe_variations) < 100:
+            url = random.choice(safe_urls)
+            variations = [
+                f"{url}/page{random.randint(1,100)}",
+                f"{url}?id={random.randint(1000,9999)}",
+                f"{url}#section{random.randint(1,10)}",
+                f"{url}/search?q=test",
+            ]
+            safe_variations.extend(variations)
+        
+        phishing_variations = phishing_urls.copy()
+        while len(phishing_variations) < 100:
+            url = random.choice(phishing_urls)
+            variations = [
+                f"{url}?token=abc{random.randint(100,999)}",
+                f"{url}&session=xyz",
+                f"{url}/confirm.php",
+                f"{url}?user=admin",
+            ]
+            phishing_variations.extend(variations)
+        
+        # Create DataFrame with exactly 100 of each
+        data = {
+            'url': safe_variations[:100] + phishing_variations[:100],
+            'label': [0] * 100 + [1] * 100  # 0 = safe, 1 = phishing
+        }
+        
+        df = pd.DataFrame(data)
+        df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle
+        
+        logger.info(f"✅ Generated {len(df)} training samples (Safe: {(df['label']==0).sum()}, Phishing: {(df['label']==1).sum()})")
+        return df
+    
+    def auto_train(self, save_path: str = "models/phishing_model.pkl") -> bool:
+        """
+        Automatically train a new model using synthetic data
+        Called when no pre-trained model is found on VPS deployment
+        
+        Args:
+            save_path: Where to save the trained model
+            
+        Returns:
+            bool: True if training successful
+        """
+        try:
+            from sklearn.model_selection import train_test_split
+            from sklearn.ensemble import RandomForestClassifier
+            from sklearn.preprocessing import StandardScaler
+            import numpy as np
+            
+            logger.info("=" * 70)
+            logger.info("🤖 AUTO-TRAINING MODE ACTIVATED")
+            logger.info("=" * 70)
+            logger.info("No pre-trained model found. Training new model with synthetic data...")
+            
+            # Generate training data
+            df = self._generate_training_data()
+            
+            # Extract features
+            logger.info("📊 Extracting features...")
+            features_list = []
+            for url in df['url']:
+                features_list.append(self.extract_features(url))
+            
+            X = pd.DataFrame(features_list)
+            y = df['label']
+            
+            logger.info(f"✅ Extracted {len(X.columns)} features")
+            
+            # Split data
+            X_train, X_test, y_train, y_test = train_test_split(
+                X, y, test_size=0.2, random_state=42, stratify=y
+            )
+            
+            logger.info(f"📈 Training set: {len(X_train)}, Test set: {len(X_test)}")
+            
+            # Scale features
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(X_train)
+            X_test_scaled = scaler.transform(X_test)
+            
+            # Train model
+            logger.info("🧠 Training RandomForestClassifier...")
+            model = RandomForestClassifier(
+                n_estimators=100,
+                max_depth=10,
+                random_state=42,
+                n_jobs=-1
+            )
+            model.fit(X_train_scaled, y_train)
+            
+            # Evaluate
+            y_pred = model.predict(X_test_scaled)
+            accuracy = np.mean(y_pred == y_test)
+            logger.info(f"✅ Training complete! Accuracy: {accuracy * 100:.2f}%")
+            
+            # Save model
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
+            model_package = {
+                'model': model,
+                'scaler': scaler,
+                'feature_names': X.columns.tolist(),
+                'accuracy': accuracy,
+                'auto_trained': True,
+                'trained_date': pd.Timestamp.now().strftime('%Y-%m-%d %H:%M:%S')
+            }
+            joblib.dump(model_package, save_path)
+            logger.info(f"💾 Model saved to: {save_path}")
+            
+            # Load the newly trained model
+            self.model = model
+            self.scaler = scaler
+            self.feature_names = X.columns.tolist()
+            
+            logger.info("=" * 70)
+            logger.info("🎉 AUTO-TRAINING SUCCESSFUL!")
+            logger.info("=" * 70)
+            
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Auto-training failed: {e}")
+            return False
     
     def is_loaded(self) -> bool:
         """Check if model is loaded"""

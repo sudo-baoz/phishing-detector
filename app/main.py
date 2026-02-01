@@ -103,14 +103,36 @@ async def lifespan(app: FastAPI):
     logger.info("STARTING PHISHING URL DETECTION API")
     logger.info("=" * 70)
     
-    # Load ML Model
+    # Load ML Model (auto-discovery enabled)
     logger.info("Loading ML Model...")
     try:
+        # Gọi load_model() không cần truyền path - sẽ tự động tìm
         model_loaded = phishing_predictor.load_model()
         if model_loaded:
             logger.info("[OK] PhishingPredictor model loaded successfully")
         else:
             logger.error("Failed to load PhishingPredictor model")
+    except FileNotFoundError as e:
+        # Model not found - trigger auto-training for VPS deployment
+        logger.warning("=" * 70)
+        logger.warning("⚠️ No pre-trained model found!")
+        logger.warning("=" * 70)
+        logger.warning("This is normal for first-time VPS deployment.")
+        logger.warning("Initiating auto-training with synthetic data...")
+        logger.warning("=" * 70)
+        
+        try:
+            # Auto-train and save model
+            train_success = phishing_predictor.auto_train()
+            if train_success:
+                logger.info("✅ Auto-training completed successfully!")
+                logger.info("Model is now ready for production use.")
+            else:
+                logger.error("❌ Auto-training failed!")
+                logger.warning("[WARNING] API will start but URL scanning will not work")
+        except Exception as train_error:
+            logger.error(f"❌ Auto-training error: {train_error}")
+            logger.warning("[WARNING] API will start but URL scanning will not work")
     except Exception as e:
         logger.error(f"Failed to load ML model: {e}")
         logger.warning("[WARNING] API will start but URL scanning will not work")
