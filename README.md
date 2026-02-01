@@ -394,7 +394,7 @@ This project is licensed under the **Apache License 2.0** - see [LICENSE](LICENS
 ## 📞 Support
 
 - **Issues:** [GitHub Issues](https://github.com/sudo-baoz/phishing-detector/issues)
-- **Email:** support@example.com
+- **Email:** maibao123bao@gmail.com
 - **Documentation:** [Wiki](https://github.com/sudo-baoz/phishing-detector/wiki)
 
 ---
