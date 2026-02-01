@@ -624,7 +624,7 @@ class ResponseBuilder:
                 redirect_count=redirect_count,
                 has_suspicious_content=has_suspicious_content
             )
-            logger.info(f"[Heuristic] Score adjusted: {confidence_score:.1f} → {final_score:.1f}")
+            logger.info(f"[Heuristic] Score adjusted: {confidence_score:.1f} -> {final_score:.1f}")
         
         return {
             "id": scan_id,

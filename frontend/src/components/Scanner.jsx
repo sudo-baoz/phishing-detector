@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { scanUrl } from '../services/api';
 import AnalysisReport from './AnalysisReport';
+import ChatWidget from './ChatWidget';
 
 const Scanner = () => {
   const [url, setUrl] = useState('');
@@ -137,6 +138,9 @@ const Scanner = () => {
           </div>
         )}
       </div>
+
+      {/* Chat Widget - Always visible, context-aware */}
+      <ChatWidget scanResult={result} />
     </div>
   );
 };

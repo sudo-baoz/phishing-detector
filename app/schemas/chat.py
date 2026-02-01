@@ -7,6 +7,89 @@ from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any
 
 
+class SentinelChatRequest(BaseModel):
+    """
+    Request model for Sentinel AI chat endpoint
+    
+    Example:
+        {
+            "message": "Is this safe?",
+            "scan_result_id": "optional_id_123",
+            "context_data": {
+                "url": "https://example.com",
+                "verdict": "PHISHING",
+                "confidence_score": 95.5,
+                "threat_type": "credential_theft"
+            }
+        }
+    """
+    message: str = Field(
+        ..., 
+        min_length=1, 
+        max_length=1000,
+        description="User's question to Sentinel AI"
+    )
+    scan_result_id: Optional[str] = Field(
+        default=None,
+        description="Optional ID of the scan result for reference"
+    )
+    context_data: Optional[Dict[str, Any]] = Field(
+        default=None,
+        description="JSON object containing scan result data"
+    )
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "message": "Is this safe?",
+                    "scan_result_id": "scan_12345",
+                    "context_data": {
+                        "url": "https://paypal-login.tk/verify",
+                        "verdict": "PHISHING",
+                        "confidence_score": 98.7,
+                        "threat_type": "credential_theft",
+                        "forensics": {
+                            "obfuscation_detected": "Suspicious TLD (.tk)"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+
+
+class SentinelChatResponse(BaseModel):
+    """
+    Response model for Sentinel AI chat endpoint
+    
+    Example:
+        {
+            "reply": "Based on the scan, this URL uses a homograph attack...",
+            "scanned_url": "https://example.com"
+        }
+    """
+    reply: str = Field(
+        ...,
+        description="Sentinel AI's response"
+    )
+    scanned_url: Optional[str] = Field(
+        default=None,
+        description="URL that was automatically scanned (if detected in user message)"
+    )
+    
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "reply": "⚠️ **CRITICAL WARNING** ⚠️\n\nThis URL is HIGHLY DANGEROUS. Based on the scan:\n\n**Threat Detected:** Credential Theft Attack\n**Confidence:** 98.7%\n\n**Why It's Phishing:**\n- Uses suspicious .tk domain (free, commonly abused)\n- Impersonates PayPal login page\n- Designed to steal your credentials\n\n**⛔ DO NOT:**\n- Click this link\n- Enter any passwords\n- Share this URL\n\n**✅ Recommended Actions:**\n1. Delete any emails containing this link\n2. Report it as phishing\n3. Go directly to paypal.com (type it manually)\n4. If you entered credentials, change your password IMMEDIATELY",
+                    "scanned_url": "https://paypal-verify.tk"
+                }
+            ]
+        }
+    }
+
+
 class ChatRequest(BaseModel):
     """
     Request model for chatbot endpoint

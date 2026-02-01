@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     
     # CORS settings
-    CORS_ORIGINS: str = "http://your-frontend-domain.com"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:5174,http://localhost:3000"
     
     # Application settings
     APP_NAME: str = "Phishing URL Detection API"
