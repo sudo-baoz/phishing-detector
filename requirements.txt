@@ -32,6 +32,10 @@ python-multipart
 scikit-learn
 pandas
 numpy
+xgboost
+shap
+joblib
+scipy
 
 # Data validation
 pydantic-core
@@ -46,6 +50,13 @@ python-multipart
 # Optional: HTTP requests
 httpx
 requests
+
+# OSINT (Open Source Intelligence)
+python-whois
+dnspython
+
+# AI Chatbot
+google-generativeai
 
 # Optional: URL parsing
 validators

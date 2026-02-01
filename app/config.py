@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     APP_NAME: str = "Phishing URL Detection API"
     DEBUG: bool = False
     
+    # AI Integration settings
+    GEMINI_API_KEY: str = ""
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

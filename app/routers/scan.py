@@ -3,47 +3,20 @@
 import logging
 from datetime import datetime
 from typing import Optional
-import re
-from urllib.parse import urlparse
 
-import pandas as pd
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from app.database import get_db
 from app.models import ScanHistory
-from app.schemas.scan import ScanRequest, ScanResponse, ScanHistoryResponse
+from app.schemas.scan import ScanRequest, ScanResponse, ScanHistoryResponse, OSINTData
+from app.services.ai_engine import phishing_predictor
+from app.services.osint import collect_osint_data, get_osint_summary
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-def extract_features(url: str) -> dict:
-    """Extract features from URL for ML model"""
-    try:
-        parsed = urlparse(url)
-    except:
-        parsed = None
-    
-    # Extract all features (must match training features)
-    features = {
-        'url_length': len(url),
-        'dot_count': url.count('.'),
-        'has_at_symbol': 1 if '@' in url else 0,
-        'is_https': 1 if url.startswith('https://') else 0,
-        'digit_count': sum(c.isdigit() for c in url),
-        'hyphen_count': url.count('-'),
-        'underscore_count': url.count('_'),
-        'slash_count': url.count('/'),
-        'question_count': url.count('?'),
-        'ampersand_count': url.count('&'),
-        'domain_length': len(parsed.netloc) if parsed else 0,
-        'has_suspicious_tld': 1 if any(url.endswith(tld) for tld in ['.tk', '.ml', '.ga', '.cf', '.xyz', '.gq']) else 0,
-    }
-    
-    return features
 
 
 def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Optional[str]:
@@ -68,7 +41,6 @@ def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Opt
 
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_200_OK)
 async def scan_url(
-    request: Request,
     scan_request: ScanRequest,
     db: AsyncSession = Depends(get_db)
 ):
@@ -76,43 +48,38 @@ async def scan_url(
     Scan a URL for phishing detection
     
     - **url**: URL to scan (must be valid HTTP/HTTPS URL)
+    - **include_osint**: Include OSINT data enrichment (default: True)
     
-    Returns prediction with confidence score and threat type
+    Returns prediction with confidence score, threat type, and optional OSINT data
     """
     
     logger.info(f"Scanning URL: {scan_request.url}")
     
     try:
-        # Get ML model from app state
-        ml_model = request.app.state.get_ml_model()
-        ml_scaler = request.app.state.get_ml_scaler()
-        ml_feature_names = request.app.state.get_ml_feature_names()
+        # Use PhishingPredictor service for prediction
+        url_str = str(scan_request.url)
+        prediction_result = phishing_predictor.predict(url_str)
         
-        # Extract features
-        features = extract_features(str(scan_request.url))
-        
-        # Create DataFrame with features in correct order
-        X = pd.DataFrame([features])[ml_feature_names]
-        
-        # Scale features
-        X_scaled = ml_scaler.transform(X)
-        
-        # Make prediction
-        prediction = ml_model.predict(X_scaled)[0]
-        
-        # Get prediction probability
-        try:
-            prediction_proba = ml_model.predict_proba(X_scaled)[0]
-            confidence_score = float(prediction_proba[prediction] * 100)
-        except:
-            confidence_score = 85.0 if prediction == 1 else 90.0
-        
-        is_phishing = bool(prediction == 1)
+        is_phishing = prediction_result['is_phishing']
+        confidence_score = prediction_result['confidence_score']
         
         # Determine threat type
-        threat_type = determine_threat_type(is_phishing, confidence_score, str(scan_request.url))
+        threat_type = determine_threat_type(is_phishing, confidence_score, url_str)
         
         logger.info(f"Prediction: {'PHISHING' if is_phishing else 'SAFE'} (Confidence: {confidence_score:.2f}%)")
+        
+        # Collect OSINT data if requested
+        osint_data = None
+        if scan_request.include_osint:
+            try:
+                logger.info("Collecting OSINT data...")
+                osint_full = collect_osint_data(url_str)
+                osint_summary = get_osint_summary(osint_full)
+                osint_data = OSINTData(**osint_summary)
+                logger.info(f"[OK] OSINT data collected: {osint_summary.get('server_location')}")
+            except Exception as e:
+                logger.warning(f"Failed to collect OSINT data: {e}")
+                # Continue without OSINT data
         
         # Save to database
         scan_record = ScanHistory(
@@ -137,7 +104,8 @@ async def scan_url(
             confidence_score=scan_record.confidence_score,
             threat_type=scan_record.threat_type,
             scanned_at=scan_record.scanned_at,
-            user_id=scan_record.user_id
+            user_id=scan_record.user_id,
+            osint=osint_data
         )
         
     except HTTPException:

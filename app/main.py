@@ -14,7 +14,8 @@ from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.database import init_db, close_db
-from app.routers import health, scan, auth
+from app.routers import health, scan, auth, chat
+from app.services.ai_engine import phishing_predictor
 
 # Configure logging
 logging.basicConfig(
@@ -105,7 +106,11 @@ async def lifespan(app: FastAPI):
     # Load ML Model
     logger.info("Loading ML Model...")
     try:
-        load_ml_model()
+        model_loaded = phishing_predictor.load_model()
+        if model_loaded:
+            logger.info("[OK] PhishingPredictor model loaded successfully")
+        else:
+            logger.error("Failed to load PhishingPredictor model")
     except Exception as e:
         logger.error(f"Failed to load ML model: {e}")
         logger.warning("[WARNING] API will start but URL scanning will not work")
@@ -179,6 +184,7 @@ async def global_exception_handler(request, exc):
 app.include_router(health.router, tags=["Health"])
 app.include_router(scan.router, prefix="/scan", tags=["URL Scanning"])
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
+app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 
 
 # Root endpoint
@@ -194,7 +200,8 @@ async def root():
             "scan_url": "POST /scan",
             "scan_history": "GET /scan/history",
             "login": "POST /auth/login",
-            "register": "POST /auth/register"
+            "register": "POST /auth/register",
+            "chat_ai": "POST /chat"
         }
     }
 
