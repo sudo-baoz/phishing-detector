@@ -7,4 +7,8 @@ export default defineConfig({
     port: 5173,
     host: true,
   },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: false, // <--- THÊM DÒNG NÀY: Ngăn Vite xóa thư mục dist
+  },
 })

@@ -72,8 +72,11 @@ const ChatWidget = ({ scanResult = null }) => {
         };
       }
 
+      // Get API URL from environment variable (supports production HTTPS)
+      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
       // Call Sentinel AI API with language parameter
-      const response = await fetch('http://localhost:8000/chat/sentinel', {
+      const response = await fetch(`${API_URL}/chat/sentinel`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -233,10 +236,10 @@ const ChatWidget = ({ scanResult = null }) => {
                   {/* Message Bubble */}
                   <div className="flex flex-col gap-1">
                     <div className={`rounded-lg p-3 ${message.type === 'user'
-                        ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white'
-                        : message.isError
-                          ? 'bg-gradient-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
-                          : 'bg-gray-800 text-gray-200 border border-cyan-500/30'
+                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white'
+                      : message.isError
+                        ? 'bg-gradient-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
+                        : 'bg-gray-800 text-gray-200 border border-cyan-500/30'
                       }`}>
                       <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
                     </div>
