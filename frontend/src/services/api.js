@@ -1,0 +1,46 @@
+/**
+ * API Service Helper for Phishing Detector Frontend
+ * Axios instance configured for FastAPI backend communication
+ */
+
+import axios from 'axios';
+
+// Create axios instance with default configuration
+const api = axios.create({
+  baseURL: 'http://127.0.0.1:8000',
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Scan URL endpoint
+export const scanUrl = async (url) => {
+  try {
+    const response = await api.post('/scan', { url });
+    return {
+      success: true,
+      data: response.data,
+    };
+  } catch (error) {
+    if (error.response) {
+      return {
+        success: false,
+        error: error.response.data.detail || 'Server error occurred',
+      };
+    } else if (error.request) {
+      return {
+        success: false,
+        error: 'Server is not responding. Please make sure the backend is running at http://127.0.0.1:8000',
+      };
+    } else {
+      return {
+        success: false,
+        error: 'An unexpected error occurred',
+      };
+    }
+  }
+};
+
+export default api;
+

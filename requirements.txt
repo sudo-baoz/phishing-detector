@@ -1,0 +1,56 @@
+# FastAPI and server
+fastapi
+uvicorn[standard]
+gunicorn
+
+# Pydantic settings
+pydantic
+pydantic-settings
+
+# Database ORM
+sqlalchemy
+
+# Database drivers (install based on your DB_TYPE)
+# For MySQL:
+aiomysql
+pymysql
+mysql-connector-python
+
+# For PostgreSQL:
+asyncpg
+
+# For SQLite:
+aiosqlite
+
+# Environment variables
+python-dotenv
+
+# Utilities
+python-multipart
+
+# Machine Learning
+scikit-learn
+pandas
+numpy
+
+# Data validation
+pydantic-core
+
+# Password hashing
+passlib[bcrypt]
+
+# Optional: JWT authentication
+python-jose[cryptography]
+python-multipart
+
+# Optional: HTTP requests
+httpx
+requests
+
+# Optional: URL parsing
+validators
+tldextract
+
+# Optional: Feature extraction
+beautifulsoup4
+lxml

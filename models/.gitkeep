@@ -1,0 +1,21 @@
+# models/
+
+Thư mục chứa các ML models đã được train
+
+## Files
+
+- `phishing_model.pkl` - Trained RandomForest model với scaler và feature names
+- Model được tạo bởi `scripts/model_train.py`
+
+## Load Model
+
+```python
+import joblib
+
+# Load model package
+model_package = joblib.load('models/phishing_model.pkl')
+
+model = model_package['model']
+scaler = model_package['scaler']
+feature_names = model_package['feature_names']
+```
