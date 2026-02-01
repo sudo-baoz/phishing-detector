@@ -6,8 +6,11 @@
 import axios from 'axios';
 
 // Create axios instance with default configuration
+// Use environment variable for API URL (supports HTTPS in production)
+const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
 const api = axios.create({
-  baseURL: 'http://127.0.0.1:8000',
+  baseURL: API_URL,
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
@@ -17,7 +20,7 @@ const api = axios.create({
 // Scan URL endpoint with deep analysis
 export const scanUrl = async (url, deepAnalysis = true) => {
   try {
-    const response = await api.post('/scan', { 
+    const response = await api.post('/scan', {
       url,
       include_osint: true,
       deep_analysis: deepAnalysis
@@ -35,7 +38,7 @@ export const scanUrl = async (url, deepAnalysis = true) => {
     } else if (error.request) {
       return {
         success: false,
-        error: 'Server is not responding. Please make sure the backend is running at http://127.0.0.1:8000',
+        error: `Server is not responding. Please make sure the backend is running at ${API_URL}`,
       };
     } else {
       return {
