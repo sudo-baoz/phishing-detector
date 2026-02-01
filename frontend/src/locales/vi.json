@@ -1,0 +1,96 @@
+{
+    "app_title": "HỆ THỐNG TÌNH BÁO MỐI ĐE DỌA",
+    "app_subtitle": "Phát Hiện & Phân Tích Phishing Chuyên Sâu",
+    "scanner": {
+        "title": "QUÉT URL",
+        "placeholder": "Nhập URL nghi ngờ để phân tích...",
+        "scan_button": "QUÉT NGAY",
+        "scanning": "ĐANG PHÂN TÍCH MỐI ĐE DỌA...",
+        "example": "Ví dụ: https://trang-web-nghi-ngo.com"
+    },
+    "verdict": {
+        "safe": "AN TOÀN",
+        "phishing": "PHÁT HIỆN MỐI ĐE DỌA",
+        "suspicious": "NGHI NGỜ",
+        "analyzing": "ĐANG PHÂN TÍCH..."
+    },
+    "risk_levels": {
+        "safe": "RỦI RO THẤP",
+        "low": "RỦI RO THẤP",
+        "medium": "RỦI RO TRUNG BÌNH",
+        "high": "RỦI RO CAO",
+        "critical": "MỐI ĐE DỌA NGHIÊM TRỌNG"
+    },
+    "details": {
+        "confidence": "Độ tin cậy",
+        "threat_type": "Loại mối đe dọa",
+        "scanned_at": "Thời gian quét",
+        "url": "URL mục tiêu"
+    },
+    "analysis": {
+        "title": "PHÂN TÍCH CHUYÊN SÂU",
+        "network": "Tình Báo Mạng",
+        "forensics": "Điều Tra Số",
+        "content": "Phân Tích Nội Dung",
+        "advanced": "Chỉ Số Nâng Cao",
+        "intelligence": "Tình Báo Mối Đe Dọa"
+    },
+    "network": {
+        "domain": "Tên miền",
+        "ip_address": "Địa chỉ IP",
+        "location": "Vị trí máy chủ",
+        "isp": "Nhà cung cấp",
+        "domain_age": "Tuổi tên miền",
+        "ssl_valid": "Chứng chỉ SSL",
+        "has_https": "HTTPS",
+        "dns_records": "Bản ghi DNS",
+        "mail_server": "Máy chủ email",
+        "days": "ngày"
+    },
+    "forensics": {
+        "suspicious_patterns": "Mẫu nghi ngờ",
+        "obfuscation": "Mã hóa khó hiểu",
+        "homograph_attack": "Tấn công đồng âm",
+        "brand_impersonation": "Giả mạo thương hiệu",
+        "detected": "Phát hiện",
+        "none": "Không phát hiện",
+        "clean": "Sạch"
+    },
+    "chat": {
+        "title": "Trợ Lý Sentinel AI",
+        "status_online": "Trực tuyến",
+        "status_offline": "Ngoại tuyến",
+        "placeholder": "Hỏi Sentinel bất cứ điều gì...",
+        "greeting": "👋 Xin chào! Tôi là Sentinel AI, chuyên gia an ninh mạng của bạn. Tôi có thể giúp bạn hiểu kết quả quét và trả lời các câu hỏi về bảo mật.",
+        "context_analyzing": "Bối cảnh: Đang phân tích",
+        "context_no_scan": "💡 Quét URL trước để được hỗ trợ theo ngữ cảnh",
+        "context_with_scan": "💡 Tôi đã thấy kết quả quét của bạn. Hỏi tôi bất cứ điều gì!",
+        "send": "Gửi",
+        "typing": "Sentinel đang suy nghĩ..."
+    },
+    "threat_types": {
+        "credential_theft": "Đánh cắp tài khoản",
+        "malware": "Phát tán mã độc",
+        "scam": "Lừa đảo trực tuyến",
+        "financial_fraud": "Gian lận tài chính",
+        "phishing": "Tấn công Phishing"
+    },
+    "actions": {
+        "view_details": "Xem chi tiết",
+        "scan_another": "Quét URL khác",
+        "download_report": "Tải báo cáo",
+        "share": "Chia sẻ kết quả"
+    },
+    "history": {
+        "title": "LỊCH SỬ QUÉT",
+        "recent": "Quét gần đây",
+        "clear": "Xóa lịch sử",
+        "no_scans": "Chưa có lần quét nào"
+    },
+    "errors": {
+        "invalid_url": "⚠️ Định dạng URL không hợp lệ",
+        "scan_failed": "⚠️ Quét thất bại. Vui lòng thử lại.",
+        "api_error": "⚠️ Lỗi API. Kiểm tra kết nối.",
+        "chat_error": "⚠️ Xin lỗi, tôi gặp lỗi. Vui lòng thử lại."
+    }
+}

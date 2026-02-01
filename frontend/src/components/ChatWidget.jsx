@@ -1,16 +1,23 @@
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { MessageCircle, X, Send, Bot, User as UserIcon } from 'lucide-react';
 
 const ChatWidget = ({ scanResult = null }) => {
+  const { t, i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      type: 'ai',
-      text: '👋 Hello! I\'m Sentinel AI, your cyber security expert. I can help you understand the scan results and answer any security questions.',
-      timestamp: new Date()
+  const [messages, setMessages] = useState([]);
+
+  // Initialize with translated greeting
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([{
+        id: 1,
+        type: 'ai',
+        text: t('chat.greeting'),
+        timestamp: new Date()
+      }]);
     }
-  ]);
+  }, [t, messages.length]);
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
@@ -65,7 +72,7 @@ const ChatWidget = ({ scanResult = null }) => {
         };
       }
 
-      // Call Sentinel AI API
+      // Call Sentinel AI API with language parameter
       const response = await fetch('http://localhost:8000/chat/sentinel', {
         method: 'POST',
         headers: {
@@ -73,6 +80,7 @@ const ChatWidget = ({ scanResult = null }) => {
         },
         body: JSON.stringify({
           message: userMessage,
+          language: i18n.language, // Pass current language (en/vi)
           scan_result_id: scanResult?.id || null,
           context_data: contextData
         })
@@ -95,12 +103,12 @@ const ChatWidget = ({ scanResult = null }) => {
 
     } catch (error) {
       console.error('Chat error:', error);
-      
+
       // Add error message
       const errorMessage = {
         id: Date.now() + 1,
         type: 'ai',
-        text: '⚠️ Sorry, I encountered an error. Please make sure the API is running and try again.',
+        text: t('errors.chat_error'),
         timestamp: new Date(),
         isError: true
       };
@@ -118,9 +126,9 @@ const ChatWidget = ({ scanResult = null }) => {
   };
 
   const formatTime = (date) => {
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit' 
+    return date.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
 
@@ -143,7 +151,7 @@ const ChatWidget = ({ scanResult = null }) => {
         ) : (
           <MessageCircle className="w-7 h-7 text-white group-hover:animate-bounce" />
         )}
-        
+
         {/* Online indicator dot */}
         {!isOpen && (
           <span className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse" />
@@ -169,8 +177,8 @@ const ChatWidget = ({ scanResult = null }) => {
                 <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-lg">Sentinel AI Assistant</h3>
-                <p className="text-cyan-100 text-xs">● Online</p>
+                <h3 className="text-white font-bold text-lg">{t('chat.title')}</h3>
+                <p className="text-cyan-100 text-xs">● {t('chat.status_online')}</p>
               </div>
             </div>
             <button
@@ -186,11 +194,10 @@ const ChatWidget = ({ scanResult = null }) => {
           {scanResult && (
             <div className="bg-gray-800/50 border-b border-cyan-500/30 px-4 py-2">
               <div className="flex items-center gap-2 text-xs">
-                <div className={`w-2 h-2 rounded-full ${
-                  scanResult.verdict?.is_phishing ? 'bg-red-500' : 'bg-green-500'
-                } animate-pulse`} />
+                <div className={`w-2 h-2 rounded-full ${scanResult.verdict?.is_phishing ? 'bg-red-500' : 'bg-green-500'
+                  } animate-pulse`} />
                 <span className="text-gray-400">
-                  Context: Analyzing <span className="text-cyan-400 font-mono">
+                  {t('chat.context_analyzing')} <span className="text-cyan-400 font-mono">
                     {scanResult.verdict?.url?.substring(0, 40)}...
                   </span>
                 </span>
@@ -209,11 +216,11 @@ const ChatWidget = ({ scanResult = null }) => {
                 <div className={`flex gap-2 max-w-[80%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                   {/* Avatar */}
                   <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
-                    ${message.type === 'user' 
-                      ? 'bg-gradient-to-br from-purple-500 to-pink-500' 
+                    ${message.type === 'user'
+                      ? 'bg-gradient-to-br from-purple-500 to-pink-500'
                       : message.isError
-                      ? 'bg-gradient-to-br from-red-500 to-orange-500'
-                      : 'bg-gradient-to-br from-cyan-500 to-blue-500'
+                        ? 'bg-gradient-to-br from-red-500 to-orange-500'
+                        : 'bg-gradient-to-br from-cyan-500 to-blue-500'
                     }`}
                   >
                     {message.type === 'user' ? (
@@ -225,13 +232,12 @@ const ChatWidget = ({ scanResult = null }) => {
 
                   {/* Message Bubble */}
                   <div className="flex flex-col gap-1">
-                    <div className={`rounded-lg p-3 ${
-                      message.type === 'user'
+                    <div className={`rounded-lg p-3 ${message.type === 'user'
                         ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white'
                         : message.isError
-                        ? 'bg-gradient-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
-                        : 'bg-gray-800 text-gray-200 border border-cyan-500/30'
-                    }`}>
+                          ? 'bg-gradient-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
+                          : 'bg-gray-800 text-gray-200 border border-cyan-500/30'
+                      }`}>
                       <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
                     </div>
                     <span className={`text-xs text-gray-500 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
@@ -252,11 +258,11 @@ const ChatWidget = ({ scanResult = null }) => {
                   </div>
                   <div className="bg-gray-800 border border-cyan-500/30 rounded-lg p-3">
                     <div className="flex gap-1">
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" 
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
                         style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" 
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
                         style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce" 
+                      <span className="w-2 h-2 bg-cyan-500 rounded-full animate-bounce"
                         style={{ animationDelay: '300ms' }} />
                     </div>
                   </div>
@@ -276,7 +282,7 @@ const ChatWidget = ({ scanResult = null }) => {
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder="Ask Sentinel AI anything..."
+                placeholder={t('chat.placeholder')}
                 disabled={isLoading}
                 className="flex-1 bg-gray-900 text-white px-4 py-3 rounded-lg
                   border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
@@ -298,12 +304,12 @@ const ChatWidget = ({ scanResult = null }) => {
                 <Send className="w-5 h-5" />
               </button>
             </div>
-            
+
             {/* Helper Text */}
             <p className="text-xs text-gray-500 mt-2 text-center">
-              {scanResult 
-                ? '💡 I can see your scan results. Ask me anything!'
-                : '💡 Scan a URL first for context-aware assistance'
+              {scanResult
+                ? t('chat.context_with_scan')
+                : t('chat.context_no_scan')
               }
             </p>
           </div>

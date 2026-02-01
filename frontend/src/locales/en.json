@@ -1,0 +1,96 @@
+{
+    "app_title": "THREAT INTELLIGENCE SYSTEM",
+    "app_subtitle": "Advanced Phishing Detection & Analysis",
+    "scanner": {
+        "title": "URL SCANNER",
+        "placeholder": "Enter suspicious URL to analyze...",
+        "scan_button": "INITIATE SCAN",
+        "scanning": "ANALYZING THREAT...",
+        "example": "Example: https://suspicious-site.com"
+    },
+    "verdict": {
+        "safe": "SECURE",
+        "phishing": "THREAT DETECTED",
+        "suspicious": "SUSPICIOUS",
+        "analyzing": "ANALYZING..."
+    },
+    "risk_levels": {
+        "safe": "LOW RISK",
+        "low": "LOW RISK",
+        "medium": "MEDIUM RISK",
+        "high": "HIGH RISK",
+        "critical": "CRITICAL THREAT"
+    },
+    "details": {
+        "confidence": "Confidence",
+        "threat_type": "Threat Type",
+        "scanned_at": "Scanned At",
+        "url": "Target URL"
+    },
+    "analysis": {
+        "title": "DEEP ANALYSIS",
+        "network": "Network Intelligence",
+        "forensics": "Digital Forensics",
+        "content": "Content Analysis",
+        "advanced": "Advanced Indicators",
+        "intelligence": "Threat Intelligence"
+    },
+    "network": {
+        "domain": "Domain",
+        "ip_address": "IP Address",
+        "location": "Server Location",
+        "isp": "Internet Provider",
+        "domain_age": "Domain Age",
+        "ssl_valid": "SSL Certificate",
+        "has_https": "HTTPS Enabled",
+        "dns_records": "DNS Records",
+        "mail_server": "Mail Server",
+        "days": "days"
+    },
+    "forensics": {
+        "suspicious_patterns": "Suspicious Patterns",
+        "obfuscation": "Code Obfuscation",
+        "homograph_attack": "Homograph Attack",
+        "brand_impersonation": "Brand Impersonation",
+        "detected": "Detected",
+        "none": "None Detected",
+        "clean": "Clean"
+    },
+    "chat": {
+        "title": "Sentinel AI Assistant",
+        "status_online": "Online",
+        "status_offline": "Offline",
+        "placeholder": "Ask Sentinel anything...",
+        "greeting": "👋 Hello! I'm Sentinel AI, your cyber security expert. I can help you understand scan results and answer any security questions.",
+        "context_analyzing": "Context: Analyzing",
+        "context_no_scan": "💡 Scan a URL first for context-aware assistance",
+        "context_with_scan": "💡 I can see your scan results. Ask me anything!",
+        "send": "Send",
+        "typing": "Sentinel is thinking..."
+    },
+    "threat_types": {
+        "credential_theft": "Credential Theft",
+        "malware": "Malware Distribution",
+        "scam": "Online Scam",
+        "financial_fraud": "Financial Fraud",
+        "phishing": "Phishing Attack"
+    },
+    "actions": {
+        "view_details": "View Details",
+        "scan_another": "Scan Another URL",
+        "download_report": "Download Report",
+        "share": "Share Results"
+    },
+    "history": {
+        "title": "SCAN HISTORY",
+        "recent": "Recent Scans",
+        "clear": "Clear History",
+        "no_scans": "No scans yet"
+    },
+    "errors": {
+        "invalid_url": "⚠️ Invalid URL format",
+        "scan_failed": "⚠️ Scan failed. Please try again.",
+        "api_error": "⚠️ API error. Check your connection.",
+        "chat_error": "⚠️ Sorry, I encountered an error. Please try again."
+    }
+}
