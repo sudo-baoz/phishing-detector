@@ -314,39 +314,6 @@ AI: ✅ URL này AN TOÀN (95.0% confidence)...
 
 ---
 
-## 🐛 Troubleshooting
-
-### Backend Issues
-
-**Error: "404 models/gemini-1.5-flash is not found"**
-- **Fix:** Update to `gemini-2.5-flash` in `chat_agent.py`
-- Already fixed in latest version ✅
-
-**Error: "GEMINI_API_KEY not found"**
-- **Fix:** Create `.env` file with valid API key
-- Get key from [Google AI Studio](https://makersuite.google.com/app/apikey)
-
-**Error: "Database connection failed"**
-- **Fix:** Check `DATABASE_URL` in `.env`
-- For SQLite: Ensure directory exists
-
-### Frontend Issues
-
-**Blank screen / Black screen**
-- **Fix:** Check browser console (F12)
-- Ensure backend is running on port 8000
-- Verify `VITE_API_URL` in frontend
-
-**"NaN%" in circular gauge**
-- **Fix:** Backend not returning `confidence_score`
-- Already fixed in latest version ✅
-
-**Language switching not working**
-- **Fix:** Clear browser localStorage
-- Hard refresh (Ctrl+Shift+R)
-
----
-
 ## 🧪 Testing
 
 ### Run Backend Tests
