@@ -155,16 +155,22 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Configuration for React frontend
+# --- CẤU HÌNH CORS (QUAN TRỌNG) ---
+# CORS Configuration for React frontend and cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins_list,
+    # Cho phép tất cả các nguồn (domain) truy cập
+    # Trong production nên thay "*" bằng list domain cụ thể: ["https://domain-cua-ban.com"]
+    allow_origins=["*"],  
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Cho phép tất cả các method (GET, POST, OPTIONS, PUT, DELETE...)
+    allow_methods=["*"],  
+    # Cho phép tất cả các header
+    allow_headers=["*"],  
 )
+# ----------------------------------
 
-logger.info(f"CORS enabled for: {settings.cors_origins_list}")
+logger.info("CORS enabled for all origins (*)")
 
 
 # Global exception handler
