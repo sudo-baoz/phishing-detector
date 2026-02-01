@@ -119,11 +119,24 @@ class ResponseBuilder:
         Returns:
             Brand name if detected
         """
+        # Extract actual domain to avoid false positives from @ attacks
+        actual_domain = ResponseBuilder.extract_actual_domain(url)
         url_lower = url.lower()
+        actual_domain_lower = actual_domain.lower()
         
+        # Check if brand name appears in URL but NOT in actual domain
+        # This indicates impersonation attempt
         for brand, keywords in KNOWN_BRANDS.items():
-            if any(keyword in url_lower for keyword in keywords):
+            brand_in_url = any(keyword in url_lower for keyword in keywords)
+            brand_in_actual_domain = any(keyword in actual_domain_lower for keyword in keywords)
+            
+            # If brand appears in URL but not in actual domain, it's impersonation
+            if brand_in_url and not brand_in_actual_domain:
+                logger.info(f"[Brand Detection] Impersonating {brand.capitalize()}, actual domain: {actual_domain}")
                 return brand.capitalize()
+            
+            # If brand only appears in actual domain, it might be legitimate
+            # (but ML model will make final decision)
         
         return None
     
@@ -161,6 +174,32 @@ class ResponseBuilder:
         return False
     
     @staticmethod
+    def extract_actual_domain(url: str) -> str:
+        """
+        Extract actual domain from URL, handling @ symbol attacks
+        
+        Args:
+            url: URL to analyze
+            
+        Returns:
+            Actual domain that browser will access
+        """
+        try:
+            parsed = urlparse(url)
+            netloc = parsed.netloc
+            
+            # If @ symbol exists, everything after @ is the actual domain
+            # Example: https://facebook.com@evil-site.com -> evil-site.com
+            if '@' in netloc:
+                actual_domain = netloc.split('@')[-1]
+                logger.info(f"[Obfuscation] @ symbol attack detected. Actual domain: {actual_domain}")
+                return actual_domain
+            
+            return netloc
+        except:
+            return url
+    
+    @staticmethod
     def detect_obfuscation(url: str) -> Optional[str]:
         """
         Detect URL obfuscation techniques
@@ -173,6 +212,12 @@ class ResponseBuilder:
         """
         try:
             parsed = urlparse(url)
+            
+            # Check for @ symbol attack (username@domain phishing)
+            if '@' in parsed.netloc:
+                fake_domain = parsed.netloc.split('@')[0]
+                actual_domain = parsed.netloc.split('@')[-1]
+                return f"@ Symbol Attack: Pretends to be '{fake_domain}' but accesses '{actual_domain}'"
             
             # Check for IP address usage
             if re.match(r'^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$', parsed.netloc):
@@ -362,13 +407,43 @@ class ResponseBuilder:
         return False
     
     @staticmethod
+    def capture_screenshot(url: str) -> Optional[str]:
+        """
+        Capture website screenshot using free screenshot service
+        
+        Args:
+            url: URL to capture
+            
+        Returns:
+            Screenshot URL or None if failed
+        """
+        try:
+            # Using thum.io free tier (no API key needed)
+            # Alternative services: screenshotapi.net, apiflash.com
+            screenshot_service = f"https://image.thum.io/get/width/1200/crop/800/noanimate/{url}"
+            
+            # Verify the service is accessible
+            response = requests.head(screenshot_service, timeout=3)
+            if response.status_code == 200:
+                logger.info(f"[Content] Screenshot captured via thum.io")
+                return screenshot_service
+            else:
+                logger.warning(f"Screenshot service returned {response.status_code}")
+                return None
+                
+        except Exception as e:
+            logger.warning(f"Failed to capture screenshot: {e}")
+            return None
+    
+    @staticmethod
     def build_content(url: str) -> Dict[str, Any]:
         """Build content data"""
         has_login_form = ResponseBuilder.detect_password_fields(url)
+        screenshot_url = ResponseBuilder.capture_screenshot(url)
         
         return {
             "has_login_form": has_login_form,
-            "screenshot_url": None,  # TODO: Implement screenshot capture
+            "screenshot_url": screenshot_url,
             "external_resources": None  # TODO: Implement resource extraction
         }
     

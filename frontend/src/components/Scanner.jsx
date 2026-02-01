@@ -1,11 +1,34 @@
 import { useState } from 'react';
 import { scanUrl } from '../services/api';
+import AnalysisReport from './AnalysisReport';
 
 const Scanner = () => {
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
+
+  const sanitizeUrl = (inputUrl) => {
+    let sanitized = inputUrl.trim();
+    
+    // Fix common typos in protocol
+    if (sanitized.match(/^ttps:\/\//i)) {
+      sanitized = sanitized.replace(/^ttps:\/\//i, 'https://');
+    } else if (sanitized.match(/^ttp:\/\//i)) {
+      sanitized = sanitized.replace(/^ttp:\/\//i, 'http://');
+    } else if (sanitized.match(/^htp:\/\//i)) {
+      sanitized = sanitized.replace(/^htp:\/\//i, 'http://');
+    } else if (sanitized.match(/^htps:\/\//i)) {
+      sanitized = sanitized.replace(/^htps:\/\//i, 'https://');
+    }
+    
+    // Add https:// if no protocol
+    if (!sanitized.match(/^https?:\/\//i)) {
+      sanitized = 'https://' + sanitized;
+    }
+    
+    return sanitized;
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,7 +38,10 @@ const Scanner = () => {
     setError(null);
     setResult(null);
 
-    const response = await scanUrl(url);
+    // Sanitize URL before sending
+    const sanitizedUrl = sanitizeUrl(url);
+
+    const response = await scanUrl(sanitizedUrl);
 
     if (response.success) {
       setResult(response.data);
@@ -106,129 +132,8 @@ const Scanner = () => {
 
         {/* Result Display */}
         {result && (
-          <div className="mt-8 space-y-6 animate-fadeIn">
-            {/* Main Verdict */}
-            <div className={`border-2 rounded-lg p-8 shadow-2xl ${
-              result.is_phishing 
-                ? 'bg-red-950 border-red-500 shadow-red-500/20' 
-                : 'bg-green-950 border-green-500 shadow-green-500/20'
-            }`}>
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-4">
-                  <span className="text-6xl">
-                    {result.is_phishing ? '☠️' : '🛡️'}
-                  </span>
-                  <div>
-                    <h2 className={`text-3xl font-bold ${
-                      result.is_phishing ? 'text-red-400' : 'text-green-400'
-                    }`}>
-                      {result.is_phishing ? '[ MALICIOUS DETECTED ]' : '[ SAFE WEBSITE ]'}
-                    </h2>
-                    {result.threat_type && (
-                      <p className={`text-lg mt-1 uppercase ${getThreatColor(result.threat_type)}`}>
-                        Threat Type: {result.threat_type.replace(/_/g, ' ')}
-                      </p>
-                    )}
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className={`text-5xl font-bold ${
-                    result.is_phishing ? 'text-red-400' : 'text-green-400'
-                  }`}>
-                    {Math.round(result.confidence_score)}%
-                  </div>
-                  <div className="text-sm text-gray-400 mt-1">CONFIDENCE</div>
-                </div>
-              </div>
-
-              {/* Confidence Bar */}
-              <div className="relative h-6 bg-gray-800 rounded-full overflow-hidden">
-                <div
-                  className={`h-full transition-all duration-1000 ${
-                    result.is_phishing 
-                      ? 'bg-gradient-to-r from-red-600 to-red-400' 
-                      : 'bg-gradient-to-r from-green-600 to-green-400'
-                  }`}
-                  style={{ width: `${result.confidence_score}%` }}
-                >
-                  <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
-                </div>
-              </div>
-            </div>
-
-            {/* URL Info */}
-            <div className="bg-gray-900 border-2 border-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-bold text-green-400 mb-3">&gt; SCANNED URL</h3>
-              <p className="text-green-300 break-all bg-black p-3 rounded border border-green-500/30">
-                {result.url}
-              </p>
-              <div className="mt-4 flex items-center gap-4 text-sm text-gray-400">
-                <div>ID: #{result.id}</div>
-                <div>|</div>
-                <div>Scanned: {new Date(result.scanned_at).toLocaleString()}</div>
-              </div>
-            </div>
-
-            {/* Threat Details */}
-            {result.is_phishing && (
-              <div className="bg-red-950/50 border-2 border-red-500/50 rounded-lg p-6">
-                <h3 className="text-lg font-bold text-red-400 mb-4">&gt; THREAT ANALYSIS</h3>
-                <ul className="space-y-2 text-red-300">
-                  {result.threat_type === 'credential_theft' && (
-                    <>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>Attempts to steal login credentials or personal information</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>May impersonate legitimate login pages</span>
-                      </li>
-                    </>
-                  )}
-                  {result.threat_type === 'malware' && (
-                    <>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>May contain malicious downloads or executables</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>Could install unwanted software on your device</span>
-                      </li>
-                    </>
-                  )}
-                  {result.threat_type === 'scam' && (
-                    <>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>Fraudulent prize or gift claim scheme detected</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>May request personal information or payments</span>
-                      </li>
-                    </>
-                  )}
-                  {result.threat_type === 'financial_fraud' && (
-                    <>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>Targets financial or banking information</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <span className="text-red-500 mt-1">▸</span>
-                        <span>May impersonate banks or payment services</span>
-                      </li>
-                    </>
-                  )}
-                  <li className="flex items-start gap-2">
-                    <span className="text-red-500 mt-1">▸</span>
-                    <span className="font-bold">DO NOT enter any personal information on this site</span>
-                  </li>
-                </ul>
-              </div>
-            )}
+          <div className="mt-8 animate-fadeIn">
+            <AnalysisReport data={result} loading={false} />
           </div>
         )}
       </div>

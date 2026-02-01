@@ -14,10 +14,14 @@ const api = axios.create({
   },
 });
 
-// Scan URL endpoint
-export const scanUrl = async (url) => {
+// Scan URL endpoint with deep analysis
+export const scanUrl = async (url, deepAnalysis = true) => {
   try {
-    const response = await api.post('/scan', { url });
+    const response = await api.post('/scan', { 
+      url,
+      include_osint: true,
+      deep_analysis: deepAnalysis
+    });
     return {
       success: true,
       data: response.data,
