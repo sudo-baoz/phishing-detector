@@ -181,18 +181,26 @@ app = FastAPI(
 # CORS Configuration for React frontend and cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    # Cho phép tất cả các nguồn (domain) truy cập
-    # Trong production nên thay "*" bằng list domain cụ thể: ["https://domain-cua-ban.com"]
-    allow_origins=["*"],  
+    # Production domains (HTTPS) + Local development
+    allow_origins=[
+        "https://ai.baodarius.me",           # Production frontend
+        "https://api.baodarius.me",          # API domain
+        "http://localhost:5173",             # Vite dev
+        "http://localhost:3000",             # Alternative dev
+        "http://127.0.0.1:5173",            # Local dev
+        "http://127.0.0.1:3000",            # Local dev  
+    ],
     allow_credentials=True,
     # Cho phép tất cả các method (GET, POST, OPTIONS, PUT, DELETE...)
-    allow_methods=["*"],  
+    allow_methods=["*"],
     # Cho phép tất cả các header
-    allow_headers=["*"],  
+    allow_headers=["*"],
+    # Expose headers for browser access
+    expose_headers=["*"],
 )
 # ----------------------------------
 
-logger.info("CORS enabled for all origins (*)")
+logger.info("CORS enabled for production and development origins")
 
 
 # Global exception handler
