@@ -7,7 +7,7 @@
 
 > **Award-Winning UI** | **Multi-Language Support** | **AI-Powered Analysis** | **Real-time Threat Detection**
 
-Comprehensive phishing detection system with advanced AI analysis, OSINT intelligence gathering, and an intelligent chatbot assistant (Sentinel AI) powered by Google Gemini.
+Comprehensive phishing detection system with advanced AI analysis, OSINT intelligence gathering, and an intelligent chatbot assistant (Sentinel AI).
 
 ---
 
