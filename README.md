@@ -1,382 +1,171 @@
-# 🛡️ Phishing Detector - AI-Powered Threat Intelligence System
+# 🛡️ Phishing Detector - AI-Powered Forensic & Threat Intel System
 
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue)](https://www.python.org/)
-[![React](https://img.shields.io/badge/react-19.0.0-61dafb)](https://reactjs.org/)
-[![FastAPI](https://img.shields.io/badge/fastapi-0.115.6-009688)](https://fastapi.tiangolo.com/)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![React](https://img.shields.io/badge/react-19.0.0-61DAFB.svg?style=flat&logo=react&logoColor=black)](https://reactjs.org/)
+[![FastAPI](https://img.shields.io/badge/fastapi-0.115.6-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Security](https://img.shields.io/badge/security-Turnstile%20Protected-orange)](https://www.cloudflare.com/)
 
-> **Award-Winning UI** | **Multi-Language Support** | **AI-Powered Analysis** | **Real-time Threat Detection**
+> **Next-Gen Phishing Detection** | **Deep URL Forensics** | **AI-Driven Analysis** | **OSINT Integration**
 
-Comprehensive phishing detection system with advanced AI analysis, OSINT intelligence gathering, and an intelligent chatbot assistant (Sentinel AI).
+A comprehensive **Phishing Detection System** designed for Blue Teams and security researchers. This tool combines traditional **OSINT** techniques (Whois, DNS, SSL analysis) with **Generative AI (Gemini)** to detect sophisticated phishing campaigns, evasion techniques, and malicious infrastructure in real-time.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-### 🎯 Core Capabilities
-- ⚡ **Real-time URL Analysis** - Instant phishing detection with ML model
-- 🧠 **AI-Powered Insights** - Sentinel AI chatbot for security guidance
-- 🌐 **Multi-Language Support** - English & Vietnamese (i18n ready)
-- 🔍 **OSINT Intelligence** - WHOIS, DNS, geolocation, SSL analysis
-- 📊 **Visual Analytics** - Circular gauges, glassmorphism UI, matrix rain effects
-- 🚀 **Auto-Scan URLs** - Sentinel AI automatically detects and scans URLs in chat
-
-### 🎨 Premium UI/UX
-- **Glassmorphism Design** - Backdrop blur effects with semi-transparent cards
-- **Matrix Rain Background** - Animated cyberpunk aesthetic
-- **Circular Progress Gauge** - Animated SVG verdict display
-- **Neon Glow Effects** - Interactive hover states and shadows
-- **Responsive Layout** - Mobile-first design with CSS Grid
+### 🔍 Deep Forensic Analysis
+* **Real-time URL Scanning:** Instant analysis using ML models and heuristic rules.
+* **Infrastructure Inspection:** Automated checks for Domain Age, Registrar, ASN, and IP Reputation.
+* **Evasion Detection:** Identifies Typosquatting (Homograph attacks), URL Obfuscation, and multiple redirection chains.
+* **Content-Based Analysis:** DOM inspection to detect fake login forms and cloaking techniques.
 
 ### 🤖 Sentinel AI Assistant
-- **Context-Aware Responses** - Understands scan results
-- **URL Auto-Detection** - Automatically scans URLs mentioned in chat
-- **Multi-Language** - Responds in user's language (EN/VI)
-- **Security Expertise** - Professional cyber security analysis
+* **Context-Aware Intelligence:** Chat with Sentinel AI to explain *why* a URL is malicious.
+* **Auto-Detection:** Automatically extracts and scans URLs mentioned in the conversation.
+* **Bilingual Support:** Native support for **English** and **Vietnamese** (Tiếng Việt), tailored for regional threat landscapes.
+
+### 🛡️ Enterprise-Grade Security
+* **Cloudflare Turnstile Integration:** Protects the scanner itself from bot abuse and DDoS using Smart CAPTCHA.
+* **Secure API:** JWT Authentication and rate limiting ready.
+
+### 🎨 Modern UX/UI
+* **Cyberpunk Aesthetic:** Glassmorphism design with Matrix rain effects.
+* **Visual Verdict:** Animated circular gauges for clear "Safe" vs "Phishing" scoring.
+* **Responsive:** Mobile-first design optimized for quick field analysis.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **FastAPI** - High-performance Python web framework
-- **SQLAlchemy** - ORM for database management
-- **scikit-learn** - Machine learning for phishing detection
-- **Google Gemini AI** - Advanced language model for Sentinel AI
-- **python-whois** - Domain information retrieval
-- **dnspython** - DNS record analysis
+### Core Engine (Backend)
+* **Framework:** FastAPI (High-performance async Python)
+* **AI/ML:** Google Gemini Pro (LLM), Scikit-learn (Feature extraction)
+* **Forensics:** `python-whois`, `dnspython`, `requests` (Header analysis)
+* **Security:** Cloudflare Turnstile Verification
+* **Database:** SQLAlchemy (SQLite/PostgreSQL)
 
-### Frontend
-- **React 19** - Modern UI library
-- **Vite** - Lightning-fast build tool
-- **Tailwind CSS** - Utility-first CSS framework
-- **Framer Motion** - Smooth animations
-- **i18next** - Internationalization framework
-- **Lucide React** - Beautiful icon library
+### Interface (Frontend)
+* **Library:** React 19 + Vite
+* **Styling:** Tailwind CSS + Framer Motion (Animations)
+* **State Management:** React Hooks
+* **I18n:** `i18next` (Internationalization)
 
 ---
 
 ## 📦 Installation
 
 ### Prerequisites
-- **Python 3.10+**
-- **Node.js 18+**
-- **npm** or **yarn**
-- **Git**
+* Python 3.10+
+* Node.js 18+
+* Cloudflare Account (for Turnstile Keys)
+* Google AI Studio Account (for Gemini API)
 
 ### 1. Clone Repository
 ```bash
-git clone https://github.com/sudo-baoz/phishing-detector.git
+git clone [https://github.com/sudo-baoz/phishing-detector.git](https://github.com/sudo-baoz/phishing-detector.git)
 cd phishing-detector
+
 ```
 
 ### 2. Backend Setup
 
-#### Create Virtual Environment
 ```bash
-# Windows
+# Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
-# Linux/macOS
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-#### Install Dependencies
-```bash
+# Install dependencies
 pip install -r requirements.txt
+
 ```
 
-#### Configure Environment Variables
-Create `.env` file in root directory:
+**Configuration (.env):**
+Create a `.env` file in the root directory:
+
 ```env
-# Google Gemini API
-GEMINI_API_KEY=your_gemini_api_key_here
-
-# Database
+GEMINI_API_KEY=your_gemini_api_key
 DATABASE_URL=sqlite:///./phishing_detector.db
+SECRET_KEY=your_super_secret_key
+CLOUDFLARE_SECRET_KEY=0x4AAAAAA...
 
-# API Configuration
-API_HOST=0.0.0.0
-API_PORT=8000
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000
-
-# Security
-SECRET_KEY=your-secret-key-change-this-in-production
 ```
 
-**Get Gemini API Key:**
-1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-2. Create new API key
-3. Copy and paste into `.env`
+**Run Server:**
 
-#### Run Backend
 ```bash
 uvicorn app.main:app --reload --port 8000
+
 ```
-
-Backend will be available at: **http://localhost:8000**
-API Docs: **http://localhost:8000/docs**
-
----
 
 ### 3. Frontend Setup
 
-#### Navigate to Frontend Directory
 ```bash
 cd frontend
-```
-
-#### Install Dependencies
-```bash
 npm install
-```
 
-#### Run Development Server
-```bash
+# Create .env.local
+echo "VITE_CLOUDFLARE_SITE_KEY=your_site_key" > .env.local
+
+# Start Dev Server
 npm run dev
+
 ```
 
-Frontend will be available at: **http://localhost:5173**
+Access the application at: `http://localhost:5173`
 
 ---
 
-## 🚀 Deployment
+## 🧩 How It Works
 
-### Option 1: Vercel (Frontend) + Railway (Backend)
-
-#### Deploy Frontend to Vercel
-1. Install Vercel CLI:
-```bash
-npm i -g vercel
-```
-
-2. Deploy:
-```bash
-cd frontend
-vercel
-```
-
-3. Set Environment Variables in Vercel Dashboard:
-   - `VITE_API_URL` = Your backend URL
-
-#### Deploy Backend to Railway
-1. Create account at [Railway.app](https://railway.app)
-2. New Project → Deploy from GitHub
-3. Select repository
-4. Add Environment Variables:
-   - `GEMINI_API_KEY`
-   - `DATABASE_URL` (use Railway PostgreSQL)
-   - `CORS_ORIGINS` (add Vercel URL)
-5. Deploy!
+1. **Input:** User submits a URL or mentions it in chat.
+2. **Pre-processing:** The system resolves the URL, follows redirects (unshortening), and normalizes the string.
+3. **OSINT Gathering:** Fetches Whois data, DNS records (A, MX, NS, TXT), and SSL certificate details.
+4. **AI Analysis:** The aggregated data is sent to **Gemini AI** with a specific prompt to analyze for social engineering traits.
+5. **Verdict:** A risk score (0-100) is calculated, and a detailed report is generated.
 
 ---
 
-### Option 2: Render (Full-Stack)
+## ⚠️ Legal Disclaimer
 
-#### Deploy Backend
-1. Create account at [Render.com](https://render.com)
-2. New → Web Service
-3. Connect GitHub repository
-4. Configure:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
-5. Add Environment Variables
-6. Create PostgreSQL database (optional, or use SQLite)
-
-#### Deploy Frontend
-1. New → Static Site
-2. Connect GitHub repository
-3. Configure:
-   - **Build Command:** `cd frontend && npm install && npm run build`
-   - **Publish Directory:** `frontend/dist`
-4. Add Environment Variable:
-   - `VITE_API_URL` = Backend URL
-
----
-
-### Option 3: Docker (All Platforms)
-
-#### Create `docker-compose.yml`
-```yaml
-version: '3.8'
-
-services:
-  backend:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - DATABASE_URL=sqlite:///./phishing_detector.db
-    volumes:
-      - ./database:/app/database
-
-  frontend:
-    build: ./frontend
-    ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_URL=http://localhost:8000
-    depends_on:
-      - backend
-```
-
-#### Deploy
-```bash
-docker-compose up -d
-```
-
----
-
-## 📁 Project Structure
-
-```
-phishing-detector/
-├── app/                          # Backend application
-│   ├── routers/                  # API endpoints
-│   │   ├── scan.py              # URL scanning endpoint
-│   │   └── chat.py              # Sentinel AI chat endpoint
-│   ├── services/                 # Business logic
-│   │   ├── ai_engine.py         # ML phishing detection
-│   │   ├── chat_agent.py        # Sentinel AI service
-│   │   ├── osint.py             # Intelligence gathering
-│   │   └── response_builder.py  # Response formatting
-│   ├── schemas/                  # Pydantic models
-│   ├── models/                   # SQLAlchemy models
-│   └── main.py                   # FastAPI app entry
-├── frontend/                     # React application
-│   ├── src/
-│   │   ├── components/          # UI components
-│   │   │   ├── Scanner.jsx      # Main scanner interface
-│   │   │   ├── ChatWidget.jsx   # Sentinel AI chat
-│   │   │   └── LanguageSwitcher.jsx
-│   │   ├── locales/             # i18n translations
-│   │   │   ├── en.json          # English
-│   │   │   └── vi.json          # Vietnamese
-│   │   ├── services/            # API clients
-│   │   └── i18n.js              # i18n configuration
-│   └── package.json
-├── models/                       # Trained ML models
-│   └── advanced_model.pkl
-├── .env                          # Environment variables
-├── requirements.txt              # Python dependencies
-└── README.md                     # This file
-```
-
----
-
-## 🎮 Usage
-
-### Basic Workflow
-
-1. **Enter URL** - Type suspicious URL in search bar
-2. **Click "INITIATE SCAN"** - System analyzes the URL
-3. **View Results** - See circular gauge with verdict (SAFE/PHISHING)
-4. **Explore Details** - Check network intel, forensics, content analysis
-5. **Ask Sentinel AI** - Get expert security advice via chatbot
-
-### Sentinel AI Chat Examples
-
-**English:**
-```
-User: "Is this safe? https://paypal-verify.tk"
-AI: ⚠️ CRITICAL WARNING: This URL is HIGHLY DANGEROUS...
-```
-
-**Vietnamese:**
-```
-User: "Kiểm tra https://google.com"
-AI: ✅ URL này AN TOÀN (95.0% confidence)...
-```
-
-### Language Switching
-- Click **Globe icon** (top-right)
-- Select **English** or **Tiếng Việt**
-- All UI text updates instantly
-
----
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `GEMINI_API_KEY` | Google Gemini API key | - | ✅ Yes |
-| `DATABASE_URL` | Database connection string | `sqlite:///./phishing_detector.db` | No |
-| `API_HOST` | Backend host | `0.0.0.0` | No |
-| `API_PORT` | Backend port | `8000` | No |
-| `CORS_ORIGINS` | Allowed origins (comma-separated) | `http://localhost:5173` | No |
-| `SECRET_KEY` | JWT secret key | - | ⚠️ Production |
-| `VITE_API_URL` | Frontend API URL | `http://localhost:8000` | No |
-
----
-
-## 🧪 Testing
-
-### Run Backend Tests
-```bash
-pytest tests/ -v
-```
-
-### Manual Testing Checklist
-- [ ] URL scanning works
-- [ ] Sentinel AI responds correctly
-- [ ] Language switching (EN ↔ VI)
-- [ ] Matrix rain animation visible
-- [ ] Circular gauge animates
-- [ ] Mobile responsive design
+**EDUCATIONAL PURPOSE ONLY.**
+This tool is designed to help security researchers and users identify potential phishing threats. The developers are not responsible for any misuse of this tool or for any damages caused by accessing malicious websites detected by this system. Always use a sandbox environment when analyzing live malware or phishing sites.
 
 ---
 
 ## 🤝 Contributing
 
-Contributions welcome! Please:
-1. Fork repository
-2. Create feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit changes (`git commit -m 'Add AmazingFeature'`)
-4. Push to branch (`git push origin feature/AmazingFeature`)
-5. Open Pull Request
+Contributions are welcome! Please open an issue or submit a pull request for any bugs or feature enhancements.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/NewFeature`)
+3. Commit your Changes (`git commit -m 'Add some NewFeature'`)
+4. Push to the Branch (`git push origin feature/NewFeature`)
+5. Open a Pull Request
 
 ---
+## ☕ Support the Project
 
-## 📄 License
+If you find this tool useful for your research or security work, please consider buying me a coffee! Your support helps cover server costs (API keys, hosting) and keeps the updates coming.
 
-This project is licensed under the **Apache License 2.0** - see [LICENSE](LICENSE) file for details.
+<div align="center">
 
+| **Platform** | **Link / Info** |
+| :--- | :--- |
+| <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="45" alt="Buy Me A Coffee"> | [**Buy me a coffee**](https://buymeacoffee.com/baoz) |
+| <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" height="40" alt="MoMo"> | **0395818082** (Mai Quoc Bao) |
+| <img src="https://img.vietqr.io/image/VCB-0395818082-compact.png" height="45" alt="VietQR"> | **Vietcombank**<br>STK: `0395818082`<br>CTK: `Mai Quoc Bao` |
+
+### 🪙 Crypto Donations
+
+| Coin | Network | Address |
+| :--- | :---: | :--- |
+| **USDT** | BEP20 (BSC) | `0x2cc9c23be635a6959e35474dabd15c3aa7171ea4` |
+| **ETH** | ERC20 | `0x2cc9c23be635a6959e35474dabd15c3aa7171ea4` |
+
+</div>
 ---
 
-## 🙏 Acknowledgments
+**Built with 💻 & ☕ by [sudo-baoz**](https://www.google.com/search?q=https://github.com/sudo-baoz)
 
-- **Google Gemini** - AI language model
-- **FastAPI** - Modern web framework
-- **React Team** - UI library
-- **Tailwind CSS** - Utility CSS
-- **Framer Motion** - Animation library
-
----
-
-## 📞 Support
-
-- **Issues:** [GitHub Issues](https://github.com/sudo-baoz/phishing-detector/issues)
-- **Email:** maibao123bao@gmail.com
-- **Documentation:** [Wiki](https://github.com/sudo-baoz/phishing-detector/wiki)
-
----
-
-## 🗺️ Roadmap
-
-- [ ] Add more ML models (ensemble learning)
-- [ ] Implement user authentication
-- [ ] Add scan history dashboard
-- [ ] Support more languages (FR, ES, ZH)
-- [ ] Browser extension
-- [ ] API rate limiting
-- [ ] Redis caching
-- [ ] Webhook notifications
-
----
-
-**Built with ❤️ by sudo-baoz**
+```
