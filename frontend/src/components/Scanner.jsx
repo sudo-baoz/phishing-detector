@@ -151,7 +151,28 @@ const Scanner = () => {
 
             // Handle successful response
             if (response.success) {
-                setResult(response.data);
+                // Defensive check: Ensure response.data exists and is valid
+                if (!response.data) {
+                    console.error('API returned success but no data:', response);
+                    setError('Server returned invalid response. Please try again.');
+                    return;
+                }
+
+                // Log successful response for debugging
+                console.log('✅ Scan completed successfully:', response.data);
+
+                // CRITICAL: Only setResult if data is valid
+                // This prevents React from crashing on malformed data
+                try {
+                    setResult(response.data);
+                    console.log('✅ Result state updated successfully');
+                } catch (renderError) {
+                    console.error('Failed to render result:', renderError);
+                    setError('Failed to display scan results. Please try again.');
+                    setResult(null);
+                    return;
+                }
+
                 // Reset Turnstile for next scan
                 if (turnstileRef.current) {
                     turnstileRef.current.reset();
