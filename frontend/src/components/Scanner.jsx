@@ -435,7 +435,7 @@ const Scanner = () => {
                         transition={{ duration: 0.5 }}
                         className="mb-8"
                     >
-                        <AnalysisReport result={result} />
+                        <AnalysisReport data={result} loading={false} />
                     </motion.div>
                 )}
 
