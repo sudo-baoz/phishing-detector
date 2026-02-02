@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@marsidev/react-turnstile": "^1.4.1",
     "@tailwindcss/postcss": "^4.1.18",
     "axios": "^1.13.4",
     "clsx": "^2.1.1",

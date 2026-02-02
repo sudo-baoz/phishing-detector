@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     # AI Integration settings
     GEMINI_API_KEY: str = ""
     
+    # Cloudflare Turnstile settings
+    CLOUDFLARE_SECRET_KEY: str = ""
+    TURNSTILE_ENABLED: bool = True  # Toggle Turnstile verification
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

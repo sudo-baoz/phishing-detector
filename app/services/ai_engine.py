@@ -84,22 +84,22 @@ class PhishingPredictor:
             Path(__file__).parent.parent / model_name,
         ]
         
-        logger.info(f"🔍 Searching for model file: {model_name}")
+        logger.info(f"[SEARCH] Searching for model file: {model_name}")
         
         for path in search_paths:
             try:
                 # Resolve để lấy absolute path và check existence
                 resolved_path = path.resolve()
                 if resolved_path.exists() and resolved_path.is_file():
-                    logger.info(f"✅ Found model at: {resolved_path}")
+                    logger.info(f"[OK] Found model at: {resolved_path}")
                     return resolved_path
                 else:
-                    logger.debug(f"❌ Not found: {resolved_path}")
+                    logger.debug(f"[SKIP] Not found: {resolved_path}")
             except Exception as e:
                 logger.debug(f"Error checking path {path}: {e}")
                 continue
         
-        logger.error(f"❌ Model file '{model_name}' not found in any search path")
+        logger.error(f"[ERROR] Model file '{model_name}' not found in any search path")
         return None
     
     def load_model(self, model_path: Optional[str] = None) -> bool:
@@ -138,7 +138,7 @@ class PhishingPredictor:
                 )
         
         try:
-            logger.info(f"📦 Loading ML model from: {path}")
+            logger.info(f"[LOAD] Loading ML model from: {path}")
             model_package = joblib.load(path)
             
             self.model = model_package['model']
@@ -147,20 +147,20 @@ class PhishingPredictor:
             
             # Log additional info from advanced model
             if 'best_params' in model_package:
-                logger.info("✅ Advanced ML Model loaded successfully")
+                logger.info("[OK] Advanced ML Model loaded successfully")
                 logger.info(f"  - Model type: {type(self.model).__name__} (Optimized with RandomizedSearchCV)")
                 logger.info(f"  - Features: {len(self.feature_names)}")
                 logger.info(f"  - CV F1 Score: {model_package.get('cv_score', 'N/A')}")
                 logger.info(f"  - Test Accuracy: {model_package.get('test_accuracy', 'N/A')}")
             else:
-                logger.info("✅ ML Model loaded successfully")
+                logger.info("[OK] ML Model loaded successfully")
                 logger.info(f"  - Model type: {type(self.model).__name__}")
                 logger.info(f"  - Features: {len(self.feature_names)}")
             
             return True
             
         except Exception as e:
-            logger.error(f"❌ Failed to load ML model: {e}")
+            logger.error(f"[ERROR] Failed to load ML model: {e}")
             raise
     
     def _generate_training_data(self) -> pd.DataFrame:
@@ -227,7 +227,7 @@ class PhishingPredictor:
         df = pd.DataFrame(data)
         df = df.sample(frac=1, random_state=42).reset_index(drop=True)  # Shuffle
         
-        logger.info(f"✅ Generated {len(df)} training samples (Safe: {(df['label']==0).sum()}, Phishing: {(df['label']==1).sum()})")
+        logger.info(f"[OK] Generated {len(df)} training samples (Safe: {(df['label']==0).sum()}, Phishing: {(df['label']==1).sum()})")
         return df
     
     def auto_train(self, save_path: str = "models/phishing_model.pkl") -> bool:
@@ -264,7 +264,7 @@ class PhishingPredictor:
             X = pd.DataFrame(features_list)
             y = df['label']
             
-            logger.info(f"✅ Extracted {len(X.columns)} features")
+            logger.info(f"[OK] Extracted {len(X.columns)} features")
             
             # Split data
             X_train, X_test, y_train, y_test = train_test_split(
@@ -291,7 +291,7 @@ class PhishingPredictor:
             # Evaluate
             y_pred = model.predict(X_test_scaled)
             accuracy = np.mean(y_pred == y_test)
-            logger.info(f"✅ Training complete! Accuracy: {accuracy * 100:.2f}%")
+            logger.info(f"[OK] Training complete! Accuracy: {accuracy * 100:.2f}%")
             
             # Save model
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
@@ -318,7 +318,7 @@ class PhishingPredictor:
             return True
             
         except Exception as e:
-            logger.error(f"❌ Auto-training failed: {e}")
+            logger.error(f"[ERROR] Auto-training failed: {e}")
             return False
     
     def is_loaded(self) -> bool:

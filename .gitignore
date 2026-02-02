@@ -26,8 +26,14 @@ venv/
 ENV/
 env/
 
-# Environment variables
+# Environment variables (IMPORTANT - Never commit these!)
 .env
+.env.local
+.env.*.local
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+backend/.env
 
 # Logs
 *.log

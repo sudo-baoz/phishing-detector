@@ -18,6 +18,7 @@ from app.schemas.scan_new import (
 from app.services.ai_engine import phishing_predictor
 from app.services.osint import collect_osint_data, get_osint_summary
 from app.services.response_builder import response_builder
+from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
 
 logger = logging.getLogger(__name__)
 
@@ -47,18 +48,20 @@ def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Opt
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_200_OK)
 async def scan_url(
     scan_request: ScanRequest,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    turnstile_verified: dict = Depends(verify_turnstile)  # ✅ Cloudflare Turnstile Protection
 ):
     """
-    Scan a URL for phishing detection
+    Scan a URL for phishing detection (Protected by Cloudflare Turnstile)
     
     - **url**: URL to scan (must be valid HTTP/HTTPS URL)
     - **include_osint**: Include OSINT data enrichment (default: True)
+    - **cf-turnstile-response**: Cloudflare Turnstile token (required in header or body)
     
     Returns prediction with confidence score, threat type, and optional OSINT data
     """
     
-    logger.info(f"Scanning URL: {scan_request.url}")
+    logger.info(f"Scanning URL: {scan_request.url} (Turnstile: {turnstile_verified.get('success', False)})")
     
     try:
         # Use PhishingPredictor service for prediction

@@ -8,11 +8,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 import joblib
 
-from fastapi import FastAPI, HTTPException, status
+from fastapi import FastAPI, HTTPException, status, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.security.turnstile import verify_turnstile
 from app.database import init_db, close_db
 from app.routers import health, scan, auth, chat
 from app.services.ai_engine import phishing_predictor
@@ -115,7 +116,7 @@ async def lifespan(app: FastAPI):
     except FileNotFoundError as e:
         # Model not found - trigger auto-training for VPS deployment
         logger.warning("=" * 70)
-        logger.warning("⚠️ No pre-trained model found!")
+        logger.warning("[WARNING] No pre-trained model found!")
         logger.warning("=" * 70)
         logger.warning("This is normal for first-time VPS deployment.")
         logger.warning("Initiating auto-training with synthetic data...")
@@ -125,13 +126,13 @@ async def lifespan(app: FastAPI):
             # Auto-train and save model
             train_success = phishing_predictor.auto_train()
             if train_success:
-                logger.info("✅ Auto-training completed successfully!")
+                logger.info("[OK] Auto-training completed successfully!")
                 logger.info("Model is now ready for production use.")
             else:
-                logger.error("❌ Auto-training failed!")
+                logger.error("[ERROR] Auto-training failed!")
                 logger.warning("[WARNING] API will start but URL scanning will not work")
         except Exception as train_error:
-            logger.error(f"❌ Auto-training error: {train_error}")
+            logger.error(f"[ERROR] Auto-training error: {train_error}")
             logger.warning("[WARNING] API will start but URL scanning will not work")
     except Exception as e:
         logger.error(f"Failed to load ML model: {e}")
@@ -177,30 +178,34 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# --- CẤU HÌNH CORS (QUAN TRỌNG) ---
-# CORS Configuration for React frontend and cross-origin requests
+# ============================================================
+# CORS CONFIGURATION - Production Grade
+# ============================================================
+# Load allowed origins from environment variable (.env)
+# This prevents exposing production domains in code
+ALLOWED_ORIGINS = settings.cors_origins_list
+
 app.add_middleware(
     CORSMiddleware,
-    # Production domains (HTTPS) + Local development
-    allow_origins=[
-        "https://ai.baodarius.me",           # Production frontend
-        "https://api.baodarius.me",          # API domain
-        "http://localhost:5173",             # Vite dev
-        "http://localhost:3000",             # Alternative dev
-        "http://127.0.0.1:5173",            # Local dev
-        "http://127.0.0.1:3000",            # Local dev  
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=True,          # Enable cookies/auth headers
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "User-Agent",
+        "DNT",
+        "Cache-Control",
+        "X-Requested-With",
+        "cf-turnstile-response",     # Cloudflare Turnstile token
     ],
-    allow_credentials=True,
-    # Cho phép tất cả các method (GET, POST, OPTIONS, PUT, DELETE...)
-    allow_methods=["*"],
-    # Cho phép tất cả các header
-    allow_headers=["*"],
-    # Expose headers for browser access
-    expose_headers=["*"],
+    expose_headers=["Content-Length", "Content-Range"],
+    max_age=3600,                    # Cache preflight requests for 1 hour
 )
-# ----------------------------------
 
-logger.info("CORS enabled for production and development origins")
+logger.info(f"[OK] CORS configured for origins: {ALLOWED_ORIGINS}")
 
 
 # Global exception handler
