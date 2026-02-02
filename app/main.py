@@ -179,33 +179,49 @@ app = FastAPI(
 )
 
 # ============================================================
-# CORS CONFIGURATION - Production Grade
+# CORS CONFIGURATION - Environment-Aware
 # ============================================================
-# Load allowed origins from environment variable (.env)
-# This prevents exposing production domains in code
+# IMPORTANT: In production with Nginx reverse proxy, Nginx handles CORS.
+# FastAPI CORS middleware should ONLY run in development to prevent duplicate headers.
+# 
+# The error "Access-Control-Allow-Origin contains multiple values" happens when
+# BOTH Nginx AND FastAPI add CORS headers.
+# 
+# Solution:
+# - Development (no Nginx): FastAPI handles CORS ✅
+# - Production (with Nginx): Nginx handles CORS, FastAPI disabled ❌
+# ============================================================
+
 ALLOWED_ORIGINS = settings.cors_origins_list
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=ALLOWED_ORIGINS,
-    allow_credentials=True,          # Enable cookies/auth headers
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allow_headers=[
-        "Content-Type",
-        "Authorization",
-        "Accept",
-        "Origin",
-        "User-Agent",
-        "DNT",
-        "Cache-Control",
-        "X-Requested-With",
-        "cf-turnstile-response",     # Cloudflare Turnstile token
-    ],
-    expose_headers=["Content-Length", "Content-Range"],
-    max_age=3600,                    # Cache preflight requests for 1 hour
-)
+# Only add CORS middleware in DEVELOPMENT mode
+# In production, Nginx adds CORS headers (see nginx-cors.conf)
+if settings.DEBUG:
+    logger.info("[DEV MODE] Enabling FastAPI CORS middleware for development")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=ALLOWED_ORIGINS,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+        allow_headers=[
+            "Content-Type",
+            "Authorization",
+            "Accept",
+            "Origin",
+            "User-Agent",
+            "DNT",
+            "Cache-Control",
+            "X-Requested-With",
+            "cf-turnstile-response",     # Cloudflare Turnstile token
+        ],
+        expose_headers=["Content-Length", "Content-Range"],
+        max_age=3600,
+    )
+    logger.info(f"[OK] CORS configured for origins: {ALLOWED_ORIGINS}")
+else:
+    logger.info("[PRODUCTION MODE] CORS handled by Nginx - FastAPI middleware disabled")
+    logger.info(f"[INFO] Allowed origins (Nginx): {ALLOWED_ORIGINS}")
 
-logger.info(f"[OK] CORS configured for origins: {ALLOWED_ORIGINS}")
 
 
 # Global exception handler
