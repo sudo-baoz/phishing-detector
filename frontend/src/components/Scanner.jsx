@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { scanUrl } from '../services/api';
@@ -97,6 +97,15 @@ const Scanner = () => {
     // Get Turnstile site key from environment
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA';
 
+    // DEBUG: Monitor result state changes
+    useEffect(() => {
+        if (result) {
+            console.log('📊 [DEBUG] Result state changed - RESULTS AVAILABLE:', result);
+        } else {
+            console.log('🔍 [DEBUG] Result state changed - NO RESULTS (null or undefined)');
+        }
+    }, [result]);
+
     const sanitizeUrl = (inputUrl) => {
         let sanitized = inputUrl.trim();
 
@@ -173,11 +182,16 @@ const Scanner = () => {
                     return;
                 }
 
-                // Reset Turnstile for next scan
-                if (turnstileRef.current) {
-                    turnstileRef.current.reset();
-                }
-                setTurnstileToken(null);
+                // IMPORTANT: Delay Turnstile reset to prevent interference with result rendering
+                // Immediate reset can cause widget reload that triggers state changes
+                // Wait for results to fully render before resetting the widget
+                setTimeout(() => {
+                    if (turnstileRef.current) {
+                        console.log('🔄 Resetting Turnstile widget for next scan');
+                        turnstileRef.current.reset();
+                    }
+                    setTurnstileToken(null);
+                }, 500);  // 500ms delay to ensure results are displayed first
             } else {
                 // Handle API errors with specific messages
                 let errorMessage = response.error || 'An error occurred while scanning the URL.';
