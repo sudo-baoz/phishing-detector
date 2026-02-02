@@ -118,44 +118,94 @@ const Scanner = () => {
     };
 
     const handleSubmit = async (e) => {
+        // CRITICAL: Prevent default form submission to stop page reload
         e.preventDefault();
-        if (!url.trim()) return;
 
-        // Check if Turnstile token is available
+        // Early validation: Check if URL is provided
+        if (!url.trim()) {
+            setError('Please enter a URL to scan.');
+            return;
+        }
+
+        // CRITICAL: Verify Turnstile token before proceeding
         if (!turnstileToken) {
             setError('Please complete the security verification first.');
             setTurnstileError(true);
             return;
         }
 
-        setLoading(true);
-        setError(null);
-        setResult(null);
-        setTurnstileError(false);
+        // Use try-catch-finally to guarantee loading state cleanup
+        try {
+            // Set loading state FIRST - disable button and show spinner
+            setLoading(true);
+            setError(null);
+            setResult(null);
+            setTurnstileError(false);
 
-        // Sanitize URL before sending
-        const sanitizedUrl = sanitizeUrl(url);
+            // Sanitize URL before sending
+            const sanitizedUrl = sanitizeUrl(url);
 
-        // Call API with Turnstile token
-        const response = await scanUrl(sanitizedUrl, true, turnstileToken);
+            // Call API with Turnstile token
+            // The API has 30s timeout configured in api.js
+            const response = await scanUrl(sanitizedUrl, true, turnstileToken);
 
-        if (response.success) {
-            setResult(response.data);
-            // Reset Turnstile for next scan
-            turnstileRef.current?.reset();
-            setTurnstileToken(null);
-        } else {
-            setError(response.error);
-
-            // If 403 error, reset Turnstile for retry
-            if (response.code === 'TURNSTILE_REQUIRED' || response.needsRefresh) {
-                turnstileRef.current?.reset();
+            // Handle successful response
+            if (response.success) {
+                setResult(response.data);
+                // Reset Turnstile for next scan
+                if (turnstileRef.current) {
+                    turnstileRef.current.reset();
+                }
                 setTurnstileToken(null);
-                setTurnstileError(true);
-            }
-        }
+            } else {
+                // Handle API errors with specific messages
+                let errorMessage = response.error || 'An error occurred while scanning the URL.';
 
-        setLoading(false);
+                // Add helpful context for common errors
+                if (response.code === 'NETWORK_ERROR') {
+                    errorMessage += ' Please check your internet connection and try again.';
+                } else if (response.code === 'TURNSTILE_REQUIRED') {
+                    errorMessage = 'Security verification failed. Please complete the verification again.';
+                }
+
+                setError(errorMessage);
+
+                // If Turnstile verification failed, reset for retry
+                if (response.code === 'TURNSTILE_REQUIRED' || response.needsRefresh) {
+                    if (turnstileRef.current) {
+                        turnstileRef.current.reset();
+                    }
+                    setTurnstileToken(null);
+                    setTurnstileError(true);
+                }
+            }
+        } catch (error) {
+            // Catch any unexpected errors (e.g., timeout, network issues)
+            console.error('Unexpected error during URL scan:', error);
+
+            // User-friendly error message
+            let errorMessage = 'An unexpected error occurred. ';
+
+            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
+                errorMessage = 'The request took too long to complete. The URL might be slow or unreachable. Please try again.';
+            } else if (error.message?.includes('Network Error')) {
+                errorMessage = 'Cannot reach the server. Please check your internet connection and try again.';
+            } else {
+                errorMessage += 'Please try again or contact support if the issue persists.';
+            }
+
+            setError(errorMessage);
+
+            // Reset Turnstile on unexpected errors
+            if (turnstileRef.current) {
+                turnstileRef.current.reset();
+            }
+            setTurnstileToken(null);
+        } finally {
+            // CRITICAL: Always reset loading state, even if errors occur
+            // This prevents the UI from getting stuck in a loading state
+            setLoading(false);
+        }
     };
 
     // Handle Turnstile success
@@ -266,7 +316,10 @@ const Scanner = () => {
                                             size: 'normal',
                                         }}
                                         scriptOptions={{
-                                            defer: true,
+                                            defer: true,           // Defer script loading
+                                            async: true,           // Load script asynchronously
+                                            appendTo: 'body',      // Append to body instead of head
+                                            loadAsync: 'true',     // Cloudflare async mode
                                         }}
                                     />
                                 </div>

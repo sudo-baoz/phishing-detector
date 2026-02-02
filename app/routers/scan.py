@@ -4,7 +4,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
@@ -48,8 +48,9 @@ def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Opt
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_200_OK)
 async def scan_url(
     scan_request: ScanRequest,
-    db: AsyncSession = Depends(get_db),
-    turnstile_verified: dict = Depends(verify_turnstile)  # ✅ Cloudflare Turnstile Protection
+    request: Request,  # ✅ Added Request for manual token extraction
+    db: AsyncSession = Depends(get_db)
+    # ⚠️ Removed Depends(verify_turnstile) - now done manually for fail-fast
 ):
     """
     Scan a URL for phishing detection (Protected by Cloudflare Turnstile)
@@ -59,9 +60,32 @@ async def scan_url(
     - **cf-turnstile-response**: Cloudflare Turnstile token (required in header or body)
     
     Returns prediction with confidence score, threat type, and optional OSINT data
+    
+    **Flow:**
+    1. VERIFY TURNSTILE TOKEN FIRST (Fail Fast - 1-2s)
+    2. If valid, start heavy analysis (30s+)
+    3. Return result
     """
     
-    logger.info(f"Scanning URL: {scan_request.url} (Turnstile: {turnstile_verified.get('success', False)})")
+    # ============================================================
+    # STEP 1: VERIFY TURNSTILE TOKEN IMMEDIATELY (FAIL FAST!)
+    # ============================================================
+    # This MUST happen BEFORE any heavy processing to prevent token timeout
+    logger.info(f"[1/4] Verifying Turnstile token for URL: {scan_request.url}")
+    
+    try:
+        # Explicitly await token verification as FIRST step
+        turnstile_verified = await verify_turnstile(request)
+        logger.info(f"[OK] Turnstile verification successful: {turnstile_verified.get('success', False)}")
+    except HTTPException as e:
+        # Token verification failed - reject immediately (fail fast)
+        logger.warning(f"[REJECTED] Turnstile verification failed - blocking request")
+        raise  # Re-raise the 403 HTTPException from verify_turnstile
+    
+    # ============================================================
+    # STEP 2: HEAVY ANALYSIS (Only if token is valid)
+    # ============================================================
+    logger.info(f"[2/4] Starting phishing analysis for: {scan_request.url}")
     
     try:
         # Use PhishingPredictor service for prediction
@@ -76,16 +100,23 @@ async def scan_url(
         
         logger.info(f"Prediction: {'PHISHING' if is_phishing else 'SAFE'} (Confidence: {confidence_score:.2f}%)")
         
-        # Collect OSINT data if requested
+        # ============================================================
+        # STEP 3: OSINT DATA COLLECTION (Optional heavy operation)
+        # ============================================================
         osint_dict = None
         if scan_request.include_osint:
             try:
-                logger.info("Collecting OSINT data...")
+                logger.info("[3/4] Collecting OSINT data...")
                 osint_full = collect_osint_data(url_str)
                 osint_dict = get_osint_summary(osint_full)
                 logger.info(f"[OK] OSINT data collected: {osint_dict.get('server_location')}")
             except Exception as e:
                 logger.warning(f"Failed to collect OSINT data: {e}")
+        
+        # ============================================================
+        # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
+        # ============================================================
+        logger.info("[4/4] Saving scan result to database...")
         
         # Save to database
         scan_record = ScanHistory(

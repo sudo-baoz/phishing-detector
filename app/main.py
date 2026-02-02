@@ -185,7 +185,7 @@ app = FastAPI(
 # This prevents exposing production domains in code
 ALLOWED_ORIGINS = settings.cors_origins_list
 
-""" app.add_middleware(
+app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,          # Enable cookies/auth headers
@@ -203,7 +203,7 @@ ALLOWED_ORIGINS = settings.cors_origins_list
     ],
     expose_headers=["Content-Length", "Content-Range"],
     max_age=3600,                    # Cache preflight requests for 1 hour
-) """
+)
 
 logger.info(f"[OK] CORS configured for origins: {ALLOWED_ORIGINS}")
 
