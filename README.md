@@ -153,7 +153,7 @@ If you find this tool useful for your research or security work, please consider
 | **Platform** | **Link / Info** |
 | :--- | :--- |
 | <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="45" alt="Buy Me A Coffee"> | [**Buy me a coffee**](https://buymeacoffee.com/baoz) |
-| <img src="https://upload.wikimedia.org/wikipedia/vi/f/fe/MoMo_Logo.png" height="40" alt="MoMo"> | **0395818082** (Mai Quoc Bao) |
+| <img src="https://cdn.haitrieu.com/wp-content/uploads/2022/10/Logo-MoMo-Square.png" height="40" alt="MoMo"> | **0395818082** (Mai Quoc Bao) |
 | <img src="https://img.vietqr.io/image/VCB-9395818082-compact.png" height="45" alt="VietQR"> | **Vietcombank**<br>STK: `9395818082`<br>CTK: `Mai Quoc Bao` |
 
 ### 🪙 Crypto Donations
@@ -166,6 +166,7 @@ If you find this tool useful for your research or security work, please consider
 </div>
 ---
 
+```
 **Built with 💻 & ☕ by [sudo-baoz**](https://www.google.com/search?q=https://github.com/sudo-baoz)
 
 ```
