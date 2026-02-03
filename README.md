@@ -166,5 +166,5 @@ If you find this tool useful for your research or security work, please consider
 </div>
 ---
 
-**Built with 💻 & ☕ by [sudo-baoz]**(https://www.google.com/search?q=https://github.com/sudo-baoz)
+**Built with 💻 & ☕ by [sudo-baoz](https://www.google.com/search?q=https://github.com/sudo-baoz)**
 
