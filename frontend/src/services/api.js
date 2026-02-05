@@ -30,7 +30,7 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 30000,
+  timeout: 90000, // 90 seconds - must be > backend timeout (60s)
   headers: {
     'Content-Type': 'application/json',
   },
@@ -88,11 +88,14 @@ export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null, l
         code: 'SERVER_ERROR'
       };
     } else if (error.request) {
-      // Network error
+      // Network or timeout error
+      const isTimeout = error.code === 'ECONNABORTED' || error.message?.includes('timeout');
       return {
         success: false,
-        error: `Cannot reach server at ${API_URL}. Please check your connection.`,
-        code: 'NETWORK_ERROR'
+        error: isTimeout 
+          ? 'Scan is taking longer than expected. The site may be slow or unresponsive. Please try again.'
+          : `Cannot reach server at ${API_URL}. Please check your connection.`,
+        code: isTimeout ? 'TIMEOUT_ERROR' : 'NETWORK_ERROR'
       };
     } else {
       // Unexpected error

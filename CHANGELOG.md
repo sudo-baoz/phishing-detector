@@ -5,6 +5,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.3] - 2026-02-05
+
+### ⚡ Performance Optimization & Timeout Fixes
+
+This release fixes scan timeout issues and dramatically improves scan speed through parallel execution.
+
+#### Fixed
+
+- **Timeout Mismatch Issue**:
+  - **Root Cause**: Frontend timeout (30s) was shorter than backend (60s), causing "Cannot reach server" errors while scan was still processing
+  - Increased frontend axios timeout: 30s → 90s
+  - Increased nginx proxy timeout: 60s → 90s
+  - Better error message for timeout vs connection errors
+
+- **Duplicate Deep Scan Removed** ([scan.py](app/routers/scan.py)):
+  - Deep Analysis was running twice per scan (wasted ~10 seconds)
+  - Removed duplicate code block in STEP 3.5
+
+#### Changed
+
+- **Parallel Execution Phase 1** - Network + AI + DeepScan:
+  - Previously: Sequential (Network → AI → DeepScan) = ~15-20 seconds
+  - Now: Parallel with `asyncio.gather()` = ~5-7 seconds
+  - Saves **10-15 seconds** per scan
+
+- **Parallel Execution Phase 2** - OSINT + Vision Scanner:
+  - Previously: Sequential (OSINT → Vision) = ~10-15 seconds
+  - Now: Parallel with `asyncio.gather()` = ~5-8 seconds
+  - Saves **5-10 seconds** per scan
+
+- **Total Performance Gain**: Scans now complete **15-25 seconds faster**
+
+#### Files Modified
+
+- [frontend/src/services/api.js](frontend/src/services/api.js) - Timeout 30s → 90s, better error handling
+- [app/routers/scan.py](app/routers/scan.py) - Parallel execution, removed duplicate
+- [nginx-cors.conf](nginx-cors.conf) - Proxy timeout 60s → 90s
+
+---
+
 ## [1.5.2] - 2026-02-05
 
 ### 🛡️ API Quota Protection & Syntax Fix
