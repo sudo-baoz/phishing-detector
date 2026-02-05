@@ -146,6 +146,7 @@ async def chat_with_sentinel(request: SentinelChatRequest):
     """
     try:
         logger.info(f"[Sentinel AI] Request: {request.message[:100]}")
+        logger.info(f"[Sentinel AI] Language: {request.language}")
         logger.debug(f"[Sentinel AI] Full request details - scan_result_id: {request.scan_result_id}, has_context: {request.context_data is not None}")
         
         # Check if Sentinel AI is available
@@ -173,7 +174,7 @@ async def chat_with_sentinel(request: SentinelChatRequest):
             if request.scan_result_id:
                 logger.info(f"[Sentinel AI] Scan Result ID: {request.scan_result_id}")
         
-        # Ask Sentinel AI
+        # Ask Sentinel AI (language support can be added to ask_sentinel later)
         result = ask_sentinel(
             user_message=request.message,
             scan_context=scan_context

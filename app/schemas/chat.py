@@ -32,6 +32,7 @@ class SentinelChatRequest(BaseModel):
     Example:
         {
             "message": "Is this safe?",
+            "language": "en",
             "scan_result_id": "optional_id_123",
             "context_data": {
                 "url": "https://example.com",
@@ -47,6 +48,10 @@ class SentinelChatRequest(BaseModel):
         max_length=1000,
         description="User's question to Sentinel AI"
     )
+    language: Optional[str] = Field(
+        default="en",
+        description="Language code for response (en/vi)"
+    )
     scan_result_id: Optional[str] = Field(
         default=None,
         description="Optional ID of the scan result for reference"
@@ -61,6 +66,7 @@ class SentinelChatRequest(BaseModel):
             "examples": [
                 {
                     "message": "Is this safe?",
+                    "language": "en",
                     "scan_result_id": "scan_12345",
                     "context_data": {
                         "url": "https://paypal-login.tk/verify",
