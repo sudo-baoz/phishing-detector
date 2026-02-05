@@ -122,13 +122,14 @@ async def scan_url(
             if redirect_res.get('is_open_redirect'):
                 logger.warning(f"[RISK] Open Redirect Abuse detected!")
 
-        # Initialize results & flags
+        # Initialize results & flags explicitly to prevent UnboundLocalError
         deep_scan_results = None
         network_results = None
         is_phishing = False
         confidence_score = 0.0
         threat_type = None
         similar_threats = None
+        typo_result = {'risk': False} # Default safe
         
         # [NEW] 1.5.1 PhishTank Local Exact Match (Fail Fast)
         pt_result = knowledge_base.check_known_phish(final_url)
@@ -140,7 +141,6 @@ async def scan_url(
              
              # Create a synthetic Deep Scan result
              deep_scan_results = deep_scanner.scan(url_str, existing_redirects=redirect_res)
-             typo_result = {'risk': False} 
              
         # [NEW] 1.5.2 Google Safe Browsing Check (Primary Validation)
         # Check Final URL against Google Threats (If not already caught)
@@ -155,10 +155,10 @@ async def scan_url(
                  threat_type = "malware" if "MALWARE" in str(gsb_result['matches']) else "phishing"
                  
                  deep_scan_results = deep_scanner.scan(url_str, existing_redirects=redirect_res)
-                 typo_result = {'risk': False}
              
-        else:
+        if not is_phishing:
             # Continue with typical flow if GSB is Clean
+
             
             # [NEW] 2. Semantic RAG Search using ChromaDB (on Final URL)
             similar_threats = knowledge_base.search_similar_threats(final_url)
