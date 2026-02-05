@@ -410,11 +410,22 @@ async def scan_url(
         
         try:
             logger.info("[3.9/4] Building Threat Graph...")
+            
+            # Extract redirect chain from deep_scan_results
+            redirect_chain = None
+            if deep_scan_results:
+                details = deep_scan_results.get('details', {})
+                redirects = details.get('redirects', {})
+                redirect_chain = redirects.get('chain', [final_url])
+            
             threat_graph = await run_in_threadpool(
                 build_threat_graph,
                 final_url,
-                osint_dict or {},
-                deep_scan_results or {}
+                redirect_chain,           # Redirect chain URLs
+                osint_dict or {},         # DNS/OSINT data (IP, ASN, registrar)
+                deep_scan_results or {},  # Technical analysis data
+                is_phishing,              # Is phishing flag
+                confidence_score          # Confidence score
             )
             logger.info(f"[ThreatGraph] Nodes: {len(threat_graph.get('nodes', []))}, Edges: {len(threat_graph.get('edges', []))}")
         except Exception as e:

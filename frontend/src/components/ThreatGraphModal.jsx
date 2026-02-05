@@ -54,34 +54,39 @@ const getNodeStyle = (nodeType) => {
 };
 
 // Transform backend nodes to React Flow format
+// Backend already provides styled nodes with data.label - preserve them!
 const transformNodes = (nodes) => {
   if (!nodes || !Array.isArray(nodes)) return [];
   
   return nodes.map((node, index) => {
-    const nodeType = node.type || 'default';
-    const style = getNodeStyle(nodeType);
+    // Backend provides: id, type, data.label, position, style
+    // We just need to format the label nicely and preserve everything else
     
-    // Calculate position in a grid/tree layout
+    const label = node.data?.label || node.label || 'Unknown';
+    const nodeCategory = node.data?.type || 'default'; // Backend sets data.type for category
+    
+    // Calculate fallback position if not provided
     const row = Math.floor(index / 3);
     const col = index % 3;
     
     return {
       id: node.id,
+      type: node.type || 'default', // React Flow node type (input/default/output)
       data: { 
         label: (
-          <div className="flex flex-col items-center gap-1 px-2 py-1">
-            <span className="text-xs opacity-70 uppercase">{nodeType}</span>
-            <span className="font-bold text-sm truncate max-w-[150px]" title={node.label}>
-              {node.label}
+          <div className="flex flex-col items-center gap-1 px-1 py-0.5">
+            <span className="font-bold text-sm truncate max-w-[180px]" title={label}>
+              {label}
             </span>
           </div>
         )
       },
       position: node.position || { x: 150 + col * 250, y: 50 + row * 150 },
+      // CRITICAL: Preserve backend styles (colors are set there based on node type)
       style: {
-        ...style,
-        borderRadius: '12px',
-        padding: '8px 16px',
+        ...node.style, // Keep backend-defined colors
+        borderRadius: node.style?.borderRadius || '12px',
+        padding: node.style?.padding || '8px 16px',
         fontSize: '12px',
         fontWeight: 500,
         boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
@@ -152,26 +157,34 @@ const ThreatGraphModal = ({ isOpen, onClose, threatGraph }) => {
           </button>
         </div>
 
-        {/* Legend */}
+        {/* Legend - matches backend NODE_COLORS */}
         <div className="px-4 py-2 bg-slate-950/50 border-b border-white/5 flex flex-wrap gap-4 text-xs">
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-            <span className="text-slate-400">User</span>
+            <div className="w-3 h-3 rounded-full" style={{ background: '#3B82F6' }}></div>
+            <span className="text-slate-400">Scanner/User</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <div className="w-3 h-3 rounded-full" style={{ background: '#EF4444' }}></div>
             <span className="text-slate-400">Phishing URL</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-purple-500"></div>
-            <span className="text-slate-400">IP Address</span>
+            <div className="w-3 h-3 rounded-full" style={{ background: '#10B981' }}></div>
+            <span className="text-slate-400">Safe URL</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-            <span className="text-slate-400">ASN/Hosting</span>
+            <div className="w-3 h-3 rounded-full" style={{ background: '#F59E0B' }}></div>
+            <span className="text-slate-400">URL Shortener</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+            <div className="w-3 h-3 rounded-full" style={{ background: '#6366F1' }}></div>
+            <span className="text-slate-400">Server IP</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: '#8B5CF6' }}></div>
+            <span className="text-slate-400">ASN Provider</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-3 h-3 rounded-full" style={{ background: '#EC4899' }}></div>
             <span className="text-slate-400">Registrar</span>
           </div>
         </div>
@@ -197,12 +210,18 @@ const ThreatGraphModal = ({ isOpen, onClose, threatGraph }) => {
               />
               <MiniMap 
                 nodeColor={(node) => {
-                  const type = node.style?.background?.includes('ef4444') ? 'url' :
-                               node.style?.background?.includes('3b82f6') ? 'user' :
-                               node.style?.background?.includes('8b5cf6') ? 'ip' :
-                               node.style?.background?.includes('f59e0b') ? 'asn' : 'default';
-                  const colors = { user: '#3b82f6', url: '#ef4444', ip: '#8b5cf6', asn: '#f59e0b', default: '#6b7280' };
-                  return colors[type];
+                  // Extract color from node.style.background
+                  const bg = node.style?.background || '';
+                  // Return the primary color from the style
+                  if (bg.includes('EF4444') || bg.includes('ef4444')) return '#ef4444'; // Phishing
+                  if (bg.includes('3B82F6') || bg.includes('3b82f6')) return '#3b82f6'; // User
+                  if (bg.includes('6366F1') || bg.includes('6366f1')) return '#6366f1'; // Server/IP
+                  if (bg.includes('8B5CF6') || bg.includes('8b5cf6')) return '#8b5cf6'; // ASN
+                  if (bg.includes('EC4899') || bg.includes('ec4899')) return '#ec4899'; // Registrar
+                  if (bg.includes('10B981') || bg.includes('10b981')) return '#10b981'; // Safe
+                  if (bg.includes('F59E0B') || bg.includes('f59e0b')) return '#f59e0b'; // Shortener
+                  if (bg.includes('F97316') || bg.includes('f97316')) return '#f97316'; // Suspicious
+                  return '#6b7280'; // Default gray
                 }}
                 maskColor="rgba(0,0,0,0.8)"
                 className="!bg-slate-900 !border-slate-700"

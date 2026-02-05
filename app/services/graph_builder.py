@@ -33,9 +33,12 @@ class ThreatGraphBuilder:
     """
     Builds visual threat graph data compatible with React Flow.
     Nodes represent entities (URLs, IPs, ASNs), edges represent relationships.
+    
+    STATELESS DESIGN: All methods are pure functions that take inputs and return outputs.
+    No request-specific state is stored in class attributes to prevent race conditions.
     """
     
-    # Node type colors (React Flow compatible)
+    # Node type colors (React Flow compatible) - STATIC CONFIG (safe to share)
     NODE_COLORS = {
         'user': '#3B82F6',           # Blue - User/Origin
         'shortener': '#F59E0B',      # Amber - URL Shorteners
@@ -48,26 +51,24 @@ class ThreatGraphBuilder:
         'registrar': '#EC4899',      # Pink - Registrar
     }
     
-    # Known URL shorteners
+    # Known URL shorteners - STATIC CONFIG (safe to share)
     SHORTENERS = {
         'bit.ly', 'tinyurl.com', 't.co', 'goo.gl', 'ow.ly', 'is.gd',
         'buff.ly', 'adf.ly', 'short.link', 'rebrand.ly', 'cutt.ly'
     }
     
     def __init__(self):
-        self.node_id_counter = 0
-        
-    def _generate_node_id(self, prefix: str = "node") -> str:
-        """Generate unique node ID"""
-        self.node_id_counter += 1
-        return f"{prefix}_{self.node_id_counter}"
+        # FIX: Removed self.node_id_counter - was causing race conditions!
+        # Node IDs are now generated using hash-based IDs or passed as local variables
+        pass
     
-    def _hash_id(self, value: str) -> str:
-        """Generate consistent hash-based ID for deduplication"""
+    @staticmethod
+    def _hash_id(value: str) -> str:
+        """Generate consistent hash-based ID for deduplication (STATELESS)"""
         return hashlib.md5(value.encode()).hexdigest()[:8]
     
     def _is_shortener(self, url: str) -> bool:
-        """Check if URL is from a known shortener"""
+        """Check if URL is from a known shortener (STATELESS - reads only static config)"""
         try:
             parsed = urlparse(url)
             domain = parsed.netloc.lower().replace('www.', '')
@@ -75,8 +76,9 @@ class ThreatGraphBuilder:
         except Exception:
             return False
     
-    def _extract_domain(self, url: str) -> str:
-        """Extract domain from URL"""
+    @staticmethod
+    def _extract_domain(url: str) -> str:
+        """Extract domain from URL (STATELESS)"""
         try:
             parsed = urlparse(url)
             return parsed.netloc or url
@@ -106,7 +108,8 @@ class ThreatGraphBuilder:
         Returns:
             Dict with nodes and edges arrays for React Flow
         """
-        self.node_id_counter = 0
+        # FIX: Use local variables instead of self.node_id_counter
+        # This ensures each request has its own isolated state
         nodes = []
         edges = []
         

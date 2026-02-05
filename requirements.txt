@@ -116,6 +116,7 @@ textdistance
 
 # Vision Scanner dependencies (browser-based forensics)
 playwright
+playwright-stealth
 
 # SOC Platform dependencies (Enterprise features)
 yara-python
