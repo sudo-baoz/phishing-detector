@@ -54,6 +54,7 @@ requests
 # OSINT (Open Source Intelligence)
 python-whois
 dnspython
+ipwhois
 
 # AI Chatbot
 google-generativeai

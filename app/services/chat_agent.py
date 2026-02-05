@@ -93,6 +93,62 @@ class SentinelAI:
             
             self._initialized = True
     
+    def analyze_homograph(self, url: str) -> Dict[str, Any]:
+        """
+        Specialized analysis for Homograph & Typosquatting attacks
+        Returns structured JSON verdict
+        """
+        if not self.is_available():
+             return {"error": "AI not available"}
+
+        prompt = f"""Act as an Elite Cyber Security Analyst specialized in Homograph & Typosquatting Attacks.
+
+Your Mission: Analyze the provided URL strictly for impersonation attempts.
+
+CRITICAL RULE: Do NOT read the URL like a human. Read it like a machine.
+
+Step 1: Brand Impersonation Check (The 'faceb00k' Rule)
+
+Compare the input domain against this Protected Brand List: ['facebook.com', 'google.com', 'binance.com', 'paypal.com', 'microsoft.com', 'netflix.com', 'instagram.com', 'tiktok.com'].
+
+Homograph Detection: Look for visual look-alikes:
+'0' (zero) instead of 'o' (letter).
+'1' (one) or 'I' (capital i) instead of 'l' (letter L).
+'rn' instead of 'm'.
+'vv' instead of 'w'.
+
+Verdict Logic: If the domain looks visually similar (>80%) to a Protected Brand but is NOT the exact official domain, verify immediately as PHISHING (High Confidence).
+
+Step 2: Subdomain Abuse
+
+Check if the brand name is in the subdomain (e.g., facebook.verify-account.com). This is PHISHING.
+
+Step 3: AI Verdict
+
+Input: {url}
+
+If you detect 'faceb00k', 'googIe', 'paypaI' -> FLAG AS PHISHING IMMEDIATELY. Do not hesitate.
+
+Response Format (JSON): {{ 'verdict': 'PHISHING', 'risk_score': 100, 'reason': 'Homograph Attack Detected...', 'impersonation_target': 'Facebook' }}
+Else: {{ 'verdict': 'SAFE', 'risk_score': 0, 'reason': 'No homograph detected', 'impersonation_target': None }}
+"""
+        try:
+            response = self.model.generate_content(prompt)
+            # Clean response to ensure valid JSON (sometimes AI adds backticks)
+            text = response.text.replace('```json', '').replace('```', '').strip()
+            
+            # Simple manual parse or return text if complex
+            import json
+            try:
+                result = json.loads(text)
+                return result
+            except json.JSONDecodeError:
+                return {"verdict": "ERROR", "raw_response": text}
+                
+        except Exception as e:
+            logger.error(f"Homograph analysis failed: {e}")
+            return {"error": str(e)}
+
     def is_available(self) -> bool:
         """Check if Sentinel AI is available"""
         return self._available and self.model is not None

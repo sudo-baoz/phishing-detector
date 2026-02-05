@@ -45,6 +45,7 @@ class Settings(BaseSettings):
     
     # AI Integration settings
     GEMINI_API_KEY: str = ""
+    GOOGLE_SAFE_BROWSING_KEY: str = ""
     
     # Cloudflare Turnstile settings
     CLOUDFLARE_SECRET_KEY: str = ""

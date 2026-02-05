@@ -60,6 +60,72 @@ class DeepScanner:
             'count': len(found_keywords)
         }
 
+    def check_typosquatting(self, url: str) -> Dict[str, Any]:
+        """
+        Check for Typosquatting/Homograph attacks using textdistance.
+        User-defined high value targets.
+        """
+        try:
+            import textdistance
+        except ImportError:
+            logger.warning("textdistance not installed, skipping typosquatting check")
+            return {'risk': False}
+            
+        targets = [
+            'facebook.com', 'google.com', 'paypal.com', 'binance.com', 
+            'microsoft.com', 'netflix.com', 'instagram.com', 'tiktok.com'
+        ]
+        
+        parsed = urlparse(url)
+        domain = parsed.netloc.lower()
+        if ':' in domain:
+            domain = domain.split(':')[0]
+            
+        # Clean domain (remove www.)
+        clean_domain = domain.replace('www.', '')
+        
+        # Mapping for 0->o, 1->l normalization for stricter check
+        # But 'textdistance' handles edit distance. 
+        # User asked for custom mapping if needed.
+        # Let's do a basic normalization for the check
+        normalized_domain = clean_domain.replace('0', 'o').replace('1', 'l').replace('rn', 'm').replace('vv', 'w')
+        
+        best_match = None
+        max_sim = 0.0
+        
+        for target in targets:
+            # Exact match is SAFE (it's the real brand)
+            if clean_domain == target or clean_domain.endswith('.' + target):
+                continue
+                
+            # Compare using textdistance
+            # Using normalized_similarity (LCS or Levenshtein)
+            # User specifically asked for: textdistance.levenshtein.normalized_similarity
+            sim = textdistance.levenshtein.normalized_similarity(clean_domain, target)
+            
+            # Also compare with manually normalized version for homographs
+            sim_norm = textdistance.levenshtein.normalized_similarity(normalized_domain, target)
+            
+            final_sim = max(sim, sim_norm)
+            
+            if final_sim > max_sim:
+                max_sim = final_sim
+                best_match = target
+                
+        # Logic: Similarity > 0.8 but NOT exact match (already handled by continue)
+        is_risk = max_sim > 0.80
+        
+        if is_risk:
+             logger.warning(f"[DeepScan] Typosquatting detected! {domain} ~ {best_match} ({max_sim:.2f})")
+             return {
+                 'risk': True,
+                 'target': best_match,
+                 'similarity': max_sim,
+                 'verdict': 'PHISHING'
+             }
+             
+        return {'risk': False, 'similarity': max_sim}
+
     def analyze_ssl_age(self, domain: str) -> Dict[str, Any]:
         """
         Check the age of the SSL certificate.
@@ -154,42 +220,61 @@ class DeepScanner:
             'risk': is_risk
         }
 
+    
+    # Reputable domains often used for Open Redirect attacks
+    REPUTABLE_REDIRECTORS = {'youtube.com', 'google.com', 'facebook.com', 'linkedin.com', 't.co', 'bing.com'}
+
     def trace_redirects(self, url: str) -> Dict[str, Any]:
         """
-        Follow HTTP redirect chain.
-        Risk if > 3 hops or uses known URL shorteners.
-        
-        Args:
-            url (str): Starting URL.
-            
-        Returns:
-            Dict: {'hops': int, 'final_url': str, 'has_shortener': bool, 'risk': bool}
+        Follow HTTP redirect chain explicitly.
+        Detect Open Redirect Abuse (Reputable -> Suspicious).
         """
         try:
             if not url.startswith(('http://', 'https://')):
                 url = 'https://' + url
-                
-            response = requests.head(url, allow_redirects=True, timeout=self.timeout)
             
-            # If method not allowed, try GET stream=True
-            if response.status_code == 405:
-                response = requests.get(url, allow_redirects=True, stream=True, timeout=self.timeout)
+            session = requests.Session()
+            session.max_redirects = 10 # Prevent infinite loops
+            
+            # Use a custom user agent
+            headers = {'User-Agent': 'Mozilla/5.0 Phishing-Scanner/1.0'}
+            
+            # Follow redirects manually or let requests do it and inspect history
+            # Using requests history is cleaner for simple tracing
+            response = session.head(url, allow_redirects=True, timeout=self.timeout, headers=headers)
+            
+            # Fallback to GET if HEAD rejected
+            if response.status_code in [405, 403]:
+                response = session.get(url, allow_redirects=True, timeout=self.timeout, headers=headers)
 
             history = response.history
             final_url = response.url
             hops = len(history)
             
-            # Check for shorteners in the chain
-            has_shortener = False
-            trace_domains = [urlparse(url).netloc] + [urlparse(r.url).netloc for r in history] + [urlparse(final_url).netloc]
+            chain = [r.url for r in history]
             
+            # Check for shorteners
+            has_shortener = False
+            trace_domains = [urlparse(u).netloc for u in chain + [final_url]]
             for d in trace_domains:
-                # Handle subdomains or port
                 clean_d = d.split(':')[0].lower()
+                clean_d = clean_d.replace('www.', '')
                 if any(clean_d.endswith(s) for s in self.SHORTENERS) or clean_d in self.SHORTENERS:
                     has_shortener = True
                     break
             
+            # Open Redirect Analysis
+            is_open_redirect = False
+            initial_domain = urlparse(url).netloc.lower().replace('www.', '')
+            final_domain = urlparse(final_url).netloc.lower().replace('www.', '')
+            
+            # Logic: Started at reputable redirector -> Ended at non-reputable
+            if any(r in initial_domain for r in self.REPUTABLE_REDIRECTORS):
+                # Check if final domain is NOT reputable (suspicious/generic)
+                if not any(r in final_domain for r in self.REPUTABLE_REDIRECTORS):
+                    is_open_redirect = True
+                    logger.warning(f"[DeepScan] Open Redirect Abuse: {initial_domain} -> {final_domain}")
+
             # Risk logic
             is_risk = False
             risk_reasons = []
@@ -202,20 +287,35 @@ class DeepScanner:
                 is_risk = True
                 risk_reasons.append("URL Shortener usage")
                 
+            if is_open_redirect:
+                is_risk = True
+                risk_reasons.append("Open Redirect Abuse (Reputable -> External)")
+                
             return {
                 'hops': hops,
                 'final_url': final_url,
-                'chain': [r.url for r in history],
+                'chain': chain,
                 'has_shortener': has_shortener,
+                'is_open_redirect': is_open_redirect,
                 'risk': is_risk,
                 'reasons': risk_reasons
             }
             
+        except requests.TooManyRedirects:
+             return {
+                'hops': 10,
+                'final_url': url, # Can't know final
+                'chain': [],
+                'has_shortener': False,
+                'risk': True,
+                'reasons': ["Infinite Redirect Loop Detected"],
+                'error': "TooManyRedirects"
+             }
         except requests.RequestException as e:
             logger.warning(f"[DeepScan] Redirect Trace failed: {e}")
             return {
                 'hops': 0,
-                'final_url': url,
+                'final_url': url, # Assume unchanged on error
                 'has_shortener': False,
                 'risk': False,
                 'error': str(e)
@@ -261,10 +361,14 @@ class DeepScanner:
         except Exception:
             return {'max_js_entropy': 0.0, 'risk': False}
 
-    def scan(self, url: str) -> Dict[str, Any]:
+    def scan(self, url: str, existing_redirects: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Perform all deep scan heuristics and calculate Score.
         
+        Args:
+            url: URL to scan
+            existing_redirects: Optional pre-calculated redirect trace (optimization)
+            
         Returns:
             Dict containing scores and detailed breakdown.
         """
@@ -275,7 +379,10 @@ class DeepScanner:
         ssl_res = self.analyze_ssl_age(domain)
         
         # 2. Redirect Analysis
-        redirect_res = self.trace_redirects(url)
+        if existing_redirects:
+            redirect_res = existing_redirects
+        else:
+            redirect_res = self.trace_redirects(url)
         
         # 3. Content/Entropy Analysis (Requires fetching)
         # We only do this if redirects didn't fail hard, using final URL

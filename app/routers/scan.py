@@ -104,39 +104,131 @@ async def scan_url(
         raise  # Re-raise the 403 HTTPException from verify_turnstile
     
     # ============================================================
-    # STEP 2: HEAVY ANALYSIS (Only if token is valid)
+    # STEP 2: REDIRECT TRACE & ANALYSIS PREP
     # ============================================================
-    logger.info(f"[2/4] Starting phishing analysis for: {scan_request.url}")
+    logger.info(f"[2/4] Starting analysis for: {scan_request.url}")
     
     try:
         url_str = str(scan_request.url)
         
-        # [NEW] Semantic RAG Search using ChromaDB
-        # Find similar known threats to provide context for the AI scanner
-        similar_threats = knowledge_base.search_similar_threats(url_str)
-        if similar_threats:
-            logger.info(f"[RAG] Found {len(similar_threats)} similar threats in Knowledge Base")
+        # [NEW] 1. Trace Redirects FIRST
+        # This gives us the FINAL destination to check against typosquatting/AI
+        # Run in threadpool as it uses sync requests
+        redirect_res = await run_in_threadpool(deep_scanner.trace_redirects, url_str)
+        final_url = redirect_res.get('final_url', url_str)
         
-        # Use PhishingPredictor service for prediction
-        # Note: similar_threats context will be passed here in next update
-        prediction_result = phishing_predictor.predict(url_str)
+        if final_url != url_str:
+            logger.info(f"[Redirect] Followed chain: {url_str} -> {final_url}")
+            if redirect_res.get('is_open_redirect'):
+                logger.warning(f"[RISK] Open Redirect Abuse detected!")
+
+        # Initialize results
+        deep_scan_results = None
+        network_results = None
         
-        is_phishing = prediction_result['is_phishing']
-        confidence_score = prediction_result['confidence_score']
+        # [NEW] 1.5 Google Safe Browsing Check (Primary Validation)
+        # Check Final URL against Google Threats
+        from app.services.external_intel import external_intel
+        gsb_result = await run_in_threadpool(external_intel.check_google_safe_browsing, final_url)
         
-        # Determine threat type
-        threat_type = determine_threat_type(is_phishing, confidence_score, url_str)
+        if not gsb_result['safe']:
+             logger.warning(f"[FAIL-FAST] Google Safe Browsing Block: {final_url}")
+             is_phishing = True
+             confidence_score = 100.0
+             threat_type = "malware" if "MALWARE" in str(gsb_result['matches']) else "phishing"
+             
+             # Synthetic results
+             deep_scan_results = deep_scanner.scan(url_str, existing_redirects=redirect_res)
+             
+             # Return immediately (or skip to save logic)
+             # We reuse the return logic at the end by setting flags
+             typo_result = {'risk': False} # Skip typo check logic block
+             
+        else:
+            # Continue with typical flow if GSB is Clean
+            
+            # [NEW] 2. Semantic RAG Search using ChromaDB (on Final URL)
+            similar_threats = knowledge_base.search_similar_threats(final_url)
+            if similar_threats:
+                logger.info(f"[RAG] Found {len(similar_threats)} similar threats for final URL")
+            
+            # [NEW] 3. Pre-AI Typosquatting Check (Fail Fast) (on Final URL)
+            typo_result = deep_scanner.check_typosquatting(final_url)
+        
+        # Initialize results
+        deep_scan_results = None
+        network_results = None
+        
+        # FAIL FAST LOGIC (Typosquatting)
+        # Note: If GSB already flagged it, we skip this block or it doesn't matter (is_phishing already true)
+        if not is_phishing and typo_result.get('risk'):
+            logger.warning(f"[FAIL-FAST] Typosquatting detected on final URL: {typo_result}")
+            # Bypass AI model
+            is_phishing = True
+            confidence_score = 100.0
+            threat_type = "impersonation"
+            
+            # Create a synthetic Deep Scan result that includes the redirect info
+            deep_scan_results = deep_scanner.scan(url_str, existing_redirects=redirect_res)
+            
+        elif not is_phishing:
+            # Continue with full analysis on FINAL URL ONLY IF not already flagged
+            
+            # [NEW] 4. Network Forensics (on Final URL)
+            from app.services.network_forensics import network_forensics
+            try:
+                network_results = await run_in_threadpool(network_forensics.analyze, final_url)
+                logger.info(f"[Network] Trust Score: {network_results['network_trust_score']}")
+            except Exception as e:
+                logger.error(f"Network forensics failed: {e}")
+                network_results = None
+
+            # [NEW] 5. AI Prediction (on Final URL)
+            prediction_result = phishing_predictor.predict(final_url)
+            
+            is_phishing = prediction_result['is_phishing']
+            confidence_score = prediction_result['confidence_score']
+            threat_type = determine_threat_type(is_phishing, confidence_score, final_url)
+            
+            # Adjust confidence based on Network Score
+            if network_results and network_results['network_trust_score'] < 30:
+                 if not is_phishing:
+                     logger.warning("[Override] Low Network Trust -> Flagging as Phishing")
+                     is_phishing = True
+                     confidence_score = max(confidence_score, 85.0)
+            
+            # Boost if Open Redirect + Suspicious Final
+            if redirect_res.get('is_open_redirect'):
+                confidence_score = max(confidence_score, 90.0)
+                is_phishing = True
+                threat_type = "open_redirect_abuse"
+
+            # [NEW] 6. Deep Analysis (Heuristics)
+            # Use existing_redirects optimization
+            if scan_request.deep_analysis:
+                try:
+                    logger.info("[3.5/4] Running Deep Analysis Heuristics...")
+                    deep_scan_results = await run_in_threadpool(
+                        deep_scanner.scan, 
+                        url_str, 
+                        existing_redirects=redirect_res
+                    )
+                    score = deep_scan_results.get('technical_risk_score', 0)
+                    logger.info(f"[DeepScan] Complete. Technical Risk Score: {score}")
+                except Exception as e:
+                    logger.error(f"Deep Analysis failed: {e}")
         
         logger.info(f"Prediction: {'PHISHING' if is_phishing else 'SAFE'} (Confidence: {confidence_score:.2f}%)")
         
         # ============================================================
         # STEP 3: OSINT DATA COLLECTION (Optional heavy operation)
         # ============================================================
+        # Collect OSINT on FINAL URL
         osint_dict = None
         if scan_request.include_osint:
             try:
-                logger.info("[3/4] Collecting OSINT data...")
-                osint_full = collect_osint_data(url_str)
+                logger.info(f"[3/4] Collecting OSINT data for {final_url}...")
+                osint_full = collect_osint_data(final_url)
                 osint_dict = get_osint_summary(osint_full)
                 logger.info(f"[OK] OSINT data collected: {osint_dict.get('server_location')}")
             except Exception as e:
