@@ -290,13 +290,83 @@ class ResponseBuilder:
             return f"{years} year{'s' if years > 1 else ''}"
     
     @staticmethod
+    def generate_risk_factors(
+        deep_scan_results: Optional[Dict[str, Any]],
+        rag_results: Optional[List[Dict[str, Any]]]
+    ) -> List[str]:
+        """Generate formatted risk factors"""
+        factors = []
+        
+        # 1. RAG Analysis
+        if rag_results and len(rag_results) > 0:
+            top_match = rag_results[0]
+            score = top_match.get('similarity_score', 0) * 100
+            target = top_match.get('target', 'Unknown')
+            factors.append(f"⚠️ Similarity: {score:.0f}% match with known \"{target} Phishing Kit\"")
+            
+        # 2. Deep Scan Analysis
+        if deep_scan_results:
+            details = deep_scan_results.get('details', {})
+            
+            # SSL Risk
+            ssl_info = details.get('ssl', {})
+            if ssl_info.get('risk'):
+                age = ssl_info.get('age_hours', 0)
+                factors.append(f"⚠️ SSL Age: {age} hours (Critical - High Freshness)")
+                
+            # Entropy Risk
+            entropy_info = details.get('content_entropy', {})
+            if entropy_info.get('risk'):
+                ent_val = entropy_info.get('entropy', 0)
+                factors.append(f"⚠️ Code Entropy: {ent_val} (High - Obfuscated JS Detected)")
+                
+            # Redirect Risk
+            redirect_info = details.get('redirects', {})
+            if redirect_info.get('risk'):
+                factors.append("⚠️ Suspicious Redirect Chain Detected")
+                
+        return factors
+
+    @staticmethod
+    def generate_ai_conclusion(
+        is_phishing: bool,
+        level: str,
+        risk_factors: List[str]
+    ) -> str:
+        """Generate narrative AI conclusion"""
+        if not is_phishing:
+            return "✅ Analysis Complete: The site appears safe based on SSL, content, and reputation analysis. No critical threats detected."
+        
+        # Narrative generation for phishing
+        conclusion = "🚨 Security Alert: "
+        
+        # Add context based on factors
+        has_ssl_issue = any("SSL" in f for f in risk_factors)
+        has_entropy_issue = any("Entropy" in f for f in risk_factors)
+        has_similarity = any("Similarity" in f for f in risk_factors)
+        
+        if has_similarity:
+            conclusion += "This site matches a known phishing pattern found in our Threat Intelligence database. "
+        elif has_ssl_issue and has_entropy_issue:
+            conclusion += "Although the site may look visually legitimate, the technical analysis reveals a freshly issued SSL certificate and obfuscated code. This indicates a sophisticated attack. "
+        elif has_ssl_issue:
+            conclusion += "The SSL certificate was issued very recently, which is a common tactic for ephemeral phishing sites. "
+        else:
+            conclusion += "Multiple risk indicators suggest this is a malicious site attempting to steal user credentials. "
+            
+        conclusion += "Do NOT enter any sensitive information."
+        return conclusion
+
+    @staticmethod
     def build_verdict(
         is_phishing: bool,
         confidence_score: float,
         threat_type: Optional[str],
-        url: str
+        url: str,
+        deep_scan_results: Optional[Dict[str, Any]] = None,
+        rag_results: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
-        """Build verdict data"""
+        """Build verdict data with enhanced AI insights"""
         risk_level = ResponseBuilder.calculate_risk_level(confidence_score, is_phishing)
         target_brand = ResponseBuilder.detect_target_brand(url, threat_type) if is_phishing else None
         
@@ -304,14 +374,19 @@ class ResponseBuilder:
         if is_phishing:
             risk_score = int(confidence_score)
         else:
-            # If safe, risk score is inverse (high confidence safe = low risk)
             risk_score = int(100 - confidence_score)
+            
+        # Generate new fields
+        risk_factors = ResponseBuilder.generate_risk_factors(deep_scan_results, rag_results)
+        ai_conclusion = ResponseBuilder.generate_ai_conclusion(is_phishing, risk_level, risk_factors)
         
         return {
             "score": risk_score,
             "level": risk_level,
             "target_brand": target_brand,
-            "threat_type": threat_type
+            "threat_type": threat_type,
+            "risk_factors": risk_factors,
+            "ai_conclusion": ai_conclusion
         }
     
     @staticmethod
@@ -587,7 +662,9 @@ class ResponseBuilder:
         confidence_score: float,
         threat_type: Optional[str],
         osint_data: Optional[Dict[str, Any]] = None,
-        deep_analysis: bool = True
+        deep_analysis: bool = True,
+        deep_scan_results: Optional[Dict[str, Any]] = None,
+        rag_results: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -642,18 +719,37 @@ class ResponseBuilder:
                 redirect_count=redirect_count,
                 has_suspicious_content=has_suspicious_content
             )
+            
+            # Additional score boost from Deep Scan Risk Score
+            technical_details = None
+            if deep_scan_results:
+                tech_risk = deep_scan_results.get('technical_risk_score', 0)
+                if tech_risk > 50:
+                    final_score = min(final_score + (tech_risk * 0.1), 100) # Boost by 10% of tech risk
+                
+                # Extract details for frontend
+                details = deep_scan_results.get('details', {})
+                technical_details = {
+                    "ssl_issuer": details.get('ssl', {}).get('issuer'),
+                    "ssl_age_hours": details.get('ssl', {}).get('age_hours'),
+                    "entropy_score": details.get('content_entropy', {}).get('entropy'),
+                    "redirect_chain": details.get('redirects', {}).get('chain')
+                }
+            
             logger.info(f"[Heuristic] Score adjusted: {confidence_score:.1f} -> {final_score:.1f}")
         
         return {
             "id": scan_id,
             "url": url,
             "scanned_at": scanned_at,
-            "verdict": ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url),
+            "verdict": ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url, deep_scan_results, rag_results),
             "network": ResponseBuilder.build_network(osint_data, url),
             "forensics": forensics,
             "content": content,
             "advanced": advanced,
-            "intelligence": ResponseBuilder.build_intelligence()
+            "intelligence": ResponseBuilder.build_intelligence(),
+            "technical_details": technical_details,
+            "rag_matches": rag_results
         }
 
 

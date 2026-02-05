@@ -38,6 +38,8 @@ from app.services.osint import collect_osint_data, get_osint_summary
 from app.services.knowledge_base import knowledge_base
 from app.services.response_builder import response_builder
 from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
+from app.services.deep_scan import deep_scanner
+from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +143,20 @@ async def scan_url(
                 logger.warning(f"Failed to collect OSINT data: {e}")
         
         # ============================================================
+        # STEP 3.5: DEEP ANALYSIS (Heuristics)
+        # ============================================================
+        deep_scan_results = None
+        if scan_request.deep_analysis:
+            try:
+                logger.info("[3.5/4] Running Deep Analysis Heuristics...")
+                # Run sync DeepScanner in threadpool to keep event loop unblocked
+                deep_scan_results = await run_in_threadpool(deep_scanner.scan, url_str)
+                score = deep_scan_results.get('technical_risk_score', 0)
+                logger.info(f"[DeepScan] Complete. Technical Risk Score: {score}")
+            except Exception as e:
+                logger.error(f"Deep Analysis failed: {e}")
+        
+        # ============================================================
         # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
         # ============================================================
         logger.info("[4/4] Saving scan result to database...")
@@ -170,21 +186,15 @@ async def scan_url(
             confidence_score=confidence_score,
             threat_type=threat_type,
             osint_data=osint_dict,
-            deep_analysis=scan_request.deep_analysis
+            deep_analysis=scan_request.deep_analysis,
+            deep_scan_results=deep_scan_results,
+            rag_results=similar_threats
         )
         
         # Convert to Pydantic models
-        return ScanResponse(
-            id=response_data['id'],
-            url=response_data['url'],
-            scanned_at=response_data['scanned_at'],
-            verdict=VerdictData(**response_data['verdict']),
-            network=NetworkData(**response_data['network']),
-            forensics=ForensicsData(**response_data['forensics']),
-            content=ContentData(**response_data['content']),
-            advanced=AdvancedData(**response_data['advanced']),
-            intelligence=IntelligenceData(**response_data['intelligence'])
-        )
+        # Convert to Pydantic models
+        # Pydantic will automatically parse nested dictionaries
+        return ScanResponse(**response_data)
         
     except HTTPException:
         raise
@@ -228,20 +238,36 @@ async def get_scan_history(
         
         logger.info(f"Retrieved {len(scans)} scan records (offset: {offset}, limit: {limit})")
         
+        # Reconstruct ScanResponse from sparse DB data
+        # Note: DB only stores minimal info, so we fill rest with defaults
+        response_list = []
+        for scan in scans:
+            # Reconstruct basic hierarchy
+            verdict = {
+               "score": int(scan.confidence_score) if scan.is_phishing else int(100 - scan.confidence_score),
+               "level": "CRITICAL" if scan.confidence_score > 90 and scan.is_phishing else "HIGH" if scan.is_phishing else "SAFE",
+               "target_brand": None,
+               "threat_type": scan.threat_type,
+               "risk_factors": [],
+               "ai_conclusion": None
+            }
+            # Fill dummy data for required fields
+            scan_obj = ScanResponse(
+                id=scan.id,
+                url=scan.url,
+                scanned_at=scan.scanned_at,
+                verdict=VerdictData(**verdict),
+                network=NetworkData(domain_age=None),
+                forensics=ForensicsData(),
+                content=ContentData(),
+                advanced=AdvancedData(),
+                intelligence=IntelligenceData()
+            )
+            response_list.append(scan_obj)
+
         return ScanHistoryResponse(
             total=total,
-            scans=[
-                ScanResponse(
-                    id=scan.id,
-                    url=scan.url,
-                    is_phishing=scan.is_phishing,
-                    confidence_score=scan.confidence_score,
-                    threat_type=scan.threat_type,
-                    scanned_at=scan.scanned_at,
-                    user_id=scan.user_id
-                )
-                for scan in scans
-            ]
+            scans=response_list
         )
         
     except Exception as e:
@@ -270,14 +296,26 @@ async def get_scan_by_id(
                 detail=f"Scan with ID {scan_id} not found"
             )
         
+        # Reconstruct from DB (Similar to history)
+        verdict = {
+            "score": int(scan.confidence_score) if scan.is_phishing else int(100 - scan.confidence_score),
+            "level": "CRITICAL" if scan.confidence_score > 90 and scan.is_phishing else "HIGH" if scan.is_phishing else "SAFE",
+            "target_brand": None,
+            "threat_type": scan.threat_type,
+            "risk_factors": [],
+            "ai_conclusion": None
+        }
+        
         return ScanResponse(
             id=scan.id,
             url=scan.url,
-            is_phishing=scan.is_phishing,
-            confidence_score=scan.confidence_score,
-            threat_type=scan.threat_type,
             scanned_at=scan.scanned_at,
-            user_id=scan.user_id
+            verdict=VerdictData(**verdict),
+            network=NetworkData(domain_age=None),
+            forensics=ForensicsData(),
+            content=ContentData(),
+            advanced=AdvancedData(),
+            intelligence=IntelligenceData()
         )
         
     except HTTPException:

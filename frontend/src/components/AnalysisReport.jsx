@@ -1,30 +1,19 @@
 /**
  * Phishing Detector - AI-Powered Threat Intelligence System
  * Copyright (c) 2026 BaoZ
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { useState, useEffect } from 'react';
 import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
   Terminal, BarChart3, AlertTriangle, CheckCircle, XCircle,
-  Lock, Unlock, ExternalLink, ChevronRight, Activity, Zap
+  Lock, Unlock, ExternalLink, ChevronRight, Activity, Zap,
+  FileCode, Shuffle, Eye, Code, Server
 } from 'lucide-react';
 
 const AnalysisReport = ({ data, loading }) => {
   const [circumference, setCircumference] = useState(0);
+  const [showJson, setShowJson] = useState(false);
 
   useEffect(() => {
     setCircumference(2 * Math.PI * 70);
@@ -48,10 +37,11 @@ const AnalysisReport = ({ data, loading }) => {
     return null;
   }
 
-  const { verdict, network, forensics, content, advanced, intelligence } = data;
+  const { verdict, network, forensics, content, advanced, intelligence, technical_details, rag_matches } = data;
   const score = verdict?.score || 0;
   const level = verdict?.level || 'LOW';
   const isPhishing = score >= 50;
+  const riskFactors = verdict?.risk_factors || [];
 
   const getRiskColor = () => {
     if (level === 'CRITICAL') return 'text-red-500 border-red-500';
@@ -70,410 +60,271 @@ const AnalysisReport = ({ data, loading }) => {
   const strokeDashoffset = circumference - (score / 100) * circumference;
 
   return (
-    <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 font-mono">
-      {/* Section 1: THE VERDICT - Hero Section */}
-      <div className={`bg-slate-900 rounded-lg border-2 ${getRiskColor()} p-4 sm:p-6 md:p-8 shadow-2xl ${getRiskBg()}`}>
-        <div className="flex flex-col lg:flex-row items-center justify-between mb-4 sm:mb-6 gap-3 sm:gap-4">
-          <div className="flex items-center gap-4">
-            {isPhishing ? (
-              <ShieldAlert className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-red-500 animate-pulse" />
-            ) : (
-              <Shield className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 text-green-500 drop-shadow-[0_0_10px_rgba(34,197,94,0.5)]" />
-            )}
-            <div className="text-center lg:text-left">
-              <h2 className={`text-xl sm:text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-wider drop-shadow-lg ${isPhishing ? 'text-red-500' : 'text-green-500'
-                }`}>
-                {isPhishing ? '⚠️ THREAT DETECTED' : '✓ SAFE SITE'}
-              </h2>
-              <p className="text-slate-400 text-xs sm:text-sm mt-1 sm:mt-2 tracking-wide">
-                {isPhishing ? 'MALICIOUS URL IDENTIFIED' : 'VERIFIED LEGITIMATE WEBSITE'}
-              </p>
+    <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 font-mono relative">
+
+      {/* JSON Toggle Button */}
+      <div className="absolute top-0 right-6 z-10">
+        <button
+          onClick={() => setShowJson(!showJson)}
+          className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-slate-400 text-xs hover:text-cyan-400 hover:border-cyan-400 transition-colors"
+        >
+          <Code className="w-4 h-4" />
+          {showJson ? 'Hide Raw Data' : 'View Raw Data'}
+        </button>
+      </div>
+
+      {/* JSON Viewer Modal */}
+      {showJson && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-cyan-500/30 rounded-lg w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl">
+            <div className="p-4 border-b border-white/10 flex justify-between items-center bg-slate-950">
+              <h3 className="text-cyan-400 font-bold flex items-center gap-2">
+                <Terminal className="w-4 h-4" /> Raw JSON Response
+              </h3>
+              <button
+                onClick={() => setShowJson(false)}
+                className="text-slate-400 hover:text-white"
+              >
+                <XCircle className="w-6 h-6" />
+              </button>
+            </div>
+            <div className="p-4 overflow-auto font-mono text-xs text-green-400 bg-black">
+              <pre>{JSON.stringify(data, null, 2)}</pre>
             </div>
           </div>
-          <div className={`px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 rounded-lg border-2 ${getRiskColor()} ${getRiskBg()}`}>
-            <div className="text-center">
-              <span className="text-slate-400 text-xs uppercase block mb-1">Risk Level</span>
-              <span className={`text-xl sm:text-2xl md:text-3xl font-bold ${getRiskColor()}`}>{level}</span>
+        </div>
+      )}
+
+      {/* Section 1: THE VERDICT - Hero Section */}
+      <div className={`bg-slate-900 rounded-lg border-2 ${getRiskColor()} p-4 sm:p-6 md:p-8 shadow-2xl ${getRiskBg()} transition-all duration-500`}>
+        <div className="flex flex-col lg:flex-row items-center justify-between mb-6 gap-6">
+          <div className="flex items-center gap-6">
+            {isPhishing ? (
+              <ShieldAlert className="w-16 h-16 md:w-20 md:h-20 text-red-500 animate-pulse" />
+            ) : (
+              <Shield className="w-16 h-16 md:w-20 md:h-20 text-green-500 drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
+            )}
+            <div>
+              <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight drop-shadow-md ${isPhishing ? 'text-red-500' : 'text-green-500'}`}>
+                {isPhishing ? 'THREAT DETECTED' : 'SAFE SITE'}
+              </h2>
+              <div className="flex flex-wrap items-center gap-3 mt-2">
+                <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border ${getRiskColor()} bg-opacity-20`}>
+                  {level} RISK
+                </span>
+                {verdict?.threat_type && (
+                  <span className="text-slate-400 text-sm font-semibold uppercase">
+                    TYPE: <span className="text-white">{verdict.threat_type.replace(/_/g, ' ')}</span>
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Score Gauge */}
+          <div className="relative w-32 h-32 md:w-40 md:h-40 shrink-0">
+            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 192 192">
+              <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none" className="text-slate-800" />
+              <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none"
+                strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
+                className={`${getRiskColor()} transition-all duration-1000 ease-out`} strokeLinecap="round" />
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              <span className={`text-4xl font-bold ${getRiskColor()}`}>{score}</span>
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest">SCORE</span>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 md:gap-8 items-center">
-          {/* Circular Progress Gauge */}
-          <div className="flex justify-center lg:justify-start">
-            <div className="relative w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 192 192">
-                <circle
-                  cx="96"
-                  cy="96"
-                  r="70"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="none"
-                  className="text-slate-700"
-                />
-                <circle
-                  cx="96"
-                  cy="96"
-                  r="70"
-                  stroke="currentColor"
-                  strokeWidth="12"
-                  fill="none"
-                  strokeDasharray={circumference}
-                  strokeDashoffset={strokeDashoffset}
-                  className={`${getRiskColor()} transition-all duration-1000 ease-out`}
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className={`text-3xl sm:text-4xl md:text-5xl font-bold ${getRiskColor()}`}>{score}</span>
-                <span className="text-slate-400 text-xs sm:text-sm mt-1">RISK SCORE</span>
-              </div>
+        {/* AI Conclusion Narrative */}
+        {verdict?.ai_conclusion && (
+          <div className="mb-6 p-4 rounded-lg bg-orange-500/5 border border-orange-500/20">
+            <div className="flex items-start gap-3">
+              <Zap className="w-5 h-5 text-orange-400 shrink-0 mt-1" />
+              <p className="text-slate-300 text-sm md:text-base leading-relaxed">
+                <span className="text-orange-400 font-bold mb-1 block uppercase text-xs">AI Analysis Conclusion</span>
+                {verdict.ai_conclusion}
+              </p>
             </div>
           </div>
+        )}
 
-          {/* Threat Details */}
-          <div className="lg:col-span-2 space-y-3 sm:space-y-4">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-              <span className="text-cyan-400 text-xs sm:text-sm uppercase tracking-wider shrink-0">URL:</span>
-              <span className="text-white text-sm sm:text-base md:text-lg break-all line-clamp-2">{data.url}</span>
-            </div>
+        {/* SECTION C: RISK FACTORS */}
+        {riskFactors.length > 0 && (
+          <div className="bg-slate-950/50 rounded-lg p-4 border border-red-500/20">
+            <h3 className="text-red-400 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" /> Risk Factors Identified
+            </h3>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {riskFactors.map((factor, idx) => (
+                <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                  <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
+                  <span>{factor.replace('⚠️ ', '')}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
 
-            {verdict?.target_brand && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <span className="text-cyan-400 text-xs sm:text-sm uppercase tracking-wider shrink-0">Target Brand:</span>
-                <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-red-500/20 border border-red-500 rounded-lg inline-block">
-                  <span className="text-red-400 text-base sm:text-lg md:text-xl font-bold uppercase">{verdict.target_brand}</span>
+      {/* SECTION A: THREAT INTELLIGENCE (RAG) */}
+      {rag_matches && rag_matches.length > 0 && (
+        <div className="bg-slate-900 rounded-lg border border-red-500 shadow-lg shadow-red-900/20 overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-2 opacity-10">
+            <Activity className="w-24 h-24 text-red-500" />
+          </div>
+          <div className="p-4 sm:p-6 pb-2 border-b border-red-500/30 flex items-center gap-3">
+            <ShieldAlert className="w-6 h-6 text-red-500" />
+            <h3 className="text-lg font-bold text-red-500 uppercase tracking-wider">Known Threat Pattern Detected</h3>
+          </div>
+          <div className="p-4 sm:p-6 grid gap-4">
+            {rag_matches.map((match, i) => (
+              <div key={i} className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-red-500/5 p-4 rounded border border-red-500/20">
+                <div>
+                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">Targeting</span>
+                  <span className="text-xl text-white font-bold">{match.target || 'Unknown'} users</span>
+                </div>
+                <div>
+                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">Similarity Match</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
+                      <div className="h-full bg-red-500" style={{ width: `${(match.similarity_score || 0) * 100}%` }}></div>
+                    </div>
+                    <span className="text-xl text-white font-bold">{((match.similarity_score || 0) * 100).toFixed(0)}%</span>
+                  </div>
+                </div>
+                <div className="md:text-right">
+                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">Technique</span>
+                  <span className="text-slate-300 text-sm font-mono">{match.similar_url ? 'URL Pattern Match' : 'Content Signature'}</span>
                 </div>
               </div>
-            )}
+            ))}
+          </div>
+        </div>
+      )}
 
-            {verdict?.threat_type && (
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                <span className="text-cyan-400 text-xs sm:text-sm uppercase tracking-wider shrink-0">Threat Type:</span>
-                <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-orange-500/20 border border-orange-500 rounded-lg inline-flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-orange-400" />
-                  <span className="text-orange-400 text-sm sm:text-base font-bold uppercase">{verdict.threat_type.replace('_', ' ')}</span>
-                </div>
+      {/* SECTION B: TECHNICAL FORENSICS (DEEP TECH) */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* SSL Age Card */}
+        <div className={`bg-slate-900 p-4 rounded-lg border ${technical_details?.ssl_age_hours < 48 ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse' : 'border-slate-700'}`}>
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-slate-400 text-xs uppercase font-bold">SSL Certificate Age</span>
+            <Lock className={`w-4 h-4 ${technical_details?.ssl_age_hours < 48 ? 'text-red-500' : 'text-green-500'}`} />
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className={`text-2xl font-bold ${technical_details?.ssl_age_hours < 48 ? 'text-red-500' : 'text-white'}`}>
+              {technical_details?.ssl_age_hours?.toFixed(1) || 'N/A'}
+            </span>
+            <span className="text-xs text-slate-500">hours</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-400 truncate">
+            Issuer: {technical_details?.ssl_issuer || 'Unknown'}
+          </div>
+        </div>
+
+        {/* Code Entropy Card */}
+        <div
+          className="bg-slate-900 p-4 rounded-lg border border-purple-500/30 group relative"
+          title="High entropy (> 5.5) indicates that the code has been obfuscated to bypass antivirus."
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-slate-400 text-xs uppercase font-bold">Code Entropy</span>
+            <FileCode className="w-4 h-4 text-purple-500" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className={`text-2xl font-bold ${(technical_details?.entropy_score || 0) > 5.5 ? 'text-purple-400' : 'text-white'}`}>
+              {technical_details?.entropy_score?.toFixed(2) || '0.00'}
+            </span>
+            {(technical_details?.entropy_score || 0) > 5.5 && (
+              <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] uppercase font-bold border border-purple-500/30">
+                Obfuscated
+              </span>
+            )}
+          </div>
+          <div className="mt-2 text-xs text-slate-500">
+            Shannon Entropy Analysis
+          </div>
+        </div>
+
+        {/* Redirects Card */}
+        <div className="bg-slate-900 p-4 rounded-lg border border-yellow-500/30">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-slate-400 text-xs uppercase font-bold">Redirect Chain</span>
+            <Shuffle className="w-4 h-4 text-yellow-500" />
+          </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-2xl font-bold text-white">
+              {technical_details?.redirect_chain ? technical_details.redirect_chain.length : 0}
+            </span>
+            <span className="text-xs text-slate-500">hops</span>
+          </div>
+          <div className="mt-2 text-xs text-slate-400 flex -space-x-1">
+            {technical_details?.redirect_chain?.slice(0, 3).map((_, i) => (
+              <div key={i} className="w-4 h-4 rounded-full bg-slate-700 border border-slate-900 flex items-center justify-center text-[8px] text-white">
+                {i + 1}
               </div>
+            ))}
+            {technical_details?.redirect_chain?.length > 3 && (
+              <div className="w-4 h-4 rounded-full bg-slate-700 border border-slate-900 flex items-center justify-center text-[8px] text-white">+</div>
             )}
-
-            <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-slate-400">
-              <Activity className="w-3 h-3 sm:w-4 sm:h-4 shrink-0" />
-              <span>Scanned at: {new Date(data.scanned_at).toLocaleString()}</span>
-            </div>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-        {/* Section 2: NETWORK INFRASTRUCTURE */}
-        <div className="bg-slate-900 rounded-lg border border-cyan-500/30 p-4 sm:p-6 shadow-xl hover:border-cyan-500/60 transition-all">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-2 sm:pb-3 border-b border-cyan-500/30">
-            <Network className="w-5 h-5 sm:w-6 sm:h-6 text-cyan-400" />
-            <h3 className="text-base sm:text-lg md:text-xl font-bold text-cyan-400 uppercase tracking-wider">Network Infrastructure</h3>
+        {/* Network Infrastructure (Simplified) */}
+        <div className="bg-slate-900 rounded-lg border border-cyan-500/30 p-4 sm:p-6 shadow-xl">
+          <div className="flex items-center gap-2 mb-4 border-b border-cyan-500/20 pb-2">
+            <Network className="w-5 h-5 text-cyan-400" />
+            <h3 className="text-cyan-400 font-bold uppercase tracking-wider text-sm">Network Data</h3>
           </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            {/* Domain Age */}
-            <div className="flex justify-between items-center p-2 sm:p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-slate-400 uppercase text-xs sm:text-sm">Domain Age</span>
-              <span className={`font-bold text-sm sm:text-base md:text-lg ${network?.domain_age && network.domain_age.includes('day') && parseInt(network.domain_age) < 7
-                ? 'text-red-500 animate-pulse'
-                : 'text-green-400'
-                }`}>
-                {network?.domain_age || 'Unknown'}
-              </span>
+          <div className="space-y-3 font-mono text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-400">IP Address</span>
+              <span className="text-cyan-400">{network?.ip || 'N/A'}</span>
             </div>
-
-            {/* Registrar */}
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-slate-400 uppercase text-sm">Registrar</span>
-              <span className="text-white font-bold">{network?.registrar || 'N/A'}</span>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Location</span>
+              <span className="text-white">{network?.country || 'Unknown'}</span>
             </div>
-
-            {/* ISP */}
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-slate-400 uppercase text-sm">ISP</span>
-              <span className="text-white font-bold">{network?.isp || 'N/A'}</span>
-            </div>
-
-            {/* Country & IP */}
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-slate-400 uppercase text-sm">Location</span>
-              <div className="flex items-center gap-2">
-                <Globe className="w-4 h-4 text-cyan-400" />
-                <span className="text-white font-bold">{network?.country || 'Unknown'}</span>
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center p-3 bg-slate-800/50 rounded-lg border border-slate-700">
-              <span className="text-slate-400 uppercase text-sm">IP Address</span>
-              <span className="text-cyan-400 font-mono font-bold">{network?.ip || 'N/A'}</span>
+            <div className="flex justify-between">
+              <span className="text-slate-400">Registrar</span>
+              <span className="text-white truncate">{network?.registrar || 'N/A'}</span>
             </div>
           </div>
         </div>
 
-        {/* Section 3: URL FORENSICS */}
-        <div className="bg-slate-900 rounded-lg border border-purple-500/30 p-4 sm:p-6 shadow-xl hover:border-purple-500/60 transition-all">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-2 sm:pb-3 border-b border-purple-500/30">
-            <Search className="w-5 h-5 sm:w-6 sm:h-6 text-purple-400" />
-            <h3 className="text-base sm:text-lg md:text-xl font-bold text-purple-400 uppercase tracking-wider">URL Forensics</h3>
+        {/* Content & Forensics (Combined/Simplified) */}
+        <div className="bg-slate-900 rounded-lg border border-blue-500/30 p-4 sm:p-6 shadow-xl">
+          <div className="flex items-center gap-2 mb-4 border-b border-blue-500/20 pb-2">
+            <FileText className="w-5 h-5 text-blue-400" />
+            <h3 className="text-blue-400 font-bold uppercase tracking-wider text-sm">Content Forensics</h3>
           </div>
 
-          <div className="space-y-3 sm:space-y-4">
-            {/* Typosquatting */}
-            <div className="p-3 sm:p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400 uppercase text-xs sm:text-sm">Typosquatting</span>
-                {forensics?.typosquatting ? (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-red-500/20 border border-red-500 rounded-full">
-                    <XCircle className="w-4 h-4 text-red-500" />
-                    <span className="text-red-500 font-bold text-sm">DETECTED</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-green-500/20 border border-green-500 rounded-full">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <span className="text-green-500 font-bold text-sm">CLEAN</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Obfuscation */}
-            {forensics?.obfuscation && (
-              <div className="p-4 bg-orange-500/10 rounded-lg border border-orange-500">
-                <div className="flex items-center gap-2 mb-2">
-                  <AlertTriangle className="w-5 h-5 text-orange-500" />
-                  <span className="text-orange-500 font-bold uppercase text-sm">Obfuscation Detected</span>
-                </div>
-                <p className="text-orange-300 text-sm ml-7">{forensics.obfuscation}</p>
-              </div>
-            )}
-
-            {/* Redirect Chain */}
-            {forensics?.redirect_chain && forensics.redirect_chain.length > 0 ? (
-              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                <div className="flex items-center gap-2 mb-3">
-                  <ExternalLink className="w-5 h-5 text-yellow-500" />
-                  <span className="text-yellow-500 font-bold uppercase text-sm">Redirect Chain</span>
-                </div>
-                <div className="space-y-2 ml-7">
-                  {forensics.redirect_chain.map((url, index) => (
-                    <div key={index} className="flex items-center gap-2 text-sm">
-                      <span className="text-cyan-400 font-bold">#{index + 1}</span>
-                      <ChevronRight className="w-4 h-4 text-slate-500" />
-                      <span className="text-slate-300 break-all">{url}</span>
-                    </div>
-                  ))}
-                </div>
+          <div className="space-y-4">
+            {/* Screenshot Thumb */}
+            {content?.screenshot_url ? (
+              <div className="w-full h-32 bg-slate-800 rounded overflow-hidden relative group">
+                <img src={content.screenshot_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
               </div>
             ) : (
-              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                <div className="flex items-center justify-between">
-                  <span className="text-slate-400 uppercase text-sm">Redirect Chain</span>
-                  <span className="text-green-500 font-bold text-sm">No Redirects</span>
-                </div>
+              <div className="w-full h-20 bg-slate-800/50 rounded flex items-center justify-center text-xs text-slate-500">
+                Screenshot Unavailable
               </div>
             )}
-          </div>
-        </div>
 
-        {/* Section 4: CONTENT ANALYSIS */}
-        <div className="bg-slate-900 rounded-lg border border-blue-500/30 p-4 sm:p-6 shadow-xl hover:border-blue-500/60 transition-all">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-2 sm:pb-3 border-b border-blue-500/30">
-            <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-blue-400" />
-            <h3 className="text-base sm:text-lg md:text-xl font-bold text-blue-400 uppercase tracking-wider">Content Analysis</h3>
-          </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            {/* Screenshot */}
-            <div className="aspect-video bg-slate-800/50 rounded-lg border border-slate-700 overflow-hidden">
-              {content?.screenshot_url ? (
-                <img
-                  src={content.screenshot_url}
-                  alt="Website Screenshot"
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <div className="text-center space-y-3">
-                    <div className="w-16 h-16 mx-auto border-4 border-slate-600 border-t-blue-500 rounded-full animate-spin"></div>
-                    <span className="text-slate-500 text-sm">Screenshot Not Available</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Login Form Detection */}
-            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  {content?.has_login_form ? (
-                    <Unlock className="w-5 h-5 text-red-500" />
-                  ) : (
-                    <Lock className="w-5 h-5 text-green-500" />
-                  )}
-                  <span className="text-slate-400 uppercase text-sm">Login Form</span>
-                </div>
-                {content?.has_login_form === true ? (
-                  <span className="text-red-500 font-bold text-sm">DETECTED</span>
-                ) : content?.has_login_form === false ? (
-                  <span className="text-green-500 font-bold text-sm">NOT FOUND</span>
-                ) : (
-                  <span className="text-slate-500 font-bold text-sm">N/A</span>
-                )}
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className={`p-2 rounded border text-center ${content?.has_login_form ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-green-500/10 border-green-500/30 text-green-400'}`}>
+                {content?.has_login_form ? 'Login Form Detected' : 'No Login Form'}
               </div>
-            </div>
-
-            {/* External Resources */}
-            {content?.external_resources && content.external_resources.length > 0 && (
-              <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-                <span className="text-slate-400 uppercase text-sm block mb-2">External Resources</span>
-                <div className="space-y-1 max-h-32 overflow-y-auto">
-                  {content.external_resources.map((resource, index) => (
-                    <div key={index} className="text-xs text-cyan-400 font-mono">{resource}</div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Section 5: ADVANCED INDICATORS */}
-        <div className="bg-slate-900 rounded-lg border border-green-500/30 p-4 sm:p-6 shadow-xl hover:border-green-500/60 transition-all">
-          <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-2 sm:pb-3 border-b border-green-500/30">
-            <Terminal className="w-5 h-5 sm:w-6 sm:h-6 text-green-400" />
-            <h3 className="text-base sm:text-lg md:text-xl font-bold text-green-400 uppercase tracking-wider">Advanced Indicators</h3>
-          </div>
-
-          <div className="space-y-3 sm:space-y-4">
-            {/* Terminal-style Blackbox */}
-            <div className="bg-black/80 rounded-lg border border-green-500/30 p-4 font-mono text-sm">
-              <div className="flex items-center gap-2 mb-3 pb-2 border-b border-green-500/20">
-                <div className="flex gap-1.5">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-green-500"></div>
-                </div>
-                <span className="text-green-400 text-xs">SECURITY SCAN</span>
-              </div>
-
-              <div className="space-y-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="text-green-400">$</span>
-                  <span className="text-slate-400">Checking for malicious indicators...</span>
-                </div>
-
-                {advanced?.telegram_bot_detected && (
-                  <div className="flex items-center gap-2 text-red-400">
-                    <Zap className="w-3 h-3" />
-                    <span>[!] Telegram Bot API Detected</span>
-                  </div>
-                )}
-
-                {advanced?.discord_webhook_detected && (
-                  <div className="flex items-center gap-2 text-red-400">
-                    <Zap className="w-3 h-3" />
-                    <span>[!] Discord Webhook Detected</span>
-                  </div>
-                )}
-
-                {!advanced?.telegram_bot_detected && !advanced?.discord_webhook_detected && (
-                  <div className="flex items-center gap-2 text-green-400">
-                    <CheckCircle className="w-3 h-3" />
-                    <span>[✓] No bot APIs detected</span>
-                  </div>
-                )}
-
-                <div className="flex items-center gap-2">
-                  <span className="text-green-400">$</span>
-                  <span className="text-slate-400">Scan complete.</span>
-                </div>
-              </div>
-            </div>
-
-            {/* SSL Certificate */}
-            <div className="p-4 bg-slate-800/50 rounded-lg border border-slate-700">
-              <div className="flex items-center gap-2 mb-3">
-                <Lock className="w-5 h-5 text-green-400" />
-                <span className="text-green-400 font-bold uppercase text-sm">SSL Certificate</span>
-              </div>
-              <div className="space-y-2 ml-7 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Issuer:</span>
-                  <span className="text-white font-bold">{advanced?.ssl_issuer || 'N/A'}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Validity:</span>
-                  <span className={`font-bold ${advanced?.ssl_validity?.includes('Expired')
-                    ? 'text-red-500'
-                    : 'text-green-400'
-                    }`}>
-                    {advanced?.ssl_validity || 'N/A'}
-                  </span>
-                </div>
+              <div className={`p-2 rounded border text-center ${advanced?.telegram_bot_detected ? 'bg-red-500/10 border-red-500/30 text-red-400' : 'bg-slate-800 border-slate-700 text-slate-400'}`}>
+                {advanced?.telegram_bot_detected ? 'Telegram API' : 'No Bot API'}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Section 6: THREAT INTELLIGENCE */}
-      <div className="bg-slate-900 rounded-lg border border-red-500/30 p-4 sm:p-6 shadow-xl hover:border-red-500/60 transition-all">
-        <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6 pb-2 sm:pb-3 border-b border-red-500/30">
-          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-red-400" />
-          <h3 className="text-base sm:text-lg md:text-xl font-bold text-red-400 uppercase tracking-wider">Threat Intelligence</h3>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-          {/* VirusTotal */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400 uppercase text-sm font-bold">VirusTotal</span>
-              <span className="text-cyan-400 font-mono text-sm">{intelligence?.virustotal_score || 'N/A'}</span>
-            </div>
-            <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
-              <div
-                className="bg-linear-to-r from-green-500 to-red-500 h-full rounded-full transition-all duration-500"
-                style={{ width: intelligence?.virustotal_score ? '50%' : '0%' }}
-              ></div>
-            </div>
-            {!intelligence?.virustotal_score && (
-              <p className="text-xs text-slate-500 italic">Integration pending</p>
-            )}
-          </div>
-
-          {/* Google Safe Browsing */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-slate-400 uppercase text-sm font-bold">Google Safe Browsing</span>
-              <span className={`font-bold text-sm ${intelligence?.google_safebrowsing === 'Malware' || intelligence?.google_safebrowsing === 'Phishing'
-                ? 'text-red-500'
-                : intelligence?.google_safebrowsing === 'Safe'
-                  ? 'text-green-500'
-                  : 'text-slate-400'
-                }`}>
-                {intelligence?.google_safebrowsing || 'N/A'}
-              </span>
-            </div>
-            <div className="w-full bg-slate-800 rounded-full h-3 overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${intelligence?.google_safebrowsing === 'Malware' || intelligence?.google_safebrowsing === 'Phishing'
-                  ? 'bg-red-500'
-                  : intelligence?.google_safebrowsing === 'Safe'
-                    ? 'bg-green-500'
-                    : 'bg-slate-700'
-                  }`}
-                style={{ width: intelligence?.google_safebrowsing ? '100%' : '0%' }}
-              ></div>
-            </div>
-            {!intelligence?.google_safebrowsing && (
-              <p className="text-xs text-slate-500 italic">Integration pending</p>
-            )}
-          </div>
-        </div>
-      </div>
     </div>
   );
 };

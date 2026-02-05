@@ -40,6 +40,8 @@ class VerdictData(BaseModel):
     level: str = Field(..., description="Risk level: LOW, MEDIUM, HIGH, CRITICAL")
     target_brand: Optional[str] = Field(None, description="Impersonated brand if detected")
     threat_type: Optional[str] = Field(None, description="Type of threat detected")
+    risk_factors: List[str] = Field(default_factory=list, description="List of detected high-risk factors")
+    ai_conclusion: Optional[str] = Field(None, description="AI-generated narrative conclusion")
 
 
 class NetworkData(BaseModel):
@@ -91,6 +93,10 @@ class ScanResponse(BaseModel):
     content: ContentData
     advanced: AdvancedData
     intelligence: IntelligenceData
+    
+    # New fields for advanced frontend visualization
+    technical_details: Optional[dict] = Field(None, description="Raw technical metrics (SSL age, entropy)")
+    rag_matches: Optional[List[dict]] = Field(None, description="Detailed RAG threat matches")
     
     model_config = {
         "json_schema_extra": {
