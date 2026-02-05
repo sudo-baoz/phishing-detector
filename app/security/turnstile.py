@@ -110,6 +110,23 @@ async def verify_turnstile(request: Request) -> dict:
             
             if not result.get("success", False):
                 error_codes = result.get("error-codes", [])
+                
+                # Handle timeout-or-duplicate specifically (user error, not system error)
+                if 'timeout-or-duplicate' in error_codes:
+                    logger.warning(
+                        f"Turnstile token expired/reused for {request.client.host}. "
+                        f"This is a user error (double-click or stale page)."
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail={
+                            "error": "token_expired",
+                            "message": "Captcha expired or already used. Please refresh the page and try again.",
+                            "error_codes": error_codes
+                        }
+                    )
+                
+                # Other verification failures (potential bot)
                 logger.warning(
                     f"Turnstile verification failed for {request.client.host}. "
                     f"Errors: {error_codes}"
@@ -124,7 +141,7 @@ async def verify_turnstile(request: Request) -> dict:
                     }
                 )
             
-            logger.info(f"Turnstile verification successful for {request.client.host}")
+            logger.debug(f"Turnstile verification successful for {request.client.host}")
             return result
             
     except HTTPException:

@@ -130,68 +130,84 @@ class ReportGenerator:
         return bool(re.match(pattern, email.strip()))
     
     def _get_threat_summary(self, scan_result: Dict[str, Any]) -> str:
-        """Generate threat summary from scan results"""
+        """Generate threat summary from scan results (null-safe)"""
+        # Null safety: Return default if no data
+        if not scan_result:
+            return "Phishing indicators detected"
+            
         summaries = []
         
-        verdict = scan_result.get('verdict', {})
+        verdict = scan_result.get('verdict') or {}
         if isinstance(verdict, dict):
             if verdict.get('is_phishing'):
-                summaries.append(f"Phishing detected with {verdict.get('confidence_score', 0):.1f}% confidence")
+                confidence = verdict.get('confidence_score') or 0
+                summaries.append(f"Phishing detected with {confidence:.1f}% confidence")
             threat_type = verdict.get('threat_type')
             if threat_type:
                 summaries.append(f"Threat type: {threat_type}")
         
-        # God Mode analysis
-        god_mode = scan_result.get('god_mode_analysis', {})
+        # God Mode analysis (null-safe)
+        god_mode = scan_result.get('god_mode_analysis') or {}
         if god_mode and isinstance(god_mode, dict):
             if god_mode.get('verdict') == 'PHISHING':
-                summaries.append(f"AI Analysis: {god_mode.get('summary', 'Phishing confirmed')}")
-            if god_mode.get('impersonation_target'):
-                summaries.append(f"Impersonating: {god_mode.get('impersonation_target')}")
+                summary_text = god_mode.get('summary') or 'Phishing confirmed'
+                summaries.append(f"AI Analysis: {summary_text}")
+            impersonation = god_mode.get('impersonation_target')
+            if impersonation:
+                summaries.append(f"Impersonating: {impersonation}")
         
-        # YARA matches
-        yara_result = scan_result.get('yara_analysis', {})
-        if yara_result and yara_result.get('triggered_rules'):
-            rules = yara_result.get('triggered_rules', [])
-            summaries.append(f"Malicious patterns detected: {', '.join(rules[:3])}")
+        # YARA matches (null-safe)
+        yara_result = scan_result.get('yara_analysis') or {}
+        if yara_result and isinstance(yara_result, dict):
+            triggered_rules = yara_result.get('triggered_rules') or []
+            if triggered_rules:
+                summaries.append(f"Malicious patterns detected: {', '.join(str(r) for r in triggered_rules[:3])}")
         
         return '; '.join(summaries) if summaries else "Phishing indicators detected"
     
     def _get_evidence_list(self, scan_result: Dict[str, Any]) -> List[str]:
-        """Extract evidence points from scan results"""
+        """Extract evidence points from scan results (null-safe)"""
+        # Null safety: Return empty list if no data
+        if not scan_result:
+            return ["Phishing indicators detected"]
+            
         evidence = []
         
-        # Technical details
-        tech_details = scan_result.get('technical_details', {})
-        if tech_details:
-            if tech_details.get('ssl_age_hours') and tech_details['ssl_age_hours'] < 48:
-                evidence.append(f"SSL certificate is only {tech_details['ssl_age_hours']} hours old")
-            if tech_details.get('entropy_score') and tech_details['entropy_score'] > 4.5:
+        # Technical details (null-safe)
+        tech_details = scan_result.get('technical_details') or {}
+        if tech_details and isinstance(tech_details, dict):
+            ssl_age = tech_details.get('ssl_age_hours')
+            if ssl_age and ssl_age < 48:
+                evidence.append(f"SSL certificate is only {ssl_age} hours old")
+            entropy = tech_details.get('entropy_score')
+            if entropy and entropy > 4.5:
                 evidence.append("High entropy JavaScript detected (likely obfuscated)")
         
-        # Redirect chain
-        forensics = scan_result.get('forensics', {})
-        if forensics and forensics.get('redirect_chain'):
-            chain = forensics.get('redirect_chain', [])
+        # Redirect chain (null-safe)
+        forensics = scan_result.get('forensics') or {}
+        if forensics and isinstance(forensics, dict):
+            chain = forensics.get('redirect_chain') or []
             if len(chain) > 2:
                 evidence.append(f"Multiple redirect hops detected ({len(chain)} URLs)")
         
-        # Vision analysis
-        vision = scan_result.get('vision_analysis', {})
-        if vision:
-            evasion = vision.get('evasion', {})
-            if evasion and evasion.get('evasion_detected'):
+        # Vision analysis (null-safe - this was crashing!)
+        vision = scan_result.get('vision_analysis') or {}
+        if vision and isinstance(vision, dict):
+            evasion = vision.get('evasion') or {}
+            if isinstance(evasion, dict) and evasion.get('evasion_detected'):
                 evidence.append("Evasion techniques detected (hidden content)")
-            connections = vision.get('connections', {})
-            if connections and connections.get('suspicious_ips'):
-                evidence.append(f"Suspicious IP connections: {', '.join(connections['suspicious_ips'][:3])}")
+            connections = vision.get('connections') or {}
+            if isinstance(connections, dict):
+                suspicious_ips = connections.get('suspicious_ips') or []
+                if suspicious_ips:
+                    evidence.append(f"Suspicious IP connections: {', '.join(str(ip) for ip in suspicious_ips[:3])}")
         
-        # RAG matches
-        rag_matches = scan_result.get('rag_matches', [])
+        # RAG matches (null-safe)
+        rag_matches = scan_result.get('rag_matches') or []
         if rag_matches:
             evidence.append("URL matches known phishing threat patterns in our database")
         
-        return evidence
+        return evidence if evidence else ["Multiple phishing indicators detected"]
     
     def generate_abuse_report(
         self,
@@ -202,7 +218,7 @@ class ReportGenerator:
         reporter_org: str = "Automated Security Scanner"
     ) -> Dict[str, Any]:
         """
-        Generate a formal abuse/takedown report.
+        Generate a formal abuse/takedown report (null-safe).
         
         Args:
             url: The phishing URL
@@ -212,6 +228,14 @@ class ReportGenerator:
             reporter_org: Organization name
             
         Returns:
+            Dict with recipient, subject, body, and metadata
+            Returns error dict if inputs are invalid
+        """
+        # ================================================================
+        # NULL SAFETY: Validate all inputs before processing
+        # ================================================================
+        if not url:
+            logger.warning(\"[ReportGenerator] Cannot generate report: URL is empty\")\n            return {\n                'error': 'missing_url',\n                'report_id': None,\n                'generated': False\n            }\n        \n        # Ensure scan_result is a valid dict\n        if not scan_result or not isinstance(scan_result, dict):\n            logger.warning(\"[ReportGenerator] Cannot generate report: scan_result is None or invalid\")\n            scan_result = {}  # Use empty dict to prevent crashes\n        \n        # Ensure osint_data is a valid dict\n        if osint_data is None or not isinstance(osint_data, dict):\n            osint_data = {}
             Dict with recipient, subject, body, and metadata
         """
         self.report_counter += 1

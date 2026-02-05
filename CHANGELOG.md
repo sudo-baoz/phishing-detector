@@ -5,6 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-02-05
+
+### 🔧 Backend Reliability & Stability Fixes
+
+This release addresses critical stability issues including server hangs, crash protection, and log noise reduction.
+
+#### Fixed
+
+- **Report Generator Null Safety** ([report_generator.py](app/services/report_generator.py)):
+  - Added defensive null checks to `_get_threat_summary()` and `_get_evidence_list()`
+  - `generate_abuse_report()` now validates all inputs before processing
+  - Returns graceful error dict instead of crashing when VisionScanner returns None
+  - Fixed `'NoneType' object has no attribute 'lower'` crash
+
+- **Turnstile Token Expiry Handling** ([turnstile.py](app/security/turnstile.py)):
+  - `timeout-or-duplicate` error now returns `HTTP 400 Bad Request` (user error)
+  - Clear message: "Captcha expired or already used. Please refresh the page and try again."
+  - No longer logged as ERROR (was polluting logs) - now WARNING level
+  - Prevents database session errors from cascading
+
+- **Vision Scanner Graceful Failure** ([vision_scanner.py](app/services/vision_scanner.py)):
+  - Browser launch wrapped in try/catch to handle missing system dependencies
+  - Returns valid fallback object `{'evasion': {}, 'connections': {}, 'error': '...'}` on failure
+  - Prevents crash propagation to ReportGenerator and other downstream services
+  - Logs error but doesn't crash the entire scan
+
+#### Changed
+
+- **Smart Logging "Quiet Mode"** ([logger.py](app/core/logger.py)):
+  - Root logger set to WARNING (blocks 3rd party INFO/DEBUG noise)
+  - Silenced 30+ noisy loggers: httpx, chromadb, uvicorn.access, etc.
+  - Application logs: `debug()` for routine, `warning()` for threats, `error()` for failures
+  - Clean startup banner always visible via CRITICAL level
+
+- **Request Throttling & Timeout** ([main.py](app/main.py), [scan.py](app/routers/scan.py)):
+  - Global semaphore limits to 3 concurrent heavy scans
+  - 60-second hard timeout per scan via `asyncio.wait_for()`
+  - `503 Service Unavailable` when all slots taken (fail-fast)
+  - `408 Request Timeout` when scan exceeds limit
+
+---
+
 ## [1.5.0] - 2026-02-05
 
 ### 🎨 Frontend SOC Dashboard Upgrade

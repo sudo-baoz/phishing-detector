@@ -332,13 +332,22 @@ async def full_scan(url: str) -> Dict[str, Any]:
         # ============================================================
         # STATELESS: Create new browser instance for this request
         # ============================================================
-        playwright = await async_playwright().start()
-        
-        # Launch with stealth args
-        browser = await playwright.chromium.launch(
-            headless=True,
-            args=STEALTH_BROWSER_ARGS
-        )
+        try:
+            playwright = await async_playwright().start()
+            
+            # Launch with stealth args
+            browser = await playwright.chromium.launch(
+                headless=True,
+                args=STEALTH_BROWSER_ARGS
+            )
+        except Exception as launch_error:
+            # Browser launch failed (missing dependencies, etc.)
+            # Return graceful fallback instead of crashing
+            logger.error(f"[VisionScanner] Browser launch failed: {launch_error}")
+            result['error'] = f"Browser unavailable: {str(launch_error)[:100]}"
+            result['evasion'] = {'evasion_detected': False, 'hidden_threats': [], 'details': {'error': 'browser_unavailable'}}
+            result['connections'] = {'external_domains': [], 'suspicious_ips': [], 'trackers': [], 'total_requests': 0, 'cross_origin_count': 0}
+            return result
         
         # Create new context with randomized User-Agent
         context = await browser.new_context(
