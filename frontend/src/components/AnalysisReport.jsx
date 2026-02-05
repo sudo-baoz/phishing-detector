@@ -206,13 +206,19 @@ const AnalysisReport = ({ data, loading }) => {
       {/* SECTION B: TECHNICAL FORENSICS (DEEP TECH) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* SSL Age Card */}
-        <div className={`bg-slate-900 p-4 rounded-lg border ${technical_details?.ssl_age_hours < 48 ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse' : 'border-slate-700'}`}>
+        <div className={`bg-slate-900 p-4 rounded-lg border ${(technical_details?.ssl_age_hours || 0) < 24 ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse' :
+            (technical_details?.ssl_age_hours || 0) > 8760 ? 'border-green-500/50' : 'border-slate-700'
+          }`}>
           <div className="flex items-center justify-between mb-2">
             <span className="text-slate-400 text-xs uppercase font-bold">SSL Certificate Age</span>
-            <Lock className={`w-4 h-4 ${technical_details?.ssl_age_hours < 48 ? 'text-red-500' : 'text-green-500'}`} />
+            <Lock className={`w-4 h-4 ${(technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-500' :
+                (technical_details?.ssl_age_hours || 0) > 8760 ? 'text-green-500' : 'text-slate-400'
+              }`} />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className={`text-2xl font-bold ${technical_details?.ssl_age_hours < 48 ? 'text-red-500' : 'text-white'}`}>
+            <span className={`text-2xl font-bold ${(technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-500' :
+                (technical_details?.ssl_age_hours || 0) > 8760 ? 'text-green-500' : 'text-white'
+              }`}>
               {technical_details?.ssl_age_hours?.toFixed(1) || 'N/A'}
             </span>
             <span className="text-xs text-slate-500">hours</span>

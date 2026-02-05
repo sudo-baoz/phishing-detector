@@ -708,6 +708,18 @@ class ResponseBuilder:
         
         # Apply heuristic scoring if deep analysis enabled
         final_score = confidence_score
+        
+        # Extract technical details if available (regardless of phishing status)
+        technical_details = None
+        if deep_scan_results:
+            details = deep_scan_results.get('details', {})
+            technical_details = {
+                "ssl_issuer": details.get('ssl', {}).get('issuer'),
+                "ssl_age_hours": details.get('ssl', {}).get('age_hours'),
+                "entropy_score": details.get('content_entropy', {}).get('entropy'),
+                "redirect_chain": details.get('redirects', {}).get('chain')
+            }
+        
         if deep_analysis and is_phishing:
             domain_age_days = osint_data.get('domain_age_days') if osint_data else None
             redirect_count = len(forensics.get('redirect_chain', [])) - 1 if forensics.get('redirect_chain') else 0
@@ -721,20 +733,10 @@ class ResponseBuilder:
             )
             
             # Additional score boost from Deep Scan Risk Score
-            technical_details = None
             if deep_scan_results:
                 tech_risk = deep_scan_results.get('technical_risk_score', 0)
                 if tech_risk > 50:
                     final_score = min(final_score + (tech_risk * 0.1), 100) # Boost by 10% of tech risk
-                
-                # Extract details for frontend
-                details = deep_scan_results.get('details', {})
-                technical_details = {
-                    "ssl_issuer": details.get('ssl', {}).get('issuer'),
-                    "ssl_age_hours": details.get('ssl', {}).get('age_hours'),
-                    "entropy_score": details.get('content_entropy', {}).get('entropy'),
-                    "redirect_chain": details.get('redirects', {}).get('chain')
-                }
             
             logger.info(f"[Heuristic] Score adjusted: {confidence_score:.1f} -> {final_score:.1f}")
         
