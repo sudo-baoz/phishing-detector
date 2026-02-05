@@ -112,6 +112,11 @@ class ScanResponse(BaseModel):
     god_mode_analysis: Optional[GodModeAnalysis] = Field(None, description="God Mode AI Analysis result")
     vision_analysis: Optional[dict] = Field(None, description="Vision Scanner result (evasion detection, external connections)")
     
+    # SOC Platform Features
+    threat_graph: Optional[dict] = Field(None, description="React Flow compatible threat graph (nodes, edges)")
+    yara_analysis: Optional[dict] = Field(None, description="YARA rule matches (crypto wallets, phishing kits, obfuscation)")
+    abuse_report: Optional[dict] = Field(None, description="Auto-generated takedown report (recipient, subject, body)")
+    
     model_config = {
         "json_schema_extra": {
             "example": {

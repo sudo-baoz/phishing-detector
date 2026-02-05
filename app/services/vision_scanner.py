@@ -64,22 +64,31 @@ class VisionScanner:
         self.browser: Optional[Browser] = None
         self.timeout = 30000  # 30 seconds page load timeout
         
-    async def _ensure_browser(self) -> Browser:
-        """Ensure browser instance is available"""
+    async def _ensure_browser(self) -> Optional[Browser]:
+        """Ensure browser instance is available. Returns None if browser fails to launch."""
         if not PLAYWRIGHT_AVAILABLE:
-            raise RuntimeError("Playwright is not installed")
+            logger.error("[VisionScanner] Playwright is not installed")
+            return None
             
         if self.browser is None:
-            playwright = await async_playwright().start()
-            self.browser = await playwright.chromium.launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu',
-                    '--disable-extensions'
-                ]
-            )
+            try:
+                playwright = await async_playwright().start()
+                self.browser = await playwright.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu',
+                        '--disable-extensions',
+                        '--disable-software-rasterizer'
+                    ]
+                )
+            except Exception as e:
+                # CRITICAL: Do not crash the app if browser fails to launch
+                # This handles missing system dependencies like libatk-1.0.so.0
+                logger.error(f"[VisionScanner] Browser failed to launch: {e}")
+                self.browser = None
+                return None
         return self.browser
     
     async def close(self):
@@ -366,6 +375,7 @@ class VisionScanner:
         Returns:
             Complete scan results
         """
+        # Safe Failure response structure
         result = {
             'url': url,
             'evasion': None,
@@ -382,6 +392,13 @@ class VisionScanner:
         
         try:
             browser = await self._ensure_browser()
+            
+            # CRITICAL: Handle browser launch failure gracefully
+            if browser is None:
+                result['error'] = 'Browser failed to launch: missing system dependencies (libatk, libgtk, etc.)'
+                logger.warning("[VisionScanner] Returning safe failure - browser unavailable")
+                return result
+                
             page = await browser.new_page()
             
             # Set up request interception before navigation

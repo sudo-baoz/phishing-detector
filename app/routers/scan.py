@@ -42,6 +42,9 @@ from app.services.deep_scan import deep_scanner
 from app.services.cert_monitor import check_realtime_threat  # Zero-Day Detection
 from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available  # God Mode AI
 from app.services.vision_scanner import scan_url_vision, is_vision_scanner_available  # Vision Scanner
+from app.services.graph_builder import build_threat_graph  # SOC: Threat Graph
+from app.services.yara_scanner import scan_content_with_yara  # SOC: YARA Scanner
+from app.services.report_generator import generate_abuse_report  # SOC: Takedown Report
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -366,31 +369,98 @@ async def scan_url(
                 # Run async vision scan
                 vision_result = await scan_url_vision(final_url)
                 
-                if vision_result:
-                    evasion = vision_result.get('evasion', {})
-                    connections = vision_result.get('connections', {})
-                    
-                    logger.info(f"[VisionScan] Evasion detected: {evasion.get('evasion_detected', False)}")
-                    logger.info(f"[VisionScan] External domains: {len(connections.get('external_domains', []))}")
-                    
-                    # Boost confidence if evasion techniques detected
-                    if evasion.get('evasion_detected'):
-                        if not is_phishing:
-                            logger.warning("[VISION OVERRIDE] Evasion techniques detected")
-                            is_phishing = True
-                            confidence_score = max(confidence_score, 80)
-                            threat_type = "evasion_detected"
-                        else:
-                            confidence_score = min(confidence_score + 10, 100)
-                    
-                    # Flag suspicious IP connections
-                    if connections.get('suspicious_ips'):
-                        logger.warning(f"[VisionScan] Suspicious IP connections: {connections['suspicious_ips']}")
-                        confidence_score = min(confidence_score + 15, 100)
+                # CRITICAL: Null safety - ensure vision_result is a valid dict
+                if not vision_result or not isinstance(vision_result, dict):
+                    logger.warning("[VisionScan] Received None or invalid result, using empty fallback")
+                    vision_result = {'evasion': {}, 'connections': {}, 'error': 'Scanner returned invalid result'}
+                
+                # Safely extract nested data with fallbacks
+                evasion = vision_result.get('evasion') or {}
+                connections = vision_result.get('connections') or {}
+                
+                logger.info(f"[VisionScan] Evasion detected: {evasion.get('evasion_detected', False)}")
+                logger.info(f"[VisionScan] External domains: {len(connections.get('external_domains', []))}")
+                
+                # Boost confidence if evasion techniques detected
+                if evasion.get('evasion_detected'):
+                    if not is_phishing:
+                        logger.warning("[VISION OVERRIDE] Evasion techniques detected")
+                        is_phishing = True
+                        confidence_score = max(confidence_score, 80)
+                        threat_type = "evasion_detected"
+                    else:
+                        confidence_score = min(confidence_score + 10, 100)
+                
+                # Flag suspicious IP connections
+                if connections.get('suspicious_ips'):
+                    logger.warning(f"[VisionScan] Suspicious IP connections: {connections['suspicious_ips']}")
+                    confidence_score = min(confidence_score + 15, 100)
                         
             except Exception as e:
                 logger.error(f"Vision Scanner failed: {e}")
                 vision_result = None
+        
+        # ============================================================
+        # STEP 3.9: SOC PLATFORM FEATURES
+        # ============================================================
+        # Build Threat Graph (React Flow compatible)
+        threat_graph = None
+        yara_result = None
+        abuse_report = None
+        
+        try:
+            logger.info("[3.9/4] Building Threat Graph...")
+            threat_graph = await run_in_threadpool(
+                build_threat_graph,
+                final_url,
+                osint_dict or {},
+                deep_scan_results or {}
+            )
+            logger.info(f"[ThreatGraph] Nodes: {len(threat_graph.get('nodes', []))}, Edges: {len(threat_graph.get('edges', []))}")
+        except Exception as e:
+            logger.error(f"Threat Graph failed: {e}")
+        
+        # YARA Scanner (on page content if available)
+        try:
+            if deep_scan_results and deep_scan_results.get('raw_html'):
+                logger.info("[3.9/4] Running YARA Scanner...")
+                yara_result = await run_in_threadpool(
+                    scan_content_with_yara,
+                    deep_scan_results['raw_html']
+                )
+                
+                if yara_result.get('triggered_rules'):
+                    logger.warning(f"[YARA] Matches: {yara_result['triggered_rules']}")
+                    # Boost confidence if malicious patterns found
+                    if not is_phishing and len(yara_result['triggered_rules']) >= 2:
+                        is_phishing = True
+                        confidence_score = max(confidence_score, 85)
+                        threat_type = "yara_detected"
+                    elif is_phishing:
+                        confidence_score = min(confidence_score + 10, 100)
+        except Exception as e:
+            logger.error(f"YARA Scanner failed: {e}")
+        
+        # Generate Abuse Report (only for confirmed phishing)
+        if is_phishing and confidence_score >= 75:
+            try:
+                logger.info("[3.9/4] Generating Abuse Report...")
+                abuse_report = await run_in_threadpool(
+                    generate_abuse_report,
+                    final_url,
+                    {
+                        'verdict': {'is_phishing': is_phishing, 'confidence_score': confidence_score, 'threat_type': threat_type},
+                        'god_mode_analysis': god_mode_result,
+                        'yara_analysis': yara_result,
+                        'vision_analysis': vision_result,
+                        'forensics': {'redirect_chain': redirect_res.get('chain', [])},
+                        'rag_matches': similar_threats
+                    },
+                    osint_dict
+                )
+                logger.info(f"[AbuseReport] Generated: {abuse_report.get('report_id')}")
+            except Exception as e:
+                logger.error(f"Abuse Report generation failed: {e}")
         
         # ============================================================
         # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
@@ -427,7 +497,10 @@ async def scan_url(
             rag_results=similar_threats,
             language=scan_request.language,
             god_mode_result=god_mode_result,  # God Mode AI Analysis result
-            vision_result=vision_result  # Vision Scanner result
+            vision_result=vision_result,  # Vision Scanner result
+            threat_graph=threat_graph,  # SOC: Threat Graph
+            yara_result=yara_result,  # SOC: YARA Analysis
+            abuse_report=abuse_report  # SOC: Takedown Report
         )
         
         # Convert to Pydantic models

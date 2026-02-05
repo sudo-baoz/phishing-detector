@@ -9,13 +9,20 @@ import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
   Terminal, BarChart3, AlertTriangle, CheckCircle, XCircle,
   Lock, Unlock, ExternalLink, ChevronRight, Activity, Zap,
-  FileCode, Shuffle, Eye, Code, Server
+  FileCode, Shuffle, Eye, Code, Server, AlertOctagon, Target,
+  ChevronDown, ChevronUp, Radiation, GitBranch, ShieldX
 } from 'lucide-react';
+import ThreatGraphModal from './ThreatGraphModal';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
   const [circumference, setCircumference] = useState(0);
   const [showJson, setShowJson] = useState(false);
+  const [showGraphModal, setShowGraphModal] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    techFacts: false,
+    rawData: false,
+  });
 
   useEffect(() => {
     setCircumference(2 * Math.PI * 70);
@@ -39,11 +46,27 @@ const AnalysisReport = ({ data, loading }) => {
     return null;
   }
 
-  const { verdict, network, forensics, content, advanced, intelligence, technical_details, rag_matches } = data;
+  const { 
+    verdict, network, forensics, content, advanced, intelligence, 
+    technical_details, rag_matches, god_mode_analysis, vision_analysis,
+    threat_graph, yara_analysis, abuse_report
+  } = data;
+  
+  // Check for zero-day threat (from CertStream real-time detection)
+  const isZeroDay = verdict?.threat_type === 'zero_day_phishing' || data.is_zeroday;
+  
   const score = verdict?.score || 0;
   const level = verdict?.level || 'LOW';
   const isPhishing = score >= 50;
   const riskFactors = verdict?.risk_factors || [];
+
+  // Toggle accordion sections
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   const getRiskColor = () => {
     if (level === 'CRITICAL') return 'text-red-500 border-red-500';
@@ -97,6 +120,40 @@ const AnalysisReport = ({ data, loading }) => {
         </div>
       )}
 
+      {/* Threat Graph Modal */}
+      <ThreatGraphModal
+        isOpen={showGraphModal}
+        onClose={() => setShowGraphModal(false)}
+        threatGraph={threat_graph}
+      />
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          TASK 1: ZERO-DAY ALERT BANNER (Top Priority)
+          ═══════════════════════════════════════════════════════════════════ */}
+      {isZeroDay && (
+        <div className="bg-gradient-to-r from-red-900/80 via-red-800/80 to-red-900/80 border-2 border-red-500 rounded-lg p-4 shadow-[0_0_30px_rgba(239,68,68,0.4)] animate-pulse">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-red-500/20 rounded-full">
+              <AlertOctagon className="w-10 h-10 text-red-400 animate-bounce" />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-red-400 font-black text-xl sm:text-2xl uppercase tracking-wider flex items-center gap-2">
+                <Radiation className="w-6 h-6" />
+                🚨 ZERO-DAY THREAT DETECTED
+              </h2>
+              <p className="text-red-200 mt-1 text-sm sm:text-base">
+                This site was just created moments ago and matches known phishing patterns. 
+                <span className="font-bold text-white"> BLOCK IMMEDIATELY.</span>
+              </p>
+            </div>
+            <div className="hidden sm:block text-right">
+              <span className="text-red-400 text-xs uppercase font-bold">Real-time Detection</span>
+              <p className="text-white text-lg font-mono">CertStream</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Section 1: THE VERDICT - Hero Section */}
       <div className={`bg-slate-900 rounded-lg border-2 ${getRiskColor()} p-4 sm:p-6 md:p-8 shadow-2xl ${getRiskBg()} transition-all duration-500`}>
         <div className="flex flex-col lg:flex-row items-center justify-between mb-6 gap-6">
@@ -117,6 +174,13 @@ const AnalysisReport = ({ data, loading }) => {
                 {verdict?.threat_type && (
                   <span className="text-slate-400 text-sm font-semibold uppercase">
                     TYPE: <span className="text-white">{verdict.threat_type.replace(/_/g, ' ')}</span>
+                  </span>
+                )}
+                {/* TASK 2: Impersonation Badge from God Mode */}
+                {god_mode_analysis?.impersonation_target && (
+                  <span className="px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border border-orange-500 bg-orange-500/20 text-orange-400 flex items-center gap-1">
+                    <Target className="w-3 h-3" />
+                    Impersonating: {god_mode_analysis.impersonation_target}
                   </span>
                 )}
               </div>
@@ -147,6 +211,87 @@ const AnalysisReport = ({ data, loading }) => {
                 <span className="text-orange-400 font-bold mb-1 block uppercase text-xs">{t('analysis.ai_conclusion')}</span>
                 {verdict.ai_conclusion}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* ═══════════════════════════════════════════════════════════════════
+            TASK 2: GOD MODE AI INTELLIGENCE SUMMARY
+            ═══════════════════════════════════════════════════════════════════ */}
+        {god_mode_analysis && (
+          <div className="mb-6 p-4 rounded-lg bg-purple-500/5 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <Eye className="w-5 h-5 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <span className="text-purple-400 font-bold mb-2 block uppercase text-xs tracking-wider">
+                  🧠 AI Intelligence Summary (God Mode)
+                </span>
+                <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-4">
+                  {god_mode_analysis.summary}
+                </p>
+                
+                {/* God Mode Risk Factors */}
+                {god_mode_analysis.risk_factors && god_mode_analysis.risk_factors.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-purple-500/20">
+                    <span className="text-purple-400 text-xs font-bold uppercase tracking-wider mb-2 block">
+                      Detected Risk Factors:
+                    </span>
+                    <ul className="space-y-1">
+                      {god_mode_analysis.risk_factors.map((factor, idx) => (
+                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                          <AlertTriangle className="w-3 h-3 text-purple-400 shrink-0 mt-1" />
+                          <span>{factor}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                
+                {/* Recommendation */}
+                {god_mode_analysis.recommendation && (
+                  <div className="mt-3 p-3 bg-slate-950/50 rounded border border-purple-500/20">
+                    <span className="text-purple-400 text-xs font-bold uppercase">Recommendation:</span>
+                    <p className="text-slate-400 text-sm mt-1">{god_mode_analysis.recommendation}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* YARA Analysis Results */}
+        {yara_analysis?.triggered_rules && yara_analysis.triggered_rules.length > 0 && (
+          <div className="mb-6 p-4 rounded-lg bg-red-500/5 border border-red-500/30">
+            <div className="flex items-start gap-3">
+              <div className="p-2 bg-red-500/20 rounded-lg">
+                <ShieldX className="w-5 h-5 text-red-400" />
+              </div>
+              <div className="flex-1">
+                <span className="text-red-400 font-bold mb-2 block uppercase text-xs tracking-wider">
+                  🔬 YARA Pattern Matches
+                </span>
+                <div className="flex flex-wrap gap-2">
+                  {yara_analysis.triggered_rules.map((rule, idx) => (
+                    <span key={idx} className="px-2 py-1 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-xs font-mono">
+                      {rule}
+                    </span>
+                  ))}
+                </div>
+                {yara_analysis.crypto_wallets && yara_analysis.crypto_wallets.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-red-500/20">
+                    <span className="text-red-400 text-xs font-bold">Crypto Wallets Detected:</span>
+                    <div className="mt-1 space-y-1">
+                      {yara_analysis.crypto_wallets.map((wallet, idx) => (
+                        <code key={idx} className="block text-xs text-slate-400 font-mono bg-slate-950 px-2 py-1 rounded truncate">
+                          {wallet}
+                        </code>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -330,6 +475,153 @@ const AnalysisReport = ({ data, loading }) => {
               </div>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          TASK 4: THREAT GRAPH BUTTON
+          ═══════════════════════════════════════════════════════════════════ */}
+      {threat_graph && (threat_graph.nodes?.length > 0 || threat_graph.edges?.length > 0) && (
+        <div className="flex justify-center">
+          <button
+            onClick={() => setShowGraphModal(true)}
+            className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-500/20 transition-all hover:scale-105 hover:shadow-cyan-500/40"
+          >
+            <GitBranch className="w-5 h-5" />
+            View Attack Chain Graph
+            <span className="text-xs bg-white/20 px-2 py-0.5 rounded">
+              {threat_graph.nodes?.length || 0} nodes
+            </span>
+          </button>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          TASK 3: DEEP FORENSICS ACCORDION SECTIONS
+          ═══════════════════════════════════════════════════════════════════ */}
+      <div className="space-y-3">
+        {/* Section A: Technical & Network Facts */}
+        <div className="bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+          <button
+            onClick={() => toggleSection('techFacts')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Server className="w-5 h-5 text-cyan-400" />
+              <span className="font-bold text-slate-200 uppercase text-sm tracking-wider">
+                Technical & Network Facts
+              </span>
+            </div>
+            {expandedSections.techFacts ? (
+              <ChevronUp className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+          
+          {expandedSections.techFacts && (
+            <div className="p-4 pt-0 border-t border-slate-800">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
+                {/* SSL Age */}
+                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">SSL Certificate Age</span>
+                  <span className={`text-lg font-bold ${
+                    (technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-400' : 
+                    (technical_details?.ssl_age_hours || 0) < 168 ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
+                    {technical_details?.ssl_age_hours ? `${technical_details.ssl_age_hours.toFixed(1)} hours` : 'N/A'}
+                  </span>
+                  {(technical_details?.ssl_age_hours || 0) < 24 && (
+                    <span className="text-red-400 text-xs block mt-1">⚠️ Very new certificate!</span>
+                  )}
+                </div>
+                
+                {/* Domain Age */}
+                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Domain Age</span>
+                  <span className={`text-lg font-bold ${
+                    network?.domain_age?.includes('day') ? 'text-red-400' : 
+                    network?.domain_age?.includes('week') ? 'text-yellow-400' : 'text-green-400'
+                  }`}>
+                    {network?.domain_age || 'Unknown'}
+                  </span>
+                </div>
+                
+                {/* ISP */}
+                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Hosting Provider</span>
+                  <span className="text-white text-sm font-mono truncate block">
+                    {network?.isp || 'Unknown'}
+                  </span>
+                </div>
+                
+                {/* IP */}
+                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Server IP</span>
+                  <span className="text-cyan-400 text-sm font-mono">
+                    {network?.ip || 'Unknown'}
+                  </span>
+                </div>
+              </div>
+              
+              {/* Security Gaps (Missing Headers) */}
+              {vision_analysis?.security_headers && (
+                <div className="mt-4 p-3 bg-red-500/5 rounded-lg border border-red-500/20">
+                  <span className="text-red-400 text-xs uppercase font-bold block mb-2">
+                    🔓 Security Gaps (Missing Headers)
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(vision_analysis.security_headers || {})
+                      .filter(([_, present]) => !present)
+                      .map(([header]) => (
+                        <span key={header} className="px-2 py-1 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-xs font-mono">
+                          {header}
+                        </span>
+                      ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Section B: Raw Analysis Data (For Experts) */}
+        <div className="bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
+          <button
+            onClick={() => toggleSection('rawData')}
+            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <Terminal className="w-5 h-5 text-green-400" />
+              <span className="font-bold text-slate-200 uppercase text-sm tracking-wider">
+                Raw Analysis Data (For Experts)
+              </span>
+            </div>
+            {expandedSections.rawData ? (
+              <ChevronUp className="w-5 h-5 text-slate-400" />
+            ) : (
+              <ChevronDown className="w-5 h-5 text-slate-400" />
+            )}
+          </button>
+          
+          {expandedSections.rawData && (
+            <div className="p-4 pt-0 border-t border-slate-800">
+              <div className="mt-4 bg-black rounded-lg p-4 overflow-auto max-h-96">
+                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
+                  {JSON.stringify({
+                    technical_details,
+                    god_mode_analysis,
+                    yara_analysis,
+                    vision_analysis,
+                    threat_graph: threat_graph ? {
+                      nodes_count: threat_graph.nodes?.length,
+                      edges_count: threat_graph.edges?.length
+                    } : null
+                  }, null, 2)}
+                </pre>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

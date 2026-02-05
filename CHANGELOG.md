@@ -5,6 +5,110 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-02-05
+
+### 🎨 Frontend SOC Dashboard Upgrade
+
+This release transforms the scan results view into a comprehensive Security Operations Center (SOC) dashboard with interactive visualizations.
+
+#### Added
+
+- **Zero-Day Alert Banner** ([AnalysisReport.jsx](frontend/src/components/AnalysisReport.jsx)):
+  - Prominent flashing red banner with `animate-pulse` effect
+  - Displays when `is_zeroday` or `threat_type === 'zero_day_phishing'`
+  - AlertOctagon + Radiation icons for maximum visibility
+  - Shows "CertStream" as detection source
+
+- **God Mode AI Intelligence Section**:
+  - Purple-themed card displaying `god_mode_analysis.summary`
+  - Impersonation target badge (e.g., "Impersonating: PayPal")
+  - Bullet-point list of AI-detected risk factors
+  - Actionable recommendation display
+
+- **YARA Pattern Matches Display**:
+  - Shows triggered YARA rules as tags
+  - Crypto wallet address detection display
+  - Red-themed warning card
+
+- **Visual Threat Graph Modal** ([ThreatGraphModal.jsx](frontend/src/components/ThreatGraphModal.jsx)):
+  - Full-screen React Flow powered graph visualization
+  - Color-coded nodes: User (blue), URL (red), IP (purple), ASN (amber), Registrar (green)
+  - Animated edges with labels
+  - Zoomable, pannable, with MiniMap and Controls
+  - Legend bar for node type identification
+
+- **Deep Forensics Accordion Sections**:
+  - **Technical & Network Facts**: SSL age, domain age, hosting provider, server IP
+  - Conditional coloring (red for <24h, yellow for <7 days, green otherwise)
+  - Security gaps display (missing headers)
+  - **Raw Analysis Data**: JSON viewer for expert debugging
+
+- **Attack Chain Graph Button**:
+  - Gradient cyan-to-blue button with hover effects
+  - Shows node count badge
+  - Opens ThreatGraphModal on click
+
+#### Changed
+
+- Enhanced icon imports from `lucide-react` (AlertOctagon, Target, ChevronDown, ChevronUp, Radiation, GitBranch, ShieldX)
+- Added state management for accordion sections (`expandedSections`)
+- Integrated all new backend SOC data fields into frontend
+
+#### Dependencies
+
+- Added `reactflow` for threat graph visualization (`npm install reactflow`)
+
+---
+
+## [1.4.0] - 2026-02-05
+
+### 🏢 Enterprise SOC Platform (Backend)
+
+This release adds enterprise-grade Security Operations Center features to the backend.
+
+#### Added
+
+- **Visual Threat Graph Builder** ([app/services/graph_builder.py](app/services/graph_builder.py)):
+  - React Flow compatible output format with `nodes` and `edges` arrays
+  - Node types: User, URL, IP, ASN, Registrar with distinct styling
+  - Edge types: Redirect chains, hosting relationships, ASN/registrar links
+  - Automatic position calculation for graph layout
+
+- **YARA Rules Engine** ([app/services/yara_scanner.py](app/services/yara_scanner.py)):
+  - 13+ detection rules covering:
+    - Crypto wallet patterns (Bitcoin, Ethereum, Monero)
+    - Phishing kit signatures (16shop, z118, Kr3pto, U-Admin, Ex-Robotos)
+    - JavaScript obfuscation (packer, base64 eval, hex encoding)
+    - Credential harvesters (form action patterns)
+    - Anti-bot/Cloudflare detection
+  - Fallback regex mode when yara-python unavailable
+
+- **Automated Takedown Report Generator** ([app/services/report_generator.py](app/services/report_generator.py)):
+  - Extracts registrar abuse email from WHOIS data
+  - 20+ known registrar/hosting abuse emails database
+  - Professional formatted abuse report with:
+    - Unique Report ID and timestamp
+    - Threat summary with evidence list
+    - Formal takedown request language
+  - Fallback recipient suggestions
+
+- **SOC Integration in Scan Router** ([app/routers/scan.py](app/routers/scan.py)):
+  - Added Step 3.9 with all 3 SOC features
+  - Threat graph built for every scan
+  - YARA scan runs on page HTML content
+  - Abuse report auto-generated for confirmed phishing (≥75% confidence)
+
+- **New Schema Fields** ([app/schemas/scan_new.py](app/schemas/scan_new.py)):
+  - `threat_graph`: React Flow graph data
+  - `yara_analysis`: YARA rule matches
+  - `abuse_report`: Takedown report with recipient/subject/body
+
+#### Dependencies
+
+- Added `yara-python` to requirements.txt
+
+---
+
 ## [1.3.0] - 2026-02-05
 
 ### 🚀 Major Security Enhancements (The "Elite Analyst" Update)

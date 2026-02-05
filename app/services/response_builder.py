@@ -540,34 +540,46 @@ class ResponseBuilder:
         
         return False
     
+    # Default placeholder for failed screenshots
+    PLACEHOLDER_SCREENSHOT = "https://via.placeholder.com/1200x800.png?text=Screenshot+Unavailable"
+    
     @staticmethod
-    def capture_screenshot(url: str) -> Optional[str]:
+    def capture_screenshot(url: str, timeout: int = 10) -> Optional[str]:
         """
         Capture website screenshot using free screenshot service
         
         Args:
             url: URL to capture
+            timeout: Request timeout in seconds (default: 10)
             
         Returns:
-            Screenshot URL or None if failed
+            Screenshot URL or placeholder if failed
         """
         try:
             # Using thum.io free tier (no API key needed)
             # Alternative services: screenshotapi.net, apiflash.com
             screenshot_service = f"https://image.thum.io/get/width/1200/crop/800/noanimate/{url}"
             
-            # Verify the service is accessible
-            response = requests.head(screenshot_service, timeout=3)
+            # Verify the service is accessible with increased timeout
+            response = requests.head(screenshot_service, timeout=timeout)
             if response.status_code == 200:
                 logger.info(f"[Content] Screenshot captured via thum.io")
                 return screenshot_service
             else:
                 logger.warning(f"Screenshot service returned {response.status_code}")
-                return None
+                return ResponseBuilder.PLACEHOLDER_SCREENSHOT
+                
+        except requests.exceptions.Timeout:
+            logger.warning(f"[Content] Screenshot service timed out after {timeout}s")
+            return ResponseBuilder.PLACEHOLDER_SCREENSHOT
+            
+        except requests.exceptions.ConnectionError as e:
+            logger.warning(f"[Content] Screenshot service connection error: {e}")
+            return ResponseBuilder.PLACEHOLDER_SCREENSHOT
                 
         except Exception as e:
             logger.warning(f"Failed to capture screenshot: {e}")
-            return None
+            return ResponseBuilder.PLACEHOLDER_SCREENSHOT
     
     @staticmethod
     def build_content(url: str) -> Dict[str, Any]:
@@ -708,7 +720,10 @@ class ResponseBuilder:
         rag_results: Optional[List[Dict[str, Any]]] = None,
         language: str = "en",
         god_mode_result: Optional[Dict[str, Any]] = None,
-        vision_result: Optional[Dict[str, Any]] = None
+        vision_result: Optional[Dict[str, Any]] = None,
+        threat_graph: Optional[Dict[str, Any]] = None,
+        yara_result: Optional[Dict[str, Any]] = None,
+        abuse_report: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -724,9 +739,12 @@ class ResponseBuilder:
             deep_analysis: Whether to perform deep analysis (redirect, content, SSL)
             god_mode_result: God Mode AI analysis result
             vision_result: Vision Scanner result (evasion, connections)
+            threat_graph: React Flow compatible threat graph (nodes, edges)
+            yara_result: YARA scanner matches
+            abuse_report: Generated takedown report
             
         Returns:
-            Complete response dictionary with 6 sections
+            Complete response dictionary with 6 sections + SOC features
         """
         logger.info(f"Building response for {url} (deep_analysis={deep_analysis})")
         
@@ -799,7 +817,11 @@ class ResponseBuilder:
             "technical_details": technical_details,
             "rag_matches": rag_results,
             "god_mode_analysis": god_mode_result,  # God Mode AI Analysis result
-            "vision_analysis": vision_result  # Vision Scanner (evasion, external connections)
+            "vision_analysis": vision_result,  # Vision Scanner (evasion, external connections)
+            # SOC Platform Features
+            "threat_graph": threat_graph,  # React Flow compatible graph visualization
+            "yara_analysis": yara_result,  # YARA rule matches
+            "abuse_report": abuse_report  # Auto-generated takedown report
         }
 
 
