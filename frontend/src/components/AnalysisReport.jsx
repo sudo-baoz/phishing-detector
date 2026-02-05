@@ -3,6 +3,7 @@
  * Copyright (c) 2026 BaoZ
  */
 
+import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
