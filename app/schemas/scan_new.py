@@ -110,6 +110,7 @@ class ScanResponse(BaseModel):
     technical_details: Optional[dict] = Field(None, description="Raw technical metrics (SSL age, entropy)")
     rag_matches: Optional[List[dict]] = Field(None, description="Detailed RAG threat matches")
     god_mode_analysis: Optional[GodModeAnalysis] = Field(None, description="God Mode AI Analysis result")
+    vision_analysis: Optional[dict] = Field(None, description="Vision Scanner result (evasion detection, external connections)")
     
     model_config = {
         "json_schema_extra": {

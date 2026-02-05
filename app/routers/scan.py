@@ -41,6 +41,7 @@ from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
 from app.services.deep_scan import deep_scanner
 from app.services.cert_monitor import check_realtime_threat  # Zero-Day Detection
 from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available  # God Mode AI
+from app.services.vision_scanner import scan_url_vision, is_vision_scanner_available  # Vision Scanner
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -355,6 +356,43 @@ async def scan_url(
                 god_mode_result = None
         
         # ============================================================
+        # STEP 3.8: VISION SCANNER (Browser-based Forensics)
+        # ============================================================
+        vision_result = None
+        if is_vision_scanner_available() and scan_request.deep_analysis:
+            try:
+                logger.info("[3.8/4] Running Vision Scanner (Browser Forensics)...")
+                
+                # Run async vision scan
+                vision_result = await scan_url_vision(final_url)
+                
+                if vision_result:
+                    evasion = vision_result.get('evasion', {})
+                    connections = vision_result.get('connections', {})
+                    
+                    logger.info(f"[VisionScan] Evasion detected: {evasion.get('evasion_detected', False)}")
+                    logger.info(f"[VisionScan] External domains: {len(connections.get('external_domains', []))}")
+                    
+                    # Boost confidence if evasion techniques detected
+                    if evasion.get('evasion_detected'):
+                        if not is_phishing:
+                            logger.warning("[VISION OVERRIDE] Evasion techniques detected")
+                            is_phishing = True
+                            confidence_score = max(confidence_score, 80)
+                            threat_type = "evasion_detected"
+                        else:
+                            confidence_score = min(confidence_score + 10, 100)
+                    
+                    # Flag suspicious IP connections
+                    if connections.get('suspicious_ips'):
+                        logger.warning(f"[VisionScan] Suspicious IP connections: {connections['suspicious_ips']}")
+                        confidence_score = min(confidence_score + 15, 100)
+                        
+            except Exception as e:
+                logger.error(f"Vision Scanner failed: {e}")
+                vision_result = None
+        
+        # ============================================================
         # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
         # ============================================================
         logger.info("[4/4] Saving scan result to database...")
@@ -388,7 +426,8 @@ async def scan_url(
             deep_scan_results=deep_scan_results,
             rag_results=similar_threats,
             language=scan_request.language,
-            god_mode_result=god_mode_result  # God Mode AI Analysis result
+            god_mode_result=god_mode_result,  # God Mode AI Analysis result
+            vision_result=vision_result  # Vision Scanner result
         )
         
         # Convert to Pydantic models

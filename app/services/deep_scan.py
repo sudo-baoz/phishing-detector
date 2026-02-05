@@ -361,6 +361,105 @@ class DeepScanner:
         except Exception:
             return {'max_js_entropy': 0.0, 'risk': False}
 
+    def analyze_security_headers(self, url: str) -> Dict[str, Any]:
+        """
+        Analyze HTTP security headers for the given URL.
+        Missing critical headers indicate poor security posture (common in phishing sites).
+        
+        Args:
+            url: URL to analyze
+            
+        Returns:
+            Dict with score (0-100), missing_headers list, and details
+        """
+        # Critical security headers to check
+        critical_headers = {
+            'Strict-Transport-Security': 'HSTS - Enforces HTTPS connections',
+            'Content-Security-Policy': 'CSP - Prevents XSS and injection attacks',
+            'X-Frame-Options': 'Prevents clickjacking attacks',
+            'X-Content-Type-Options': 'Prevents MIME-type sniffing'
+        }
+        
+        result = {
+            'score': 100,
+            'missing_headers': [],
+            'present_headers': [],
+            'details': {},
+            'risk': False
+        }
+        
+        try:
+            # Try HEAD request first (faster), fallback to GET with stream
+            try:
+                response = requests.head(url, timeout=self.timeout, allow_redirects=True)
+            except requests.exceptions.RequestException:
+                # Some sites block HEAD requests, try GET with stream
+                response = requests.get(url, timeout=self.timeout, allow_redirects=True, stream=True)
+            
+            headers = response.headers
+            
+            # Check each critical header
+            for header, description in critical_headers.items():
+                header_value = headers.get(header)
+                
+                if header_value:
+                    result['present_headers'].append(header)
+                    result['details'][header] = {
+                        'present': True,
+                        'value': header_value[:100],  # Truncate long values
+                        'description': description
+                    }
+                else:
+                    result['missing_headers'].append(header)
+                    result['score'] -= 20  # Deduct 20 for each missing header
+                    result['details'][header] = {
+                        'present': False,
+                        'value': None,
+                        'description': description
+                    }
+            
+            # Additional checks for bonus headers
+            bonus_headers = ['X-XSS-Protection', 'Referrer-Policy', 'Permissions-Policy']
+            for header in bonus_headers:
+                if headers.get(header):
+                    result['details'][header] = {
+                        'present': True,
+                        'value': headers.get(header)[:100] if headers.get(header) else None,
+                        'bonus': True
+                    }
+            
+            # Ensure score doesn't go below 0
+            result['score'] = max(0, result['score'])
+            
+            # Flag as risk if score is low (missing 3+ critical headers)
+            result['risk'] = result['score'] <= 40
+            
+            if result['risk']:
+                logger.warning(f"[DeepScan] Poor security headers: {result['missing_headers']}")
+                
+        except requests.exceptions.Timeout:
+            logger.warning(f"[DeepScan] Header analysis timeout for {url}")
+            result['score'] = 50  # Unknown state
+            result['details']['error'] = 'Request timeout'
+            
+        except requests.exceptions.SSLError as e:
+            logger.warning(f"[DeepScan] SSL error during header analysis: {e}")
+            result['score'] = 20  # SSL issues are very suspicious
+            result['risk'] = True
+            result['details']['error'] = f'SSL Error: {str(e)[:100]}'
+            
+        except requests.exceptions.RequestException as e:
+            logger.warning(f"[DeepScan] Header analysis failed: {e}")
+            result['score'] = 50  # Unknown state
+            result['details']['error'] = str(e)[:100]
+            
+        except Exception as e:
+            logger.error(f"[DeepScan] Unexpected error in header analysis: {e}")
+            result['score'] = 50
+            result['details']['error'] = 'Unexpected error'
+            
+        return result
+
     def scan(self, url: str, existing_redirects: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Perform all deep scan heuristics and calculate Score.
@@ -393,6 +492,9 @@ class DeepScanner:
         # 4. Keyword Analysis
         keyword_res = self.analyze_keywords(url)
         
+        # 5. Security Header Analysis
+        header_res = self.analyze_security_headers(final_url)
+        
         # --- Calculate Technical Risk Score (0-100) ---
         score = 0
         
@@ -412,6 +514,10 @@ class DeepScanner:
         if redirect_res['has_shortener']:
             score += 10
             
+        # Security headers penalty
+        if header_res['risk']:
+            score += 15  # Missing critical security headers
+        
         # Cap at 100
         score = min(score, 100)
         
@@ -421,7 +527,8 @@ class DeepScanner:
                 'ssl': ssl_res,
                 'redirects': redirect_res,
                 'content_entropy': entropy_res,
-                'keywords': keyword_res
+                'keywords': keyword_res,
+                'security_headers': header_res
             }
         }
 

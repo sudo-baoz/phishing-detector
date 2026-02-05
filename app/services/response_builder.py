@@ -707,7 +707,8 @@ class ResponseBuilder:
         deep_scan_results: Optional[Dict[str, Any]] = None,
         rag_results: Optional[List[Dict[str, Any]]] = None,
         language: str = "en",
-        god_mode_result: Optional[Dict[str, Any]] = None
+        god_mode_result: Optional[Dict[str, Any]] = None,
+        vision_result: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -722,6 +723,7 @@ class ResponseBuilder:
             osint_data: OSINT enrichment data
             deep_analysis: Whether to perform deep analysis (redirect, content, SSL)
             god_mode_result: God Mode AI analysis result
+            vision_result: Vision Scanner result (evasion, connections)
             
         Returns:
             Complete response dictionary with 6 sections
@@ -796,7 +798,8 @@ class ResponseBuilder:
             "intelligence": ResponseBuilder.build_intelligence(),
             "technical_details": technical_details,
             "rag_matches": rag_results,
-            "god_mode_analysis": god_mode_result  # God Mode AI Analysis result
+            "god_mode_analysis": god_mode_result,  # God Mode AI Analysis result
+            "vision_analysis": vision_result  # Vision Scanner (evasion, external connections)
         }
 
 

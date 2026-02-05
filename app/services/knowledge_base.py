@@ -46,9 +46,12 @@ class KnowledgeBaseService:
             # Load cache if exists
             self.load_local_cache()
             
-            # Initialize ChromaDB client (Persistent)
+            # Initialize ChromaDB client (Persistent) with telemetry disabled
             logger.info(f"Initializing ChromaDB client at {self.persist_path}...")
-            self.client = chromadb.PersistentClient(path=self.persist_path)
+            self.client = chromadb.PersistentClient(
+                path=self.persist_path,
+                settings=Settings(anonymized_telemetry=False)
+            )
             
             # Initialize Embedding Model
             logger.info("Loading embedding model all-MiniLM-L6-v2...")

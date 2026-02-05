@@ -113,3 +113,6 @@ zstandard
 # God Mode Phishing Detection dependencies
 certstream
 textdistance
+
+# Vision Scanner dependencies (browser-based forensics)
+playwright
