@@ -18,11 +18,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """URL Scanning Router - Phishing Detection"""
 
+import asyncio
 import logging
+import traceback
 from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
@@ -75,38 +78,87 @@ def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Opt
 @router.post("", response_model=ScanResponse, status_code=status.HTTP_200_OK)
 async def scan_url(
     scan_request: ScanRequest,
-    request: Request,  # ✅ Added Request for manual token extraction
+    request: Request,
     db: AsyncSession = Depends(get_db)
-    # ⚠️ Removed Depends(verify_turnstile) - now done manually for fail-fast
 ):
     """
     Scan a URL for phishing detection (Protected by Cloudflare Turnstile)
     
+    RELIABILITY FEATURES:
+    - Semaphore: Max 3 concurrent scans (503 if busy)
+    - Timeout: 60 second hard limit (408 if exceeded)
+    - Error Boundary: Clean JSON error on any failure
+    """
+    
+    # ============================================================
+    # CONCURRENCY CONTROL: Fail fast if server is overloaded
+    # ============================================================
+    semaphore = request.app.state.scan_semaphore
+    timeout = request.app.state.scan_timeout
+    
+    # Check if semaphore is locked (all 3 slots taken)
+    if semaphore.locked():
+        logger.warning(f"[THROTTLE] Server busy, rejecting scan: {scan_request.url}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Server busy, please try again in a few seconds"
+        )
+    
+    # ============================================================
+    # ACQUIRE SEMAPHORE + TIMEOUT WRAPPER
+    # ============================================================
+    try:
+        async with semaphore:
+            # Wrap entire scan in timeout
+            try:
+                result = await asyncio.wait_for(
+                    _perform_scan(scan_request, request, db),
+                    timeout=timeout
+                )
+                return result
+            except asyncio.TimeoutError:
+                logger.error(f"[TIMEOUT] Scan exceeded {timeout}s: {scan_request.url}")
+                raise HTTPException(
+                    status_code=status.HTTP_408_REQUEST_TIMEOUT,
+                    detail=f"Scan timed out after {int(timeout)} seconds"
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Global error boundary
+        logger.error(f"[FATAL] Scan crashed: {e}\n{traceback.format_exc()}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Scan failed due to internal error"
+        )
+
+
+async def _perform_scan(
+    scan_request: ScanRequest,
+    request: Request,
+    db: AsyncSession
+) -> ScanResponse:
+    """
+    Internal scan implementation (wrapped by semaphore + timeout).
+    
     - **url**: URL to scan (must be valid HTTP/HTTPS URL)
     - **include_osint**: Include OSINT data enrichment (default: True)
     - **cf-turnstile-response**: Cloudflare Turnstile token (required in header or body)
-    
-    Returns prediction with confidence score, threat type, and optional OSINT data
-    
-    **Flow:**
-    1. VERIFY TURNSTILE TOKEN FIRST (Fail Fast - 1-2s)
-    2. If valid, start heavy analysis (30s+)
-    3. Return result
     """
     
     # ============================================================
     # STEP 1: VERIFY TURNSTILE TOKEN IMMEDIATELY (FAIL FAST!)
     # ============================================================
     # This MUST happen BEFORE any heavy processing to prevent token timeout
-    logger.info(f"[1/4] Verifying Turnstile token for URL: {scan_request.url}")
+    logger.debug(f"[1/4] Verifying Turnstile token for URL: {scan_request.url}")
     
     try:
         # Explicitly await token verification as FIRST step
         turnstile_verified = await verify_turnstile(request)
-        logger.info(f"[OK] Turnstile verification successful: {turnstile_verified.get('success', False)}")
+        logger.debug(f"[OK] Turnstile verification successful")
     except HTTPException as e:
         # Token verification failed - reject immediately (fail fast)
-        logger.warning(f"[REJECTED] Turnstile verification failed - blocking request")
+        logger.warning(f"[REJECTED] Turnstile verification failed for: {scan_request.url}")
         raise  # Re-raise the 403 HTTPException from verify_turnstile
     
     # ============================================================
@@ -159,7 +211,7 @@ async def scan_url(
     # ============================================================
     # STEP 2: REDIRECT TRACE & ANALYSIS PREP
     # ============================================================
-    logger.info(f"[2/4] Starting analysis for: {scan_request.url}")
+    logger.debug(f"[2/4] Starting analysis for: {scan_request.url}")
     
     try:
         url_str = str(scan_request.url)
@@ -171,9 +223,9 @@ async def scan_url(
         final_url = redirect_res.get('final_url', url_str)
         
         if final_url != url_str:
-            logger.info(f"[Redirect] Followed chain: {url_str} -> {final_url}")
+            logger.debug(f"[Redirect] Followed chain: {url_str} -> {final_url}")
             if redirect_res.get('is_open_redirect'):
-                logger.warning(f"[RISK] Open Redirect Abuse detected!")
+                logger.warning(f"[RISK] Open Redirect Abuse detected: {url_str}")
 
         # Initialize results & flags explicitly to prevent UnboundLocalError
         deep_scan_results = None
@@ -216,7 +268,7 @@ async def scan_url(
             # [NEW] 2. Semantic RAG Search using ChromaDB (on Final URL)
             similar_threats = knowledge_base.search_similar_threats(final_url)
             if similar_threats:
-                logger.info(f"[RAG] Found {len(similar_threats)} similar threats for final URL")
+                logger.debug(f"[RAG] Found {len(similar_threats)} similar threats")
             
             # [NEW] 3. Pre-AI Typosquatting Check (Fail Fast) (on Final URL)
             typo_result = deep_scanner.check_typosquatting(final_url)
@@ -244,7 +296,7 @@ async def scan_url(
             from app.services.network_forensics import network_forensics
             try:
                 network_results = await run_in_threadpool(network_forensics.analyze, final_url)
-                logger.info(f"[Network] Trust Score: {network_results['network_trust_score']}")
+                logger.debug(f"[Network] Trust Score: {network_results['network_trust_score']}")
             except Exception as e:
                 logger.error(f"Network forensics failed: {e}")
                 network_results = None
@@ -273,18 +325,22 @@ async def scan_url(
             # Use existing_redirects optimization
             if scan_request.deep_analysis:
                 try:
-                    logger.info("[3.5/4] Running Deep Analysis Heuristics...")
+                    logger.debug("[3.5/4] Running Deep Analysis Heuristics...")
                     deep_scan_results = await run_in_threadpool(
                         deep_scanner.scan, 
                         url_str, 
                         existing_redirects=redirect_res
                     )
                     score = deep_scan_results.get('technical_risk_score', 0)
-                    logger.info(f"[DeepScan] Complete. Technical Risk Score: {score}")
+                    logger.debug(f"[DeepScan] Complete. Technical Risk Score: {score}")
                 except Exception as e:
                     logger.error(f"Deep Analysis failed: {e}")
         
-        logger.info(f"Prediction: {'PHISHING' if is_phishing else 'SAFE'} (Confidence: {confidence_score:.2f}%)")
+        # Log verdict (WARNING for phishing, DEBUG for safe)
+        if is_phishing:
+            logger.warning(f"[PHISHING] {final_url} (Confidence: {confidence_score:.1f}%)")
+        else:
+            logger.debug(f"[SAFE] {final_url} (Confidence: {confidence_score:.1f}%)")
         
         # ============================================================
         # STEP 3: OSINT DATA COLLECTION (Optional heavy operation)
@@ -293,10 +349,10 @@ async def scan_url(
         osint_dict = None
         if scan_request.include_osint:
             try:
-                logger.info(f"[3/4] Collecting OSINT data for {final_url}...")
+                logger.debug(f"[3/4] Collecting OSINT data for {final_url}...")
                 osint_full = collect_osint_data(final_url)
                 osint_dict = get_osint_summary(osint_full)
-                logger.info(f"[OK] OSINT data collected: {osint_dict.get('server_location')}")
+                logger.debug(f"[OK] OSINT data collected")
             except Exception as e:
                 logger.warning(f"Failed to collect OSINT data: {e}")
         
@@ -306,11 +362,11 @@ async def scan_url(
         deep_scan_results = None
         if scan_request.deep_analysis:
             try:
-                logger.info("[3.5/4] Running Deep Analysis Heuristics...")
+                logger.debug("[3.5/4] Running Deep Analysis Heuristics...")
                 # Run sync DeepScanner in threadpool to keep event loop unblocked
                 deep_scan_results = await run_in_threadpool(deep_scanner.scan, url_str)
                 score = deep_scan_results.get('technical_risk_score', 0)
-                logger.info(f"[DeepScan] Complete. Technical Risk Score: {score}")
+                logger.debug(f"[DeepScan] Complete. Technical Risk Score: {score}")
             except Exception as e:
                 logger.error(f"Deep Analysis failed: {e}")
         
@@ -320,7 +376,7 @@ async def scan_url(
         god_mode_result = None
         if is_god_mode_available():
             try:
-                logger.info("[3.7/4] Running God Mode AI Analysis...")
+                logger.debug("[3.7/4] Running God Mode AI Analysis...")
                 
                 # Prepare context for God Mode analysis
                 dom_text = None  # Placeholder - can be fetched from deep_scan if available
@@ -341,7 +397,7 @@ async def scan_url(
                     similar_threats
                 )
                 
-                logger.info(f"[GOD MODE] Verdict: {god_mode_result.get('verdict', 'UNKNOWN')}")
+                logger.debug(f"[GOD MODE] Verdict: {god_mode_result.get('verdict', 'UNKNOWN')}")
                 
                 # Override verdict if God Mode detects PHISHING but ML said SAFE
                 if god_mode_result.get('verdict') == 'PHISHING' and not is_phishing:
@@ -364,7 +420,7 @@ async def scan_url(
         vision_result = None
         if is_vision_scanner_available() and scan_request.deep_analysis:
             try:
-                logger.info("[3.8/4] Running Vision Scanner (Browser Forensics)...")
+                logger.debug("[3.8/4] Running Vision Scanner (Browser Forensics)...")
                 
                 # Run async vision scan
                 vision_result = await scan_url_vision(final_url)
@@ -378,8 +434,8 @@ async def scan_url(
                 evasion = vision_result.get('evasion') or {}
                 connections = vision_result.get('connections') or {}
                 
-                logger.info(f"[VisionScan] Evasion detected: {evasion.get('evasion_detected', False)}")
-                logger.info(f"[VisionScan] External domains: {len(connections.get('external_domains', []))}")
+                logger.debug(f"[VisionScan] Evasion detected: {evasion.get('evasion_detected', False)}")
+                logger.debug(f"[VisionScan] External domains: {len(connections.get('external_domains', []))}")
                 
                 # Boost confidence if evasion techniques detected
                 if evasion.get('evasion_detected'):
@@ -393,7 +449,7 @@ async def scan_url(
                 
                 # Flag suspicious IP connections
                 if connections.get('suspicious_ips'):
-                    logger.warning(f"[VisionScan] Suspicious IP connections: {connections['suspicious_ips']}")
+                    logger.warning(f"[VisionScan] Suspicious IP connections detected")
                     confidence_score = min(confidence_score + 15, 100)
                         
             except Exception as e:
@@ -409,12 +465,12 @@ async def scan_url(
         abuse_report = None
         
         try:
-            logger.info("[3.9/4] Building Threat Graph...")
+            logger.debug("[3.9/4] Building Threat Graph...")
             
             # Extract redirect chain from deep_scan_results
             redirect_chain = None
             if deep_scan_results:
-                details = deep_scan_results.get('details', {})
+                details = deep_scan_results.get('details', {})  
                 redirects = details.get('redirects', {})
                 redirect_chain = redirects.get('chain', [final_url])
             
@@ -427,14 +483,14 @@ async def scan_url(
                 is_phishing,              # Is phishing flag
                 confidence_score          # Confidence score
             )
-            logger.info(f"[ThreatGraph] Nodes: {len(threat_graph.get('nodes', []))}, Edges: {len(threat_graph.get('edges', []))}")
+            logger.debug(f"[ThreatGraph] Nodes: {len(threat_graph.get('nodes', []))}, Edges: {len(threat_graph.get('edges', []))}")
         except Exception as e:
             logger.error(f"Threat Graph failed: {e}")
         
         # YARA Scanner (on page content if available)
         try:
             if deep_scan_results and deep_scan_results.get('raw_html'):
-                logger.info("[3.9/4] Running YARA Scanner...")
+                logger.debug("[3.9/4] Running YARA Scanner...")
                 yara_result = await run_in_threadpool(
                     scan_content_with_yara,
                     deep_scan_results['raw_html']
@@ -455,7 +511,7 @@ async def scan_url(
         # Generate Abuse Report (only for confirmed phishing)
         if is_phishing and confidence_score >= 75:
             try:
-                logger.info("[3.9/4] Generating Abuse Report...")
+                logger.debug("[3.9/4] Generating Abuse Report...")
                 abuse_report = await run_in_threadpool(
                     generate_abuse_report,
                     final_url,
@@ -469,14 +525,14 @@ async def scan_url(
                     },
                     osint_dict
                 )
-                logger.info(f"[AbuseReport] Generated: {abuse_report.get('report_id')}")
+                logger.debug(f"[AbuseReport] Generated: {abuse_report.get('report_id')}")
             except Exception as e:
                 logger.error(f"Abuse Report generation failed: {e}")
         
         # ============================================================
         # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
         # ============================================================
-        logger.info("[4/4] Saving scan result to database...")
+        logger.debug("[4/4] Saving scan result to database...")
         
         # Save to database
         scan_record = ScanHistory(
@@ -492,7 +548,7 @@ async def scan_url(
         await db.commit()
         await db.refresh(scan_record)
         
-        logger.info(f"Scan result saved to database (ID: {scan_record.id})")
+        logger.debug(f"Scan result saved (ID: {scan_record.id})")
         
         # Build complete response using ResponseBuilder with deep analysis
         response_data = response_builder.build_complete_response(

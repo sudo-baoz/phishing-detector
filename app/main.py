@@ -21,7 +21,7 @@ Complete FastAPI Main Application
 Phishing URL Detection System with God Mode Integration
 """
 
-import logging
+import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path
 import joblib
@@ -31,23 +31,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from app.config import settings
+from app.core.logger import configure_logging, log_startup_banner, log_shutdown_banner, get_logger
 from app.security.turnstile import verify_turnstile
 from app.database import init_db, close_db
 from app.routers import health, scan, auth, chat
 from app.services.ai_engine import phishing_predictor
 from app.services.cert_monitor import start_cert_monitor, stop_cert_monitor, get_cache_stats
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO if not settings.DEBUG else logging.DEBUG,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    handlers=[
-        logging.FileHandler("app.log"),
-        logging.StreamHandler()
-    ]
+# ============================================================================
+# SMART LOGGING - "QUIET MODE" (Silence 3rd party noise)
+# ============================================================================
+# This MUST be called BEFORE any other imports that use logging
+logger = configure_logging(
+    debug_mode=settings.DEBUG,
+    log_file="app.log",
+    quiet_mode=not settings.DEBUG  # Quiet in production, verbose in dev
 )
 
-logger = logging.getLogger(__name__)
+# ============================================================================
+# CONCURRENCY CONTROL - Prevent server hang from too many scans
+# ============================================================================
+# Semaphore limits concurrent heavy scan operations
+# If 3 scans are running, new requests get 503 immediately (fail-fast)
+SCAN_SEMAPHORE = asyncio.Semaphore(3)
+SCAN_TIMEOUT = 60.0  # Hard timeout for entire scan operation (seconds)
 
 # Global ML model storage
 ml_model = None
@@ -127,104 +134,58 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     
     # ========== STARTUP ==========
-    logger.info("=" * 70)
-    logger.info("STARTING PHISHING URL DETECTION API - GOD MODE ENABLED")
-    logger.info("=" * 70)
-    
     # Start CertStream Real-time Monitor (Zero-Day Detection)
-    logger.info("Starting CertStream Real-time Monitor...")
     try:
         cert_started = start_cert_monitor()
-        if cert_started:
-            logger.info("[OK] CertStream monitor started - Zero-Day detection active")
-        else:
-            logger.warning("[WARNING] CertStream monitor failed to start")
+        if not cert_started:
+            logger.warning("[STARTUP] CertStream monitor failed to start")
     except Exception as cert_error:
-        logger.error(f"[ERROR] CertStream initialization error: {cert_error}")
-        logger.warning("[WARNING] Zero-Day detection will not be available")
+        logger.error(f"[STARTUP] CertStream error: {cert_error}")
     
-    # Initialize Scheduler
-    logger.info("Starting Background Scheduler...")
-    # Schedule ingestion job every 12 hours
+    # Initialize Scheduler (runs in background, no log spam)
     scheduler.add_job(ingest_data_from_phishtank, 'interval', hours=12, args=[1000])
     scheduler.start()
-    logger.info("[OK] Scheduler started. Ingestion job scheduled every 12 hours.")
     
     # Load ML Model (auto-discovery enabled)
-    logger.info("Loading ML Model...")
     try:
-        # Gọi load_model() không cần truyền path - sẽ tự động tìm
         model_loaded = phishing_predictor.load_model()
-        if model_loaded:
-            logger.info("[OK] PhishingPredictor model loaded successfully")
-        else:
-            logger.error("Failed to load PhishingPredictor model")
-    except FileNotFoundError as e:
+        if not model_loaded:
+            logger.error("[STARTUP] PhishingPredictor model failed to load")
+    except FileNotFoundError:
         # Model not found - trigger auto-training for VPS deployment
-        logger.warning("=" * 70)
-        logger.warning("[WARNING] No pre-trained model found!")
-        logger.warning("=" * 70)
-        logger.warning("This is normal for first-time VPS deployment.")
-        logger.warning("Initiating auto-training with synthetic data...")
-        logger.warning("=" * 70)
-        
+        logger.warning("[STARTUP] No model found, initiating auto-training...")
         try:
-            # Auto-train and save model
             train_success = phishing_predictor.auto_train()
-            if train_success:
-                logger.info("[OK] Auto-training completed successfully!")
-                logger.info("Model is now ready for production use.")
-            else:
-                logger.error("[ERROR] Auto-training failed!")
-                logger.warning("[WARNING] API will start but URL scanning will not work")
+            if not train_success:
+                logger.error("[STARTUP] Auto-training failed!")
         except Exception as train_error:
-            logger.error(f"[ERROR] Auto-training error: {train_error}")
-            logger.warning("[WARNING] API will start but URL scanning will not work")
+            logger.error(f"[STARTUP] Auto-training error: {train_error}")
     except Exception as e:
-        logger.error(f"Failed to load ML model: {e}")
-        logger.warning("[WARNING] API will start but URL scanning will not work")
+        logger.error(f"[STARTUP] ML model error: {e}")
     
     # Initialize Database
-    logger.info("Initializing Database...")
-    logger.info(f"Database Type: {settings.DB_TYPE}")
-    
-    if settings.DB_TYPE == "sqlite":
-        logger.info(f"Database File: {settings.DB_NAME}.db")
-    else:
-        logger.info(f"Database: {settings.DB_HOST}:{settings.DB_PORT or 'default'}/{settings.DB_NAME}")
-    
     try:
         await init_db()
-        logger.info("[OK] Database initialized successfully")
     except Exception as e:
-        logger.error(f"Failed to initialize database: {e}")
-        logger.warning("[WARNING] API will start but database operations will fail")
+        logger.error(f"[STARTUP] Database init failed: {e}")
     
-    logger.info(f"Port: {settings.PORT}")
-    logger.info(f"CORS Origins: {settings.cors_origins_list}")
-    logger.info("=" * 70)
-    logger.info("[SUCCESS] API STARTED SUCCESSFULLY")
-    logger.info(f"API: http://0.0.0.0:{settings.PORT}")
-    logger.info(f"Docs: http://0.0.0.0:{settings.PORT}/docs")
-    logger.info("=" * 70)
+    # Print startup banner (always visible)
+    log_startup_banner(logger, settings.PORT, settings.DEBUG)
     
     yield
     
     # ========== SHUTDOWN ==========
-    logger.info("Shutting down API...")
+    log_shutdown_banner(logger)
     
     # Stop CertStream monitor
     try:
         stop_cert_monitor()
-        logger.info("[OK] CertStream monitor stopped")
     except Exception as e:
         logger.warning(f"CertStream shutdown warning: {e}")
     
     if scheduler.running:
         scheduler.shutdown()
-        logger.info("[OK] Scheduler shut down")
     await close_db()
-    logger.info("[OK] Shutdown complete")
 
 
 # Create FastAPI app
@@ -337,6 +298,10 @@ async def model_info():
 app.state.get_ml_model = get_ml_model
 app.state.get_ml_scaler = get_ml_scaler
 app.state.get_ml_feature_names = get_ml_feature_names
+
+# Export concurrency controls for scan router
+app.state.scan_semaphore = SCAN_SEMAPHORE
+app.state.scan_timeout = SCAN_TIMEOUT
 
 
 if __name__ == "__main__":

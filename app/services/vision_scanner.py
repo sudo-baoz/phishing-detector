@@ -439,7 +439,7 @@ async def full_scan(url: str) -> Dict[str, Any]:
         
         result['bot_check_triggered'] = bot_check_triggered
         
-        logger.info(f"[VisionScanner] Scan complete: {len(external_domains)} external domains, "
+        logger.debug(f"[VisionScanner] Scan complete: {len(external_domains)} external domains, "
                    f"evasion_detected={evasion_result['evasion_detected']}, "
                    f"bot_check={bot_check_triggered}")
         
