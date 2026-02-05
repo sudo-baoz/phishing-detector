@@ -338,6 +338,15 @@ class ResponseBuilder:
                     factors.append("⚠️ Phát hiện chuỗi chuyển hướng đáng ngờ")
                 else:
                     factors.append("⚠️ Suspicious Redirect Chain Detected")
+
+            # Keyword Risk
+            keyword_info = details.get('keywords', {})
+            if keyword_info.get('risk'):
+                words = ", ".join(keyword_info.get('found', []))
+                if is_vi:
+                    factors.append(f"⚠️ Từ khóa nhạy cảm: Phát hiện \"{words}\" trong URL")
+                else:
+                    factors.append(f"⚠️ Sensitive Keywords: Detected \"{words}\" in URL")
                 
         return factors
 

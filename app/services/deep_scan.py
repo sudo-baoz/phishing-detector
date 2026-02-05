@@ -36,6 +36,29 @@ class DeepScanner:
 
     def __init__(self):
         self.timeout = 5  # Seconds for network requests
+        
+    def analyze_keywords(self, url: str) -> Dict[str, Any]:
+        """
+        Detect suspicious keywords in URL string.
+        """
+        suspicious_words = [
+            'login', 'verify', 'update', 'banking', 'secure', 'account', 'signin', 
+            'confirm', 'suspend', 'password', 'paypal', 'facebook', 'google', 
+            'apple', 'microsoft', 'wallet', 'crypto', 'payment'
+        ]
+        
+        url_lower = url.lower()
+        found_keywords = [word for word in suspicious_words if word in url_lower]
+        is_risk = len(found_keywords) > 0
+        
+        if is_risk:
+            logger.warning(f"[DeepScan] Suspicious keywords found: {found_keywords}")
+            
+        return {
+            'found': found_keywords,
+            'risk': is_risk,
+            'count': len(found_keywords)
+        }
 
     def analyze_ssl_age(self, domain: str) -> Dict[str, Any]:
         """
@@ -231,6 +254,7 @@ class DeepScanner:
              
              return {
                  'max_js_entropy': max_entropy,
+                 'entropy_score': max_entropy, # Frontend combatibility
                  'risk': risk
              }
              
@@ -259,21 +283,27 @@ class DeepScanner:
         # Check entropy on final URL
         entropy_res = self.analyze_page_content(final_url)
         
+        # 4. Keyword Analysis
+        keyword_res = self.analyze_keywords(url)
+        
         # --- Calculate Technical Risk Score (0-100) ---
         score = 0
         
         # Weights
         if ssl_res['risk']:
-            score += 40  # High confidence signal
+            score += 30  # Adjusted weight
             
         if entropy_res['risk']:
-            score += 30  # High confidence signal (obfuscation)
+            score += 25  # Adjusted weight
+            
+        if keyword_res['risk']:
+            score += 25  # New signal
             
         if redirect_res['hops'] > 3:
-            score += 15
+            score += 10
             
         if redirect_res['has_shortener']:
-            score += 15
+            score += 10
             
         # Cap at 100
         score = min(score, 100)
@@ -283,7 +313,8 @@ class DeepScanner:
             'details': {
                 'ssl': ssl_res,
                 'redirects': redirect_res,
-                'content_entropy': entropy_res
+                'content_entropy': entropy_res,
+                'keywords': keyword_res
             }
         }
 
