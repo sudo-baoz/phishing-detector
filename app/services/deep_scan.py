@@ -13,7 +13,7 @@ import socket
 import math
 import logging
 import requests
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List, Tuple, Optional
 from datetime import datetime, timezone
 from urllib.parse import urlparse
 from collections import Counter
