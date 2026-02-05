@@ -19,16 +19,260 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 Sentinel AI - Advanced Chat Agent Service
 AI-powered cyber security assistant using Google Gemini API
+Enhanced with God Mode Phishing Detection System
 """
 
 import os
 import re
+import json
 import logging
 from typing import Dict, Any, Optional, List
 import google.generativeai as genai
 from app.config import settings
+from app.core.prompts import GOD_MODE_SYSTEM_PROMPT
 
 logger = logging.getLogger(__name__)
+
+
+# =============================================================================
+# GOD MODE PHISHING ANALYZER - Elite Threat Detection
+# =============================================================================
+
+class GodModeAnalyzer:
+    """
+    God Mode Phishing Analyzer using Gemini AI with specialized system prompt.
+    Provides elite-level threat detection with structured JSON output.
+    """
+    
+    _instance = None
+    _initialized = False
+    
+    # Default response structure for error cases
+    DEFAULT_ERROR_RESPONSE = {
+        "verdict": "SUSPICIOUS",
+        "risk_score": 50,
+        "summary": "Analysis failed due to an internal error. Manual review recommended.",
+        "impersonation_target": None,
+        "risk_factors": ["AI analysis unavailable"],
+        "technical_analysis": {
+            "url_integrity": "Unknown",
+            "domain_age": "Unknown"
+        },
+        "recommendation": "Proceed with caution. Verify the URL manually before entering any sensitive information."
+    }
+    
+    def __new__(cls):
+        """Singleton pattern implementation"""
+        if cls._instance is None:
+            cls._instance = super(GodModeAnalyzer, cls).__new__(cls)
+        return cls._instance
+    
+    def __init__(self):
+        """Initialize Gemini model with God Mode system prompt"""
+        if not self._initialized:
+            self.model = None
+            self._available = False
+            
+            try:
+                api_key = settings.GEMINI_API_KEY
+                
+                if not api_key or api_key.strip() == "":
+                    logger.warning("GEMINI_API_KEY not set. God Mode Analyzer will not be available.")
+                    self._initialized = True
+                    return
+                
+                # Configure Gemini API
+                genai.configure(api_key=api_key)
+                
+                # Initialize with God Mode system prompt and JSON output
+                generation_config = genai.GenerationConfig(
+                    response_mime_type="application/json"
+                )
+                
+                self.model = genai.GenerativeModel(
+                    model_name="gemini-1.5-flash",
+                    system_instruction=GOD_MODE_SYSTEM_PROMPT,
+                    generation_config=generation_config
+                )
+                
+                self._available = True
+                logger.info("[OK] God Mode Analyzer initialized with gemini-1.5-flash")
+                
+            except Exception as e:
+                logger.error(f"Failed to initialize God Mode Analyzer: {e}")
+                self.model = None
+                self._available = False
+            
+            self._initialized = True
+    
+    def is_available(self) -> bool:
+        """Check if God Mode Analyzer is available"""
+        return self._available and self.model is not None
+    
+    def analyze(
+        self,
+        url: str,
+        dom_text: Optional[str] = None,
+        deep_tech_data: Optional[Dict[str, Any]] = None,
+        rag_context: Optional[List[Dict[str, Any]]] = None
+    ) -> Dict[str, Any]:
+        """
+        Perform God Mode analysis on a URL with optional context.
+        
+        Args:
+            url: The URL to analyze
+            dom_text: Optional page DOM/content text
+            deep_tech_data: Optional technical analysis data (SSL, headers, etc.)
+            rag_context: Optional RAG context from knowledge base
+            
+        Returns:
+            Structured JSON analysis result
+        """
+        if not self.is_available():
+            logger.warning("God Mode Analyzer not available")
+            return {**self.DEFAULT_ERROR_RESPONSE, "error": "AI service unavailable"}
+        
+        try:
+            # Build comprehensive user prompt
+            user_prompt = self._build_analysis_prompt(url, dom_text, deep_tech_data, rag_context)
+            
+            logger.info(f"[GOD MODE] Analyzing URL: {url}")
+            logger.debug(f"[GOD MODE] Prompt length: {len(user_prompt)} chars")
+            
+            # Generate response from Gemini
+            response = self.model.generate_content(user_prompt)
+            
+            # Parse JSON response
+            result = self._parse_response(response.text)
+            
+            logger.info(f"[GOD MODE] Analysis complete - Verdict: {result.get('verdict', 'UNKNOWN')}")
+            return result
+            
+        except Exception as e:
+            logger.error(f"God Mode analysis failed: {e}", exc_info=True)
+            return {
+                **self.DEFAULT_ERROR_RESPONSE,
+                "error": str(e),
+                "summary": f"Analysis failed: {str(e)}"
+            }
+    
+    def _build_analysis_prompt(
+        self,
+        url: str,
+        dom_text: Optional[str],
+        deep_tech_data: Optional[Dict[str, Any]],
+        rag_context: Optional[List[Dict[str, Any]]]
+    ) -> str:
+        """Build the user prompt for God Mode analysis"""
+        
+        prompt_parts = [f"=== TARGET URL ===\n{url}"]
+        
+        # Add DOM content if available
+        if dom_text:
+            # Truncate DOM to prevent token overflow
+            truncated_dom = dom_text[:3000] if len(dom_text) > 3000 else dom_text
+            prompt_parts.append(f"\n=== PAGE CONTENT (DOM) ===\n{truncated_dom}")
+        
+        # Add technical data if available
+        if deep_tech_data:
+            tech_str = json.dumps(deep_tech_data, indent=2, default=str)
+            prompt_parts.append(f"\n=== TECHNICAL ANALYSIS ===\n{tech_str}")
+        
+        # Add RAG context if available (threat intelligence)
+        if rag_context and len(rag_context) > 0:
+            prompt_parts.append("\n=== THREAT INTELLIGENCE (RAG) ===")
+            for i, threat in enumerate(rag_context[:3]):  # Limit to top 3
+                similarity = threat.get('similarity_score', 0) * 100
+                target = threat.get('target', 'Unknown')
+                similar_url = threat.get('similar_url', 'N/A')
+                prompt_parts.append(
+                    f"\n[Match {i+1}] {similarity:.1f}% similarity to known threat"
+                    f"\n  - Target Brand: {target}"
+                    f"\n  - Known Threat URL: {similar_url}"
+                )
+        
+        prompt_parts.append("\n\n=== ANALYSIS REQUEST ===")
+        prompt_parts.append("Perform comprehensive phishing analysis using your Chain of Thought protocol.")
+        prompt_parts.append("Return your verdict as structured JSON.")
+        
+        return "\n".join(prompt_parts)
+    
+    def _parse_response(self, response_text: str) -> Dict[str, Any]:
+        """Parse and validate the AI response"""
+        try:
+            # Clean response text (remove markdown code blocks if present)
+            clean_text = response_text.strip()
+            if clean_text.startswith("```json"):
+                clean_text = clean_text[7:]
+            if clean_text.startswith("```"):
+                clean_text = clean_text[3:]
+            if clean_text.endswith("```"):
+                clean_text = clean_text[:-3]
+            clean_text = clean_text.strip()
+            
+            result = json.loads(clean_text)
+            
+            # Validate required fields
+            required_fields = ["verdict", "risk_score", "summary"]
+            for field in required_fields:
+                if field not in result:
+                    result[field] = self.DEFAULT_ERROR_RESPONSE.get(field)
+            
+            # Normalize verdict
+            if result.get("verdict") not in ["SAFE", "SUSPICIOUS", "PHISHING"]:
+                result["verdict"] = "SUSPICIOUS"
+            
+            # Ensure risk_score is valid
+            try:
+                result["risk_score"] = max(0, min(100, int(result.get("risk_score", 50))))
+            except (ValueError, TypeError):
+                result["risk_score"] = 50
+            
+            return result
+            
+        except json.JSONDecodeError as e:
+            logger.warning(f"Failed to parse AI response as JSON: {e}")
+            # Return structured response with raw text
+            return {
+                **self.DEFAULT_ERROR_RESPONSE,
+                "summary": response_text[:500],
+                "raw_response": response_text
+            }
+
+
+# Global God Mode Analyzer instance
+god_mode_analyzer = GodModeAnalyzer()
+
+
+def analyze_url_god_mode(
+    url: str,
+    dom_text: Optional[str] = None,
+    deep_tech_data: Optional[Dict[str, Any]] = None,
+    rag_context: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    """
+    Convenience function for God Mode URL analysis.
+    
+    Args:
+        url: URL to analyze
+        dom_text: Optional page content
+        deep_tech_data: Optional technical data
+        rag_context: Optional RAG threat intelligence
+        
+    Returns:
+        Structured analysis result
+    """
+    return god_mode_analyzer.analyze(url, dom_text, deep_tech_data, rag_context)
+
+
+def is_god_mode_available() -> bool:
+    """Check if God Mode Analyzer is available"""
+    return god_mode_analyzer.is_available()
+
+
+# =============================================================================
+# ORIGINAL SENTINEL AI (Preserved for backward compatibility)
+# =============================================================================
 
 
 def extract_urls(text: str) -> List[str]:

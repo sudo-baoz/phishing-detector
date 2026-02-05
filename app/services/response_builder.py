@@ -706,7 +706,8 @@ class ResponseBuilder:
         deep_analysis: bool = True,
         deep_scan_results: Optional[Dict[str, Any]] = None,
         rag_results: Optional[List[Dict[str, Any]]] = None,
-        language: str = "en"
+        language: str = "en",
+        god_mode_result: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -720,6 +721,7 @@ class ResponseBuilder:
             threat_type: Type of threat
             osint_data: OSINT enrichment data
             deep_analysis: Whether to perform deep analysis (redirect, content, SSL)
+            god_mode_result: God Mode AI analysis result
             
         Returns:
             Complete response dictionary with 6 sections
@@ -793,7 +795,8 @@ class ResponseBuilder:
             "advanced": advanced,
             "intelligence": ResponseBuilder.build_intelligence(),
             "technical_details": technical_details,
-            "rag_matches": rag_results
+            "rag_matches": rag_results,
+            "god_mode_analysis": god_mode_result  # God Mode AI Analysis result
         }
 
 

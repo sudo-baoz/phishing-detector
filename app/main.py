@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 """
 Complete FastAPI Main Application
-Phishing URL Detection System for Linux VPS (aaPanel)
+Phishing URL Detection System with God Mode Integration
 """
 
 import logging
@@ -35,6 +35,7 @@ from app.security.turnstile import verify_turnstile
 from app.database import init_db, close_db
 from app.routers import health, scan, auth, chat
 from app.services.ai_engine import phishing_predictor
+from app.services.cert_monitor import start_cert_monitor, stop_cert_monitor, get_cache_stats
 
 # Configure logging
 logging.basicConfig(
@@ -127,8 +128,20 @@ async def lifespan(app: FastAPI):
     
     # ========== STARTUP ==========
     logger.info("=" * 70)
-    logger.info("STARTING PHISHING URL DETECTION API")
+    logger.info("STARTING PHISHING URL DETECTION API - GOD MODE ENABLED")
     logger.info("=" * 70)
+    
+    # Start CertStream Real-time Monitor (Zero-Day Detection)
+    logger.info("Starting CertStream Real-time Monitor...")
+    try:
+        cert_started = start_cert_monitor()
+        if cert_started:
+            logger.info("[OK] CertStream monitor started - Zero-Day detection active")
+        else:
+            logger.warning("[WARNING] CertStream monitor failed to start")
+    except Exception as cert_error:
+        logger.error(f"[ERROR] CertStream initialization error: {cert_error}")
+        logger.warning("[WARNING] Zero-Day detection will not be available")
     
     # Initialize Scheduler
     logger.info("Starting Background Scheduler...")
@@ -199,6 +212,14 @@ async def lifespan(app: FastAPI):
     
     # ========== SHUTDOWN ==========
     logger.info("Shutting down API...")
+    
+    # Stop CertStream monitor
+    try:
+        stop_cert_monitor()
+        logger.info("[OK] CertStream monitor stopped")
+    except Exception as e:
+        logger.warning(f"CertStream shutdown warning: {e}")
+    
     if scheduler.running:
         scheduler.shutdown()
         logger.info("[OK] Scheduler shut down")

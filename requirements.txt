@@ -110,3 +110,6 @@ watchfiles
 websockets
 xgboost
 zstandard
+# God Mode Phishing Detection dependencies
+certstream
+textdistance

@@ -39,6 +39,8 @@ from app.services.knowledge_base import knowledge_base
 from app.services.response_builder import response_builder
 from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
 from app.services.deep_scan import deep_scanner
+from app.services.cert_monitor import check_realtime_threat  # Zero-Day Detection
+from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available  # God Mode AI
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -102,6 +104,53 @@ async def scan_url(
         # Token verification failed - reject immediately (fail fast)
         logger.warning(f"[REJECTED] Turnstile verification failed - blocking request")
         raise  # Re-raise the 403 HTTPException from verify_turnstile
+    
+    # ============================================================
+    # STEP 1.5: ZERO-DAY DETECTION (CertStream Real-time Check)
+    # ============================================================
+    # Check if URL was recently registered and matches suspicious patterns
+    url_str = str(scan_request.url)
+    
+    if check_realtime_threat(url_str):
+        logger.warning(f"[ZERO-DAY] Real-time threat detected: {url_str}")
+        
+        # Immediate PHISHING verdict without AI analysis
+        zero_day_response = response_builder.build_response(
+            url=url_str,
+            final_url=url_str,
+            is_phishing=True,
+            confidence_score=100.0,
+            threat_type="zero_day_phishing",
+            model_version="certstream_realtime",
+            deep_scan=None,
+            osint=None,
+            network=None,
+            similar_threats=[{
+                "source": "CertStream",
+                "reason": "Domain registered very recently with suspicious patterns",
+                "similarity_score": 1.0
+            }],
+            typo_result={"risk": True, "reason": "Real-time certificate monitoring detected this domain"},
+            redirect_result=None,
+            ai_analysis={
+                "verdict": "PHISHING",
+                "risk_score": 100,
+                "summary": "ZERO-DAY THREAT: This domain was registered very recently and matches known phishing patterns. It was caught in real-time by our Certificate Transparency monitoring system.",
+                "impersonation_target": None,
+                "risk_factors": [
+                    "Recently registered domain",
+                    "Matches suspicious keyword patterns",
+                    "Detected via real-time certificate monitoring"
+                ],
+                "technical_analysis": {
+                    "url_integrity": "Spoofed",
+                    "domain_age": "New (Zero-Day)"
+                },
+                "recommendation": "DO NOT VISIT THIS SITE. This is a freshly registered phishing domain."
+            }
+        )
+        
+        return zero_day_response
     
     # ============================================================
     # STEP 2: REDIRECT TRACE & ANALYSIS PREP
@@ -262,6 +311,50 @@ async def scan_url(
                 logger.error(f"Deep Analysis failed: {e}")
         
         # ============================================================
+        # STEP 3.7: GOD MODE AI ANALYSIS (Enhanced Threat Detection)
+        # ============================================================
+        god_mode_result = None
+        if is_god_mode_available():
+            try:
+                logger.info("[3.7/4] Running God Mode AI Analysis...")
+                
+                # Prepare context for God Mode analysis
+                dom_text = None  # Placeholder - can be fetched from deep_scan if available
+                deep_tech_data = deep_scan_results if deep_scan_results else {}
+                
+                # Add OSINT data to tech data
+                if osint_dict:
+                    deep_tech_data['osint'] = osint_dict
+                if network_results:
+                    deep_tech_data['network'] = network_results
+                
+                # Run God Mode analysis in threadpool (sync Gemini call)
+                god_mode_result = await run_in_threadpool(
+                    analyze_url_god_mode,
+                    final_url,
+                    dom_text,
+                    deep_tech_data,
+                    similar_threats
+                )
+                
+                logger.info(f"[GOD MODE] Verdict: {god_mode_result.get('verdict', 'UNKNOWN')}")
+                
+                # Override verdict if God Mode detects PHISHING but ML said SAFE
+                if god_mode_result.get('verdict') == 'PHISHING' and not is_phishing:
+                    logger.warning("[GOD MODE OVERRIDE] AI detected phishing, overriding ML verdict")
+                    is_phishing = True
+                    confidence_score = max(confidence_score, god_mode_result.get('risk_score', 85))
+                    threat_type = "ai_detected_phishing"
+                
+                # Boost confidence if both agree on phishing
+                elif god_mode_result.get('verdict') == 'PHISHING' and is_phishing:
+                    confidence_score = max(confidence_score, god_mode_result.get('risk_score', confidence_score))
+                
+            except Exception as e:
+                logger.error(f"God Mode Analysis failed: {e}")
+                god_mode_result = None
+        
+        # ============================================================
         # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
         # ============================================================
         logger.info("[4/4] Saving scan result to database...")
@@ -294,7 +387,8 @@ async def scan_url(
             deep_analysis=scan_request.deep_analysis,
             deep_scan_results=deep_scan_results,
             rag_results=similar_threats,
-            language=scan_request.language
+            language=scan_request.language,
+            god_mode_result=god_mode_result  # God Mode AI Analysis result
         )
         
         # Convert to Pydantic models

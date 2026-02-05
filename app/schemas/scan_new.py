@@ -82,6 +82,17 @@ class IntelligenceData(BaseModel):
     google_safebrowsing: Optional[str] = Field(None, description="Google Safe Browsing status")
 
 
+class GodModeAnalysis(BaseModel):
+    """God Mode AI Analysis result - Elite threat detection"""
+    verdict: str = Field(..., description="AI verdict: SAFE, SUSPICIOUS, or PHISHING")
+    risk_score: int = Field(..., ge=0, le=100, description="AI-calculated risk score (0-100)")
+    summary: str = Field(..., description="Short explanation of the verdict")
+    impersonation_target: Optional[str] = Field(None, description="Detected brand impersonation target")
+    risk_factors: List[str] = Field(default_factory=list, description="List of specific risk factors")
+    technical_analysis: Optional[dict] = Field(None, description="Technical analysis details (url_integrity, domain_age)")
+    recommendation: Optional[str] = Field(None, description="Actionable security advice")
+
+
 class ScanResponse(BaseModel):
     """Complete scan response with new structure"""
     id: int = Field(..., description="Scan record ID")
@@ -98,6 +109,7 @@ class ScanResponse(BaseModel):
     # New fields for advanced frontend visualization
     technical_details: Optional[dict] = Field(None, description="Raw technical metrics (SSL age, entropy)")
     rag_matches: Optional[List[dict]] = Field(None, description="Detailed RAG threat matches")
+    god_mode_analysis: Optional[GodModeAnalysis] = Field(None, description="God Mode AI Analysis result")
     
     model_config = {
         "json_schema_extra": {
