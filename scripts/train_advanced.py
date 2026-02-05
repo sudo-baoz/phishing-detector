@@ -16,11 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
-"""
-Advanced Phishing Detection Model Training Script
-Features: XGBoost, Enhanced Features, SHAP Explainability, Synthetic Data Generation
-"""
-
 import numpy as np
 import pandas as pd
 import joblib

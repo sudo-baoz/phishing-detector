@@ -1,3 +1,8 @@
+/**
+ * Phishing Detector - AI-Powered Threat Intelligence System
+ * Copyright (c) 2026 BaoZ
+ */
+
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 

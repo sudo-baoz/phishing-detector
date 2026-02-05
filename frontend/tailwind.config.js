@@ -1,3 +1,8 @@
+/**
+ * Phishing Detector - AI-Powered Threat Intelligence System
+ * Copyright (c) 2026 BaoZ
+ */
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [

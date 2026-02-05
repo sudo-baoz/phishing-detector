@@ -1,4 +1,9 @@
-# 🛡️ Phishing Detector - AI-Powered Forensic & Threat Intel System
+<div align="center">
+
+<img src="https://i.imgur.com/zzY1gKN.jpeg" alt="Phishing Detector Logo" width="250"/>
+
+# 🛡️ Phishing Detector
+### AI-Powered Forensic & Threat Intel System
 
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
@@ -6,9 +11,15 @@
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115.6-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Security](https://img.shields.io/badge/security-Turnstile%20Protected-orange)](https://www.cloudflare.com/)
 
+<br/>
+
 > **Next-Gen Phishing Detection** | **Deep URL Forensics** | **AI-Driven Analysis** | **OSINT Integration**
 
+<br/>
+
 A comprehensive **Phishing Detection System** designed for Blue Teams and security researchers. This tool combines traditional **OSINT** techniques (Whois, DNS, SSL analysis) with **Generative AI (Gemini)** to detect sophisticated phishing campaigns, evasion techniques, and malicious infrastructure in real-time.
+
+</div>
 
 ---
 

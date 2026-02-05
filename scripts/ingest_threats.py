@@ -1,6 +1,11 @@
 
 #!/usr/bin/env python3
 import sys
+"""
+Phishing Detector - AI-Powered Threat Intelligence System
+Copyright (c) 2026 BaoZ
+"""
+
 import os
 import argparse
 import asyncio
