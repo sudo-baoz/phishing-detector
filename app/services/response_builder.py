@@ -758,7 +758,7 @@ class ResponseBuilder:
             technical_details = {
                 "ssl_issuer": details.get('ssl', {}).get('issuer'),
                 "ssl_age_hours": details.get('ssl', {}).get('age_hours'),
-                "entropy_score": details.get('content_entropy', {}).get('entropy'),
+                "entropy_score": details.get('content_entropy', {}).get('entropy_score'),
                 "redirect_chain": details.get('redirects', {}).get('chain')
             }
         
