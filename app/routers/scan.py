@@ -122,9 +122,12 @@ async def scan_url(
             if redirect_res.get('is_open_redirect'):
                 logger.warning(f"[RISK] Open Redirect Abuse detected!")
 
-        # Initialize results
+        # Initialize results & flags
         deep_scan_results = None
         network_results = None
+        is_phishing = False
+        confidence_score = 0.0
+        threat_type = None
         
         # [NEW] 1.5 Google Safe Browsing Check (Primary Validation)
         # Check Final URL against Google Threats
