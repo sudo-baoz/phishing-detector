@@ -35,6 +35,7 @@ from app.schemas.scan_new import (
 )
 from app.services.ai_engine import phishing_predictor
 from app.services.osint import collect_osint_data, get_osint_summary
+from app.services.knowledge_base import knowledge_base
 from app.services.response_builder import response_builder
 from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
 
@@ -106,8 +107,16 @@ async def scan_url(
     logger.info(f"[2/4] Starting phishing analysis for: {scan_request.url}")
     
     try:
-        # Use PhishingPredictor service for prediction
         url_str = str(scan_request.url)
+        
+        # [NEW] Semantic RAG Search using ChromaDB
+        # Find similar known threats to provide context for the AI scanner
+        similar_threats = knowledge_base.search_similar_threats(url_str)
+        if similar_threats:
+            logger.info(f"[RAG] Found {len(similar_threats)} similar threats in Knowledge Base")
+        
+        # Use PhishingPredictor service for prediction
+        # Note: similar_threats context will be passed here in next update
         prediction_result = phishing_predictor.predict(url_str)
         
         is_phishing = prediction_result['is_phishing']

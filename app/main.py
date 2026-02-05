@@ -113,6 +113,14 @@ def get_ml_feature_names():
     return ml_feature_names
 
 
+
+from apscheduler.schedulers.background import BackgroundScheduler
+from scripts.ingest_threats import ingest_data_from_phishtank
+from app.services.knowledge_base import knowledge_base
+
+# Initialize Scheduler
+scheduler = BackgroundScheduler()
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events"""
@@ -121,6 +129,13 @@ async def lifespan(app: FastAPI):
     logger.info("=" * 70)
     logger.info("STARTING PHISHING URL DETECTION API")
     logger.info("=" * 70)
+    
+    # Initialize Scheduler
+    logger.info("Starting Background Scheduler...")
+    # Schedule ingestion job every 12 hours
+    scheduler.add_job(ingest_data_from_phishtank, 'interval', hours=12, args=[1000])
+    scheduler.start()
+    logger.info("[OK] Scheduler started. Ingestion job scheduled every 12 hours.")
     
     # Load ML Model (auto-discovery enabled)
     logger.info("Loading ML Model...")
@@ -184,6 +199,9 @@ async def lifespan(app: FastAPI):
     
     # ========== SHUTDOWN ==========
     logger.info("Shutting down API...")
+    if scheduler.running:
+        scheduler.shutdown()
+        logger.info("[OK] Scheduler shut down")
     await close_db()
     logger.info("[OK] Shutdown complete")
 
