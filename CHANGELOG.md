@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-02-05
+
+### Added
+- **SOC Analyst Dashboard**: Redesigned UI with glassmorphism, dedicated sections for "Threat Intelligence", "Digital Forensics", and "Risk Factors".
+- **Deep Tech Analysis**: Backend logic to calculate SSL Certificate Age, Code Entropy (Obfuscation detection), and Redirect Hops.
+- **RAG Integration**: Visualization of similar phishing kits from Threat Intelligence database with % similarity match.
+- **JSON Viewer**: "View Raw Data" toggle for security analysts to inspect the full API response payload.
+- **Vietnamese Localization (i18n)**:
+  - 100% UI translation (Analysis Report, Scanner, Chat).
+  - Backend AI generation (Risk Factors & Conclusion) now supports the requested language.
+  - Strict language enforcement for Chatbot (Sentinel AI speaks Vietnamese when selected).
+
+### Changed
+- **Score Visualization**: New circular gauge with color-coded risk levels (Critical/High/Medium/Low).
+- **Frontend-Backend Sync**: `Scanner.jsx` now explicitly sends the selected language code (`vi`/`en`) to the API.
+- **AI Logic**: Updated `chat_agent.py` to enforce language instructions in the System Prompt.
+
+### Fixed
+- **API 422 Error**: Fixed type mismatch for `scan_result_id` in Chat API.
+- **Backend Crash**: Resolved `RecursionError` and `SyntaxError` in `scan.py` argument passing.
+- **Frontend Crash**: Restored missing `useState` and `useEffect` imports in `AnalysisReport.jsx`.
+- **Duplicate Keys**: Cleaned up `vi.json` and `en.json` localization files.
+
+### Security
+- **Strict Parsing**: Enhanced input validation for Chat API to prevent type confusion attacks.
+
+---
+
 ## [1.1.1] - 2026-02-05
 
 ### Added
@@ -109,6 +137,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[1.2.0]: https://github.com/sudo-baoz/phishing-detector/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/sudo-baoz/phishing-detector/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/sudo-baoz/phishing-detector/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/sudo-baoz/phishing-detector/releases/tag/v1.0.0
