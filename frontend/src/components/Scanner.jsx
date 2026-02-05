@@ -97,15 +97,6 @@ const Scanner = () => {
     // Get Turnstile site key from environment
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA';
 
-    // DEBUG: Monitor result state changes
-    useEffect(() => {
-        if (result) {
-            console.log('📊 [DEBUG] Result state changed - RESULTS AVAILABLE:', result);
-        } else {
-            console.log('🔍 [DEBUG] Result state changed - NO RESULTS (null or undefined)');
-        }
-    }, [result]);
-
     const sanitizeUrl = (inputUrl) => {
         let sanitized = inputUrl.trim();
 
@@ -272,21 +263,21 @@ const Scanner = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-gray-950 via-gray-900 to-black text-white">
+        <div className="min-h-screen bg-linear-to-br from-gray-950 via-gray-900 to-black text-white">
             <MatrixRain />
 
-            <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+            <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
                 {/* Header */}
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5 }}
-                    className="text-center mb-12"
+                    className="text-center mb-6 sm:mb-8 md:mb-12"
                 >
-                    <h1 className="text-5xl md:text-6xl font-black mb-3 bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent">
+                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black mb-2 sm:mb-3 bg-linear-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent px-2">
                         {t('app_title')}
                     </h1>
-                    <p className="text-lg text-gray-400 font-medium">
+                    <p className="text-sm sm:text-base md:text-lg text-gray-400 font-medium px-4">
                         {t('app_subtitle')}
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-2">
@@ -302,13 +293,13 @@ const Scanner = () => {
                     transition={{ duration: 0.5, delay: 0.2 }}
                     className="mb-8"
                 >
-                    <div className="relative bg-gray-900/40 backdrop-blur-xl border border-cyan-500/30 rounded-2xl p-8 shadow-2xl shadow-cyan-500/10">
+                    <div className="relative bg-gray-900/40 backdrop-blur-xl border border-cyan-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl shadow-cyan-500/10">
                         {/* Neon glow effect */}
-                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-500/5 to-purple-500/5 rounded-2xl blur-xl" />
+                        <div className="absolute inset-0 bg-linear-to-r from-cyan-500/5 to-purple-500/5 rounded-2xl blur-xl" />
 
                         <form onSubmit={handleSubmit} className="relative space-y-6">
                             <div>
-                                <label className="block text-sm font-bold mb-3 text-cyan-400 uppercase tracking-wider">
+                                <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-cyan-400 uppercase tracking-wider">
                                     {t('scanner.title')}
                                 </label>
                                 <div className="relative">
@@ -320,7 +311,7 @@ const Scanner = () => {
                                         placeholder={t('scanner.placeholder')}
                                         required
                                         className="w-full bg-gray-950/50 backdrop-blur-sm border-2 border-cyan-500/30 
-                      rounded-xl pl-12 pr-4 py-4 text-white placeholder-gray-500
+                      rounded-lg sm:rounded-xl pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base text-white placeholder-gray-500
                       focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
                       transition-all duration-300
                       shadow-lg shadow-cyan-500/10"
@@ -333,8 +324,8 @@ const Scanner = () => {
                             </div>
 
                             {/* Cloudflare Turnstile Widget */}
-                            <div className="flex flex-col items-center gap-3">
-                                <div className={`p-4 rounded-xl border-2 transition-all duration-300 ${turnstileError
+                            <div className="flex flex-col items-center gap-2 sm:gap-3">
+                                <div className={`p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 w-full max-w-[320px] overflow-x-auto ${turnstileError
                                     ? 'border-red-500/50 bg-red-950/20'
                                     : turnstileToken
                                         ? 'border-green-500/50 bg-green-950/20'
@@ -385,10 +376,10 @@ const Scanner = () => {
                             <button
                                 type="submit"
                                 disabled={loading || !turnstileToken}
-                                className={`w-full font-bold py-4 px-6 rounded-xl uppercase tracking-wider transition-all duration-300 transform shadow-lg
+                                className={`w-full font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl uppercase tracking-wider transition-all duration-300 transform shadow-lg text-sm sm:text-base min-h-[48px]
                   ${loading || !turnstileToken
-                                        ? 'bg-gradient-to-r from-gray-700 to-gray-600 opacity-50 cursor-not-allowed'
-                                        : 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 hover:scale-105 active:scale-95 shadow-cyan-500/30 hover:shadow-cyan-500/50'
+                                        ? 'bg-linear-to-r from-gray-700 to-gray-600 opacity-50 cursor-not-allowed'
+                                        : 'bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 sm:hover:scale-105 active:scale-95 shadow-cyan-500/30 hover:shadow-cyan-500/50'
                                     }`}
                             >
                                 {loading ? (
@@ -417,7 +408,7 @@ const Scanner = () => {
                             className="mb-8 bg-red-950/50 backdrop-blur-md border border-red-500/50 rounded-xl p-6"
                         >
                             <div className="flex items-center gap-4">
-                                <AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0" />
+                                <AlertTriangle className="w-6 h-6 text-red-400 shrink-0" />
                                 <div>
                                     <h3 className="text-lg font-bold text-red-400">Error</h3>
                                     <p className="text-red-200">{error}</p>

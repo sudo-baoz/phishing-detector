@@ -11,11 +11,39 @@ export default {
       },
       animation: {
         fadeIn: 'fadeIn 0.5s ease-in',
+        'matrix-fall': 'matrix-fall 15s linear infinite',
+        slideUp: 'slideUp 0.3s ease-out',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        'matrix-fall': {
+          '0%': {
+            transform: 'translateY(-100vh)',
+            opacity: '0',
+          },
+          '10%': {
+            opacity: '1',
+          },
+          '90%': {
+            opacity: '1',
+          },
+          '100%': {
+            transform: 'translateY(100vh)',
+            opacity: '0',
+          },
+        },
+        slideUp: {
+          '0%': {
+            opacity: '0',
+            transform: 'translateY(20px) scale(0.95)',
+          },
+          '100%': {
+            opacity: '1',
+            transform: 'translateY(0) scale(1)',
+          },
         },
       },
     },

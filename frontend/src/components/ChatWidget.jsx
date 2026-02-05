@@ -140,8 +140,8 @@ const ChatWidget = ({ scanResult = null }) => {
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-6 right-6 z-50 w-16 h-16 rounded-full 
-          bg-gradient-to-br from-cyan-500 to-purple-600 
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full 
+          bg-linear-to-br from-cyan-500 to-purple-600 
           shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70
           transform hover:scale-110 transition-all duration-300
           flex items-center justify-center group
@@ -150,58 +150,62 @@ const ChatWidget = ({ scanResult = null }) => {
         aria-label={isOpen ? 'Close chat' : 'Open chat'}
       >
         {isOpen ? (
-          <X className="w-7 h-7 text-white" />
+          <X className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white" />
         ) : (
-          <MessageCircle className="w-7 h-7 text-white group-hover:animate-bounce" />
+          <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 md:w-7 md:h-7 text-white group-hover:animate-bounce" />
         )}
 
         {/* Online indicator dot */}
         {!isOpen && (
-          <span className="absolute top-1 right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse" />
+          <span className="absolute top-0.5 right-0.5 sm:top-1 sm:right-1 w-3 h-3 sm:w-4 sm:h-4 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse" />
         )}
       </button>
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 h-[600px] 
-          bg-gray-900 border-2 border-cyan-500/50 rounded-lg
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-4 md:bottom-24 md:right-6 z-50 
+          w-full h-full sm:w-80 md:w-96 sm:h-[500px] md:h-[600px] sm:rounded-lg
+          bg-gray-900 border-0 sm:border-2 border-cyan-500/50
           shadow-2xl shadow-cyan-500/20 overflow-hidden
           flex flex-col
-          animate-slideUp"
+          animate-slideUp
+          safe-area-inset"
           style={{
-            animation: 'slideUp 0.3s ease-out'
+            animation: 'slideUp 0.3s ease-out',
+            paddingTop: 'env(safe-area-inset-top)',
+            paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
           {/* Header */}
-          <div className="bg-gradient-to-r from-cyan-600 to-purple-600 p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
+          <div className="bg-linear-to-r from-cyan-600 to-purple-600 p-3 sm:p-4 flex items-center justify-between shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative">
-                <Bot className="w-8 h-8 text-white" />
-                <span className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse" />
+                <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
+                <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 sm:w-3 sm:h-3 bg-green-500 rounded-full border-2 border-gray-900 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-lg">{t('chat.title')}</h3>
+                <h3 className="text-white font-bold text-base sm:text-lg">{t('chat.title')}</h3>
                 <p className="text-cyan-100 text-xs">● {t('chat.status_online')}</p>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:text-cyan-200 transition-colors"
+              className="text-white hover:text-cyan-200 transition-colors p-2 -mr-2"
               aria-label="Close chat"
             >
-              <X className="w-5 h-5" />
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
           </div>
 
           {/* Scan Context Indicator */}
           {scanResult && (
-            <div className="bg-gray-800/50 border-b border-cyan-500/30 px-4 py-2">
+            <div className="bg-gray-800/50 border-b border-cyan-500/30 px-3 sm:px-4 py-2 shrink-0">
               <div className="flex items-center gap-2 text-xs">
                 <div className={`w-2 h-2 rounded-full ${scanResult.verdict?.is_phishing ? 'bg-red-500' : 'bg-green-500'
-                  } animate-pulse`} />
-                <span className="text-gray-400">
+                  } animate-pulse shrink-0`} />
+                <span className="text-gray-400 truncate">
                   {t('chat.context_analyzing')} <span className="text-cyan-400 font-mono">
-                    {scanResult.verdict?.url?.substring(0, 40)}...
+                    {scanResult.verdict?.url?.substring(0, 30)}...
                   </span>
                 </span>
               </div>
@@ -209,41 +213,41 @@ const ChatWidget = ({ scanResult = null }) => {
           )}
 
           {/* Messages Area */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-900/50 
+          <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 sm:space-y-4 bg-gray-900/50 
             scrollbar-thin scrollbar-thumb-cyan-500 scrollbar-track-gray-800">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.type === 'user' ? 'justify-end' : 'justify-start'} animate-fadeIn`}
               >
-                <div className={`flex gap-2 max-w-[80%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
+                <div className={`flex gap-2 max-w-[85%] sm:max-w-[80%] ${message.type === 'user' ? 'flex-row-reverse' : 'flex-row'}`}>
                   {/* Avatar */}
-                  <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center
+                  <div className={`shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center
                     ${message.type === 'user'
-                      ? 'bg-gradient-to-br from-purple-500 to-pink-500'
+                      ? 'bg-linear-to-br from-purple-500 to-pink-500'
                       : message.isError
-                        ? 'bg-gradient-to-br from-red-500 to-orange-500'
-                        : 'bg-gradient-to-br from-cyan-500 to-blue-500'
+                        ? 'bg-linear-to-br from-red-500 to-orange-500'
+                        : 'bg-linear-to-br from-cyan-500 to-blue-500'
                     }`}
                   >
                     {message.type === 'user' ? (
-                      <UserIcon className="w-5 h-5 text-white" />
+                      <UserIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     ) : (
-                      <Bot className="w-5 h-5 text-white" />
+                      <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                     )}
                   </div>
 
                   {/* Message Bubble */}
-                  <div className="flex flex-col gap-1">
-                    <div className={`rounded-lg p-3 ${message.type === 'user'
-                      ? 'bg-gradient-to-br from-purple-600 to-pink-600 text-white'
+                  <div className="flex flex-col gap-0.5 sm:gap-1">
+                    <div className={`rounded-lg p-2.5 sm:p-3 ${message.type === 'user'
+                      ? 'bg-linear-to-br from-purple-600 to-pink-600 text-white'
                       : message.isError
-                        ? 'bg-gradient-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
+                        ? 'bg-linear-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
                         : 'bg-gray-800 text-gray-200 border border-cyan-500/30'
                       }`}>
-                      <p className="text-sm whitespace-pre-wrap break-words">{message.text}</p>
+                      <p className="text-xs sm:text-sm whitespace-pre-wrap wrap-break-word">{message.text}</p>
                     </div>
-                    <span className={`text-xs text-gray-500 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
+                    <span className={`text-[10px] sm:text-xs text-gray-500 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
                       {formatTime(message.timestamp)}
                     </span>
                   </div>
@@ -254,10 +258,10 @@ const ChatWidget = ({ scanResult = null }) => {
             {/* Typing Indicator */}
             {isLoading && (
               <div className="flex justify-start animate-fadeIn">
-                <div className="flex gap-2 max-w-[80%]">
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-gradient-to-br from-cyan-500 to-blue-500 
+                <div className="flex gap-2 max-w-[85%] sm:max-w-[80%]">
+                  <div className="shrink-0 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-linear-to-br from-cyan-500 to-blue-500 
                     flex items-center justify-center">
-                    <Bot className="w-5 h-5 text-white" />
+                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                   </div>
                   <div className="bg-gray-800 border border-cyan-500/30 rounded-lg p-3">
                     <div className="flex gap-1">
@@ -277,7 +281,9 @@ const ChatWidget = ({ scanResult = null }) => {
           </div>
 
           {/* Input Area */}
-          <div className="bg-gray-800 border-t border-cyan-500/30 p-4">
+          <div className="bg-gray-800 border-t border-cyan-500/30 p-3 sm:p-4 shrink-0"
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          >
             <div className="flex gap-2">
               <input
                 ref={inputRef}
@@ -287,29 +293,31 @@ const ChatWidget = ({ scanResult = null }) => {
                 onKeyPress={handleKeyPress}
                 placeholder={t('chat.placeholder')}
                 disabled={isLoading}
-                className="flex-1 bg-gray-900 text-white px-4 py-3 rounded-lg
+                className="flex-1 bg-gray-900 text-white text-sm sm:text-base px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg
                   border border-cyan-500/30 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
                   outline-none transition-all placeholder-gray-500
-                  disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled:opacity-50 disabled:cursor-not-allowed
+                  min-h-[44px]"
               />
               <button
                 onClick={handleSendMessage}
                 disabled={!inputMessage.trim() || isLoading}
-                className="bg-gradient-to-r from-cyan-600 to-purple-600 
+                className="bg-linear-to-r from-cyan-600 to-purple-600 
                   hover:from-cyan-500 hover:to-purple-500
                   disabled:from-gray-700 disabled:to-gray-700 disabled:cursor-not-allowed
-                  text-white px-4 py-3 rounded-lg transition-all
+                  text-white px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg transition-all
                   flex items-center justify-center
-                  transform hover:scale-105 active:scale-95
-                  disabled:transform-none disabled:opacity-50"
+                  transform sm:hover:scale-105 active:scale-95
+                  disabled:transform-none disabled:opacity-50
+                  min-w-[44px] min-h-[44px]"
                 aria-label="Send message"
               >
-                <Send className="w-5 h-5" />
+                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
 
             {/* Helper Text */}
-            <p className="text-xs text-gray-500 mt-2 text-center">
+            <p className="text-[10px] sm:text-xs text-gray-500 mt-1.5 sm:mt-2 text-center">
               {scanResult
                 ? t('chat.context_with_scan')
                 : t('chat.context_no_scan')
