@@ -1,6 +1,6 @@
 # 🛡️ Phishing Detector - AI-Powered Forensic & Threat Intel System
 
-[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-GPL--3.0-blue.svg)](LICENSE)
 [![Python](https://img.shields.io/badge/python-3.10%2B-3776AB.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
 [![React](https://img.shields.io/badge/react-19.0.0-61DAFB.svg?style=flat&logo=react&logoColor=black)](https://reactjs.org/)
 [![FastAPI](https://img.shields.io/badge/fastapi-0.115.6-009688.svg?style=flat&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
@@ -63,9 +63,8 @@ A comprehensive **Phishing Detection System** designed for Blue Teams and securi
 
 ### 1. Clone Repository
 ```bash
-git clone [https://github.com/sudo-baoz/phishing-detector.git](https://github.com/sudo-baoz/phishing-detector.git)
+git clone https://github.com/sudo-baoz/phishing-detector.git
 cd phishing-detector
-
 ```
 
 ### 2. Backend Setup
@@ -77,25 +76,35 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 
 # Install dependencies
 pip install -r requirements.txt
-
 ```
 
 **Configuration (.env):**
 Create a `.env` file in the root directory:
 
 ```env
-GEMINI_API_KEY=your_gemini_api_key
-DATABASE_URL=sqlite:///./phishing_detector.db
-SECRET_KEY=your_super_secret_key
-CLOUDFLARE_SECRET_KEY=0x4AAAAAA...
+# Database
+DB_TYPE=sqlite
+DB_NAME=phishing_detector
 
+# Server
+PORT=8000
+DEBUG=false
+
+# CORS (⚠️ Replace with your actual domains)
+CORS_ORIGINS=https://yourfrontend.com,http://localhost:5173
+
+# Security
+CLOUDFLARE_SECRET_KEY=your_secret_key_here
+TURNSTILE_ENABLED=true
+
+# AI
+GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 **Run Server:**
 
 ```bash
 uvicorn app.main:app --reload --port 8000
-
 ```
 
 ### 3. Frontend Setup
@@ -104,15 +113,89 @@ uvicorn app.main:app --reload --port 8000
 cd frontend
 npm install
 
-# Create .env.local
-echo "VITE_CLOUDFLARE_SITE_KEY=your_site_key" > .env.local
+# Create .env
+cp .env.example .env
+# Edit .env and add:
+# VITE_API_URL=http://localhost:8000
+# VITE_CLOUDFLARE_SITE_KEY=your_site_key
 
 # Start Dev Server
 npm run dev
-
 ```
 
 Access the application at: `http://localhost:5173`
+
+---
+
+## 🏗️ Build Instructions
+
+### Production Build - Backend
+
+```bash
+# Activate virtual environment
+source .venv/bin/activate
+
+# Run with production settings
+uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
+```
+
+**Systemd Service (Linux):**
+Create `/etc/systemd/system/phishing-api.service`:
+
+```ini
+[Unit]
+Description=Phishing Detector API
+After=network.target
+
+[Service]
+User=your-user
+WorkingDirectory=/path/to/phishing-detector
+Environment="PATH=/path/to/phishing-detector/.venv/bin"
+ExecStart=/path/to/phishing-detector/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable and start:
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable phishing-api
+sudo systemctl start phishing-api
+```
+
+### Production Build - Frontend
+
+```bash
+cd frontend
+
+# Build for production
+npm run build
+
+# Preview build locally
+npm run preview
+
+# Deploy to Vercel/Netlify
+vercel --prod
+# or
+netlify deploy --prod
+```
+
+The build output will be in `frontend/dist/`.
+
+### Docker Deployment
+
+```bash
+# Build and run with Docker Compose
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop
+docker-compose down
+```
 
 ---
 
@@ -123,6 +206,23 @@ Access the application at: `http://localhost:5173`
 3. **OSINT Gathering:** Fetches Whois data, DNS records (A, MX, NS, TXT), and SSL certificate details.
 4. **AI Analysis:** The aggregated data is sent to **Gemini AI** with a specific prompt to analyze for social engineering traits.
 5. **Verdict:** A risk score (0-100) is calculated, and a detailed report is generated.
+
+---
+
+## 📜 License
+
+This project is licensed under the **GNU General Public License v3.0** - see the [LICENSE](LICENSE) file for details.
+
+### What this means:
+- ✅ You can use, modify, and distribute this software
+- ✅ You must disclose source code when distributing
+- ✅ You must use the same GPL-3.0 license for derivative works
+- ✅ You must state changes made to the code
+
+### Important Notes:
+- This project uses **GPL-3.0 compatible** libraries only
+- All source files include copyright headers as required by GPL-3.0
+- Commercial use is allowed under GPL-3.0 terms
 
 ---
 
@@ -144,6 +244,7 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 5. Open a Pull Request
 
 ---
+
 ## ☕ Support the Project
 
 If you find this tool useful for your research or security work, please consider buying me a coffee! Your support helps cover server costs (API keys, hosting) and keeps the updates coming.
@@ -164,7 +265,9 @@ If you find this tool useful for your research or security work, please consider
 | **ETH** | ERC20 | `0x2cc9c23be635a6959e35474dabd15c3aa7171ea4` |
 
 </div>
+
 ---
 
-**Built with 💻 & ☕ by [sudo-baoz](https://www.google.com/search?q=https://github.com/sudo-baoz)**
+**Built with 💻 & ☕ by [sudo-baoz](https://github.com/sudo-baoz)**
 
+**Copyright (c) 2026 BaoZ. Licensed under GPL-3.0.**
