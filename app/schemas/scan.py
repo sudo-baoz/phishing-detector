@@ -19,14 +19,68 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """Scan schemas for request/response validation"""
 
 from datetime import datetime
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, Dict, Any
+from urllib.parse import urlparse
 
 
 class ScanRequest(BaseModel):
     """Schema for URL scan request"""
-    url: HttpUrl = Field(..., description="URL to scan for phishing")
+    url: str = Field(..., description="URL to scan for phishing")
     include_osint: bool = Field(default=True, description="Include OSINT data in response")
+    
+    @field_validator('url')
+    @classmethod
+    def sanitize_url(cls, v: str) -> str:
+        """
+        Sanitize and validate URL input.
+        Auto-prepends https:// if no protocol is specified.
+        
+        Args:
+            v: Raw URL string from request
+            
+        Returns:
+            Sanitized URL with protocol
+            
+        Raises:
+            ValueError: If URL is invalid
+        """
+        if not v or not v.strip():
+            raise ValueError("URL cannot be empty")
+        
+        url = v.strip()
+        
+        # Fix common protocol typos
+        if url.lower().startswith('htps://'):
+            url = 'https://' + url[7:]
+        elif url.lower().startswith('htp://'):
+            url = 'http://' + url[6:]
+        elif url.lower().startswith('ttp://'):
+            url = 'http://' + url[6:]
+        
+        # Add https:// if no protocol
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+        
+        # Validate URL format
+        try:
+            parsed = urlparse(url)
+            if not parsed.scheme or not parsed.netloc:
+                raise ValueError("Invalid URL format")
+            
+            # Check if hostname is valid
+            hostname = parsed.netloc.lower()
+            if not hostname or hostname == 'localhost':
+                # localhost is valid
+                pass
+            elif '.' not in hostname and not hostname.replace('.', '').replace(':', '').isdigit():
+                # Must have a dot (domain) or be an IP address
+                raise ValueError("Invalid hostname: must be a domain or IP address")
+                
+            return url
+        except Exception as e:
+            raise ValueError(f"Invalid URL format: {str(e)}")
+
 
 
 class OSINTData(BaseModel):

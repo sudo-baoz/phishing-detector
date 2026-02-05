@@ -118,6 +118,11 @@ const Scanner = () => {
     const sanitizeUrl = (inputUrl) => {
         let sanitized = inputUrl.trim();
 
+        // Return null if empty
+        if (!sanitized) {
+            return null;
+        }
+
         // Fix common typos in protocol
         if (sanitized.match(/^htps:\/\//i)) {
             sanitized = sanitized.replace(/^htps:\/\//i, 'https://');
@@ -132,7 +137,26 @@ const Scanner = () => {
             sanitized = 'https://' + sanitized;
         }
 
-        return sanitized;
+        // Validate URL format
+        try {
+            const urlObj = new URL(sanitized);
+
+            // Check if hostname is valid (contains at least one dot or is localhost)
+            const hostname = urlObj.hostname.toLowerCase();
+            const isValidHostname =
+                hostname === 'localhost' ||
+                hostname.includes('.') ||
+                /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname); // IP address
+
+            if (!isValidHostname) {
+                return null; // Invalid hostname
+            }
+
+            return sanitized;
+        } catch (error) {
+            // Invalid URL format
+            return null;
+        }
     };
 
     const handleSubmit = async (e) => {
@@ -160,8 +184,15 @@ const Scanner = () => {
             setResult(null);
             setTurnstileError(false);
 
-            // Sanitize URL before sending
+            // Sanitize and validate URL before sending
             const sanitizedUrl = sanitizeUrl(url);
+
+            // Check if URL is valid after sanitization
+            if (!sanitizedUrl) {
+                setLoading(false);
+                setError(t('scanner.invalid_url') || 'Invalid URL format. Please enter a valid domain (e.g., google.com or https://example.com)');
+                return;
+            }
 
             // Call API with Turnstile token
             // The API has 30s timeout configured in api.js
@@ -323,7 +354,7 @@ const Scanner = () => {
                                 <div className="relative">
                                     <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500 w-5 h-5" />
                                     <input
-                                        type="url"
+                                        type="text"
                                         value={url}
                                         onChange={(e) => setUrl(e.target.value)}
                                         placeholder={t('scanner.placeholder')}
@@ -343,11 +374,11 @@ const Scanner = () => {
 
                             {/* Cloudflare Turnstile Widget */}
                             <div className="flex flex-col items-center gap-2 sm:gap-3">
-                                <div className={`p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 w-full max-w-[320px] overflow-x-auto ${turnstileError
+                                <div className={`flex items-center justify-center p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 w-full max-w-[320px] min-h-[65px] ${turnstileError
                                     ? 'border-red-500/50 bg-red-950/20'
                                     : turnstileToken
                                         ? 'border-green-500/50 bg-green-950/20'
-                                        : 'border-cyan-500/30 bg-gray-950/30'
+                                        : 'border-cyan-500/30 bg-gray-950/30 backdrop-blur-sm'
                                     }`}>
                                     <Turnstile
                                         ref={turnstileRef}

@@ -38,7 +38,7 @@ const LanguageSwitcher = () => {
     };
 
     return (
-        <div className="fixed top-3 right-3 sm:top-6 sm:right-6 z-40">
+        <div className="fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex">
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 

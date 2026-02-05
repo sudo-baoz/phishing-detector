@@ -18,6 +18,8 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { MessageCircle, X, Send, Bot, User as UserIcon } from 'lucide-react';
 
 const ChatWidget = ({ scanResult = null }) => {
@@ -158,7 +160,7 @@ const ChatWidget = ({ scanResult = null }) => {
       {/* Floating Chat Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full 
+        className={`fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-60 w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 rounded-full 
           bg-linear-to-br from-cyan-500 to-purple-600 
           shadow-lg shadow-cyan-500/50 hover:shadow-cyan-500/70
           transform hover:scale-110 transition-all duration-300
@@ -181,21 +183,22 @@ const ChatWidget = ({ scanResult = null }) => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-4 md:bottom-24 md:right-6 z-50 
+        <div className="fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-4 md:bottom-24 md:right-6 z-60 
           w-full h-full sm:w-80 md:w-96 sm:h-[500px] md:h-[600px] sm:rounded-lg
           bg-gray-900 border-0 sm:border-2 border-cyan-500/50
           shadow-2xl shadow-cyan-500/20 overflow-hidden
           flex flex-col
-          animate-slideUp
-          safe-area-inset"
+          animate-slideUp"
           style={{
             animation: 'slideUp 0.3s ease-out',
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
           }}
         >
-          {/* Header */}
-          <div className="bg-linear-to-r from-cyan-600 to-purple-600 p-3 sm:p-4 flex items-center justify-between shrink-0">
+          {/* Header with Safe Area Support */}
+          <div className="bg-linear-to-r from-cyan-600 to-purple-600 p-3 sm:p-4 flex items-center justify-between shrink-0"
+            style={{
+              paddingTop: 'max(0.75rem, env(safe-area-inset-top))',
+            }}
+          >
             <div className="flex items-center gap-2 sm:gap-3">
               <div className="relative">
                 <Bot className="w-6 h-6 sm:w-8 sm:h-8 text-white" />
@@ -208,7 +211,7 @@ const ChatWidget = ({ scanResult = null }) => {
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:text-cyan-200 transition-colors p-2 -mr-2"
+              className="text-white hover:text-cyan-200 transition-colors p-2 hover:bg-white/10 rounded-lg min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Close chat"
             >
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
@@ -263,7 +266,30 @@ const ChatWidget = ({ scanResult = null }) => {
                         ? 'bg-linear-to-br from-red-900/50 to-orange-900/50 text-red-200 border border-red-500/30'
                         : 'bg-gray-800 text-gray-200 border border-cyan-500/30'
                       }`}>
-                      <p className="text-xs sm:text-sm whitespace-pre-wrap wrap-break-word">{message.text}</p>
+                      {message.type === 'user' ? (
+                        <p className="text-xs sm:text-sm whitespace-pre-wrap wrap-break-word">{message.text}</p>
+                      ) : (
+                        <div className="prose prose-invert prose-sm max-w-none
+                          prose-headings:text-cyan-400 prose-headings:font-bold prose-headings:mb-2
+                          prose-p:text-gray-200 prose-p:my-1 prose-p:text-xs prose-p:sm:text-sm
+                          prose-strong:text-cyan-300 prose-strong:font-bold
+                          prose-em:text-gray-300 prose-em:italic
+                          prose-a:text-blue-400 prose-a:underline hover:prose-a:text-blue-300
+                          prose-code:text-cyan-400 prose-code:bg-gray-900 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-xs
+                          prose-pre:bg-gray-950 prose-pre:border prose-pre:border-cyan-500/30 prose-pre:p-3 prose-pre:rounded-lg prose-pre:my-2
+                          prose-ul:my-1 prose-ul:ml-4 prose-ul:text-xs prose-ul:sm:text-sm
+                          prose-ol:my-1 prose-ol:ml-4 prose-ol:text-xs prose-ol:sm:text-sm
+                          prose-li:text-gray-200 prose-li:my-0.5
+                          prose-blockquote:border-l-cyan-500 prose-blockquote:border-l-4 prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-300
+                          prose-table:text-xs prose-table:sm:text-sm
+                          prose-th:bg-gray-800 prose-th:text-cyan-400 prose-th:font-bold prose-th:p-2
+                          prose-td:p-2 prose-td:border prose-td:border-gray-700
+                        ">
+                          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                            {message.text}
+                          </ReactMarkdown>
+                        </div>
+                      )}
                     </div>
                     <span className={`text-[10px] sm:text-xs text-gray-500 ${message.type === 'user' ? 'text-right' : 'text-left'}`}>
                       {formatTime(message.timestamp)}
