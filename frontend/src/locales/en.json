@@ -25,7 +25,12 @@
         "confidence": "Confidence",
         "threat_type": "Threat Type",
         "scanned_at": "Scanned At",
-        "url": "Target URL"
+        "url": "Target URL",
+        "hours": "hours",
+        "hops": "hops",
+        "issuer": "Issuer",
+        "entropy_analysis": "Shannon Entropy Analysis",
+        "obfuscated": "OBFUSCATED"
     },
     "analysis": {
         "title": "DEEP ANALYSIS",
@@ -33,13 +38,24 @@
         "forensics": "Digital Forensics",
         "content": "Content Analysis",
         "advanced": "Advanced Indicators",
-        "intelligence": "Threat Intelligence"
+        "intelligence": "Threat Intelligence",
+        "ai_conclusion": "AI Analysis Conclusion",
+        "network_data": "Network Data",
+        "content_forensics": "Content Forensics",
+        "risk_factors": "Risk Factors Identified",
+        "threat_detected": "Known Threat Pattern Detected",
+        "target": "Targeting",
+        "similarity": "Similarity Match",
+        "technique": "Technique",
+        "ssl_age": "SSL Certificate Age",
+        "code_entropy": "Code Entropy",
+        "redirect_chain": "Redirect Chain"
     },
     "network": {
         "domain": "Domain",
         "ip_address": "IP Address",
         "location": "Server Location",
-        "isp": "Internet Provider",
+        "registrar": "Registrar",
         "domain_age": "Domain Age",
         "ssl_valid": "SSL Certificate",
         "has_https": "HTTPS Enabled",
@@ -79,7 +95,9 @@
         "view_details": "View Details",
         "scan_another": "Scan Another URL",
         "download_report": "Download Report",
-        "share": "Share Results"
+        "share": "Share Results",
+        "view_raw": "View Raw Data",
+        "hide_raw": "Hide Raw Data"
     },
     "history": {
         "title": "SCAN HISTORY",

@@ -101,7 +101,7 @@ const CircularGauge = ({ value, max = 100, isPhishing }) => {
 };
 
 const Scanner = () => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -194,9 +194,10 @@ const Scanner = () => {
                 return;
             }
 
-            // Call API with Turnstile token
+            // Call API with Turnstile token and Language
             // The API has 30s timeout configured in api.js
-            const response = await scanUrl(sanitizedUrl, true, turnstileToken);
+            const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
+            const response = await scanUrl(sanitizedUrl, true, turnstileToken, currentLang);
 
             // Handle successful response
             if (response.success) {

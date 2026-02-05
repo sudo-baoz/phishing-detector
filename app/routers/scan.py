@@ -188,7 +188,11 @@ async def scan_url(
             osint_data=osint_dict,
             deep_analysis=scan_request.deep_analysis,
             deep_scan_results=deep_scan_results,
-            rag_results=similar_threats
+            osint_data=osint_dict,
+            deep_analysis=scan_request.deep_analysis,
+            deep_scan_results=deep_scan_results,
+            rag_results=similar_threats,
+            language=scan_request.language
         )
         
         # Convert to Pydantic models

@@ -3,7 +3,7 @@
  * Copyright (c) 2026 BaoZ
  */
 
-import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
   Terminal, BarChart3, AlertTriangle, CheckCircle, XCircle,
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 
 const AnalysisReport = ({ data, loading }) => {
+  const { t } = useTranslation();
   const [circumference, setCircumference] = useState(0);
   const [showJson, setShowJson] = useState(false);
 
@@ -69,7 +70,7 @@ const AnalysisReport = ({ data, loading }) => {
           className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 border border-slate-700 rounded text-slate-400 text-xs hover:text-cyan-400 hover:border-cyan-400 transition-colors"
         >
           <Code className="w-4 h-4" />
-          {showJson ? 'Hide Raw Data' : 'View Raw Data'}
+          {showJson ? t('actions.hide_raw') : t('actions.view_raw')}
         </button>
       </div>
 
@@ -106,7 +107,7 @@ const AnalysisReport = ({ data, loading }) => {
             )}
             <div>
               <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight drop-shadow-md ${isPhishing ? 'text-red-500' : 'text-green-500'}`}>
-                {isPhishing ? 'THREAT DETECTED' : 'SAFE SITE'}
+                {isPhishing ? t('verdict.phishing') : t('verdict.safe')}
               </h2>
               <div className="flex flex-wrap items-center gap-3 mt-2">
                 <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border ${getRiskColor()} bg-opacity-20`}>
@@ -142,7 +143,7 @@ const AnalysisReport = ({ data, loading }) => {
             <div className="flex items-start gap-3">
               <Zap className="w-5 h-5 text-orange-400 shrink-0 mt-1" />
               <p className="text-slate-300 text-sm md:text-base leading-relaxed">
-                <span className="text-orange-400 font-bold mb-1 block uppercase text-xs">AI Analysis Conclusion</span>
+                <span className="text-orange-400 font-bold mb-1 block uppercase text-xs">{t('analysis.ai_conclusion')}</span>
                 {verdict.ai_conclusion}
               </p>
             </div>
@@ -153,7 +154,7 @@ const AnalysisReport = ({ data, loading }) => {
         {riskFactors.length > 0 && (
           <div className="bg-slate-950/50 rounded-lg p-4 border border-red-500/20">
             <h3 className="text-red-400 text-xs font-bold uppercase tracking-widest mb-3 flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4" /> Risk Factors Identified
+              <AlertTriangle className="w-4 h-4" /> {t('analysis.risk_factors')}
             </h3>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {riskFactors.map((factor, idx) => (
@@ -175,17 +176,17 @@ const AnalysisReport = ({ data, loading }) => {
           </div>
           <div className="p-4 sm:p-6 pb-2 border-b border-red-500/30 flex items-center gap-3">
             <ShieldAlert className="w-6 h-6 text-red-500" />
-            <h3 className="text-lg font-bold text-red-500 uppercase tracking-wider">Known Threat Pattern Detected</h3>
+            <h3 className="text-lg font-bold text-red-500 uppercase tracking-wider">{t('analysis.threat_detected')}</h3>
           </div>
           <div className="p-4 sm:p-6 grid gap-4">
             {rag_matches.map((match, i) => (
               <div key={i} className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-red-500/5 p-4 rounded border border-red-500/20">
                 <div>
-                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">Targeting</span>
+                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">{t('analysis.target')}</span>
                   <span className="text-xl text-white font-bold">{match.target || 'Unknown'} users</span>
                 </div>
                 <div>
-                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">Similarity Match</span>
+                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">{t('analysis.similarity')}</span>
                   <div className="flex items-center gap-2">
                     <div className="w-32 h-2 bg-slate-800 rounded-full overflow-hidden">
                       <div className="h-full bg-red-500" style={{ width: `${(match.similarity_score || 0) * 100}%` }}></div>
@@ -194,7 +195,7 @@ const AnalysisReport = ({ data, loading }) => {
                   </div>
                 </div>
                 <div className="md:text-right">
-                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">Technique</span>
+                  <span className="text-xs text-red-400 uppercase font-bold block mb-1">{t('analysis.technique')}</span>
                   <span className="text-slate-300 text-sm font-mono">{match.similar_url ? 'URL Pattern Match' : 'Content Signature'}</span>
                 </div>
               </div>
@@ -207,24 +208,24 @@ const AnalysisReport = ({ data, loading }) => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* SSL Age Card */}
         <div className={`bg-slate-900 p-4 rounded-lg border ${(technical_details?.ssl_age_hours || 0) < 24 ? 'border-red-500 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse' :
-            (technical_details?.ssl_age_hours || 0) > 8760 ? 'border-green-500/50' : 'border-slate-700'
+          (technical_details?.ssl_age_hours || 0) > 8760 ? 'border-green-500/50' : 'border-slate-700'
           }`}>
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-xs uppercase font-bold">SSL Certificate Age</span>
+            <span className="text-slate-400 text-xs uppercase font-bold">{t('analysis.ssl_age')}</span>
             <Lock className={`w-4 h-4 ${(technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-500' :
-                (technical_details?.ssl_age_hours || 0) > 8760 ? 'text-green-500' : 'text-slate-400'
+              (technical_details?.ssl_age_hours || 0) > 8760 ? 'text-green-500' : 'text-slate-400'
               }`} />
           </div>
           <div className="flex items-baseline gap-1">
             <span className={`text-2xl font-bold ${(technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-500' :
-                (technical_details?.ssl_age_hours || 0) > 8760 ? 'text-green-500' : 'text-white'
+              (technical_details?.ssl_age_hours || 0) > 8760 ? 'text-green-500' : 'text-white'
               }`}>
               {technical_details?.ssl_age_hours?.toFixed(1) || 'N/A'}
             </span>
-            <span className="text-xs text-slate-500">hours</span>
+            <span className="text-xs text-slate-500">{t('details.hours')}</span>
           </div>
           <div className="mt-2 text-xs text-slate-400 truncate">
-            Issuer: {technical_details?.ssl_issuer || 'Unknown'}
+            {t('details.issuer')}: {technical_details?.ssl_issuer || 'Unknown'}
           </div>
         </div>
 
@@ -234,7 +235,7 @@ const AnalysisReport = ({ data, loading }) => {
           title="High entropy (> 5.5) indicates that the code has been obfuscated to bypass antivirus."
         >
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-xs uppercase font-bold">Code Entropy</span>
+            <span className="text-slate-400 text-xs uppercase font-bold">{t('analysis.code_entropy')}</span>
             <FileCode className="w-4 h-4 text-purple-500" />
           </div>
           <div className="flex items-baseline gap-2">
@@ -243,26 +244,26 @@ const AnalysisReport = ({ data, loading }) => {
             </span>
             {(technical_details?.entropy_score || 0) > 5.5 && (
               <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[10px] uppercase font-bold border border-purple-500/30">
-                Obfuscated
+                {t('details.obfuscated')}
               </span>
             )}
           </div>
           <div className="mt-2 text-xs text-slate-500">
-            Shannon Entropy Analysis
+            {t('details.entropy_analysis')}
           </div>
         </div>
 
         {/* Redirects Card */}
         <div className="bg-slate-900 p-4 rounded-lg border border-yellow-500/30">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-slate-400 text-xs uppercase font-bold">Redirect Chain</span>
+            <span className="text-slate-400 text-xs uppercase font-bold">{t('analysis.redirect_chain')}</span>
             <Shuffle className="w-4 h-4 text-yellow-500" />
           </div>
           <div className="flex items-baseline gap-1">
             <span className="text-2xl font-bold text-white">
               {technical_details?.redirect_chain ? technical_details.redirect_chain.length : 0}
             </span>
-            <span className="text-xs text-slate-500">hops</span>
+            <span className="text-xs text-slate-500">{t('details.hops')}</span>
           </div>
           <div className="mt-2 text-xs text-slate-400 flex -space-x-1">
             {technical_details?.redirect_chain?.slice(0, 3).map((_, i) => (
@@ -282,19 +283,19 @@ const AnalysisReport = ({ data, loading }) => {
         <div className="bg-slate-900 rounded-lg border border-cyan-500/30 p-4 sm:p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-4 border-b border-cyan-500/20 pb-2">
             <Network className="w-5 h-5 text-cyan-400" />
-            <h3 className="text-cyan-400 font-bold uppercase tracking-wider text-sm">Network Data</h3>
+            <h3 className="text-cyan-400 font-bold uppercase tracking-wider text-sm">{t('analysis.network_data')}</h3>
           </div>
           <div className="space-y-3 font-mono text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-400">IP Address</span>
+              <span className="text-slate-400">{t('network.ip_address')}</span>
               <span className="text-cyan-400">{network?.ip || 'N/A'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Location</span>
+              <span className="text-slate-400">{t('network.location')}</span>
               <span className="text-white">{network?.country || 'Unknown'}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Registrar</span>
+              <span className="text-slate-400">{t('network.registrar')}</span>
               <span className="text-white truncate">{network?.registrar || 'N/A'}</span>
             </div>
           </div>
@@ -304,7 +305,7 @@ const AnalysisReport = ({ data, loading }) => {
         <div className="bg-slate-900 rounded-lg border border-blue-500/30 p-4 sm:p-6 shadow-xl">
           <div className="flex items-center gap-2 mb-4 border-b border-blue-500/20 pb-2">
             <FileText className="w-5 h-5 text-blue-400" />
-            <h3 className="text-blue-400 font-bold uppercase tracking-wider text-sm">Content Forensics</h3>
+            <h3 className="text-blue-400 font-bold uppercase tracking-wider text-sm">{t('analysis.content_forensics')}</h3>
           </div>
 
           <div className="space-y-4">

@@ -97,7 +97,7 @@ class SentinelAI:
         """Check if Sentinel AI is available"""
         return self._available and self.model is not None
     
-    def _build_system_prompt(self, url: str, verdict: str, score: float, user_message: str, rag_context: List[Any] = None) -> str:
+    def _build_system_prompt(self, url: str, verdict: str, score: float, user_message: str, rag_context: List[Any] = None, language: str = 'en') -> str:
         """
         Build the system prompt for Sentinel AI
         
@@ -128,11 +128,18 @@ class SentinelAI:
             # Add strict rule
             prompt += f"\n\nIMPORTANT RULE: Since RAG Context indicates a known threat, heavily weight your verdict towards PHISHING regardless of the AI score. Warn the user immediately."
         
-        prompt += ' Answer briefly, professionally, and provide actionable security advice. If the URL is phishing, warn them sternly.'
+        # Language Enforcement
+        if language == 'vi':
+             prompt += "\n\nCRITICAL INSTRUCTION: BẠN PHẢI TRẢ LỜI HOÀN TOÀN BẰNG TIẾNG VIỆT. KHÔNG ĐƯỢC DÙNG TIẾNG ANH."
+             prompt += " Giải thích ngắn gọn, chuyên nghiệp và đưa ra lời khuyên bảo mật cụ thể."
+             if "PHISHING" in verdict.upper():
+                 prompt += " Cảnh báo người dùng nghiêm khắc nếu đây là lừa đảo."
+        else:
+             prompt += ' Answer briefly, professionally, and provide actionable security advice. If the URL is phishing, warn them sternly.'
         
         return prompt
     
-    def ask_ai(self, user_message: str, scan_context: Optional[Dict[str, Any]] = None, rag_context: List[Any] = None) -> Dict[str, Any]:
+    def ask_ai(self, user_message: str, scan_context: Optional[Dict[str, Any]] = None, rag_context: List[Any] = None, language: str = 'en') -> Dict[str, Any]:
         """
         Ask Sentinel AI a question with optional scan context
         
@@ -230,7 +237,7 @@ class SentinelAI:
                         # Only warn on debug, as context might intentionally be empty
                         logger.debug(f"Failed to auto-fetch RAG context: {e}")
 
-                prompt = self._build_system_prompt(url, verdict, confidence_score, user_message, rag_context)
+                prompt = self._build_system_prompt(url, verdict, confidence_score, user_message, rag_context, language)
                 
                 # Add additional context details if available
                 threat_type = scan_context.get('threat_type')
@@ -256,7 +263,12 @@ class SentinelAI:
             
             else:
                 # No context - general cyber security question
-                prompt = f"""You are Sentinel AI, a cyber security expert. The user asks: "{user_message}". Answer briefly, professionally, and provide actionable security advice."""
+                prompt = f"""You are Sentinel AI, a cyber security expert. The user asks: "{user_message}"."""
+                
+                if language == 'vi':
+                    prompt += "\n\nCRITICAL INSTRUCTION: BẠN PHẢI TRẢ LỜI HOÀN TOÀN BẰNG TIẾNG VIỆT."
+                else:
+                    prompt += " Answer briefly, professionally, and provide actionable security advice."
                 
                 # Try RAG for general questions too (Knowledge Base Q&A)
                 if not rag_context:
@@ -315,7 +327,7 @@ class SentinelAI:
 sentinel_ai = SentinelAI()
 
 
-def ask_sentinel(user_message: str, scan_context: Optional[Dict[str, Any]] = None, rag_context: List[Any] = None) -> Dict[str, Any]:
+def ask_sentinel(user_message: str, scan_context: Optional[Dict[str, Any]] = None, rag_context: List[Any] = None, language: str = 'en') -> Dict[str, Any]:
     """
     Convenience function to ask Sentinel AI
     
@@ -327,7 +339,7 @@ def ask_sentinel(user_message: str, scan_context: Optional[Dict[str, Any]] = Non
     Returns:
         Dictionary with success, reply, and optional error
     """
-    return sentinel_ai.ask_ai(user_message, scan_context, rag_context)
+    return sentinel_ai.ask_ai(user_message, scan_context, rag_context, language)
 
 
 def is_sentinel_available() -> bool:

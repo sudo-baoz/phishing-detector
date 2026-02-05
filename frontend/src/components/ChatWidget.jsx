@@ -103,8 +103,8 @@ const ChatWidget = ({ scanResult = null }) => {
         },
         body: JSON.stringify({
           message: userMessage,
-          language: i18n.language, // Pass current language (en/vi)
-          scan_result_id: scanResult?.id || null,
+          language: i18n.language?.startsWith('vi') ? 'vi' : 'en',
+          scan_result_id: scanResult?.id ? String(scanResult.id) : null,
           context_data: contextData
         })
       });

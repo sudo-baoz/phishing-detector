@@ -31,6 +31,7 @@ class ScanRequest(BaseModel):
     url: HttpUrl
     include_osint: bool = Field(default=True, description="Include OSINT data enrichment")
     deep_analysis: bool = Field(default=False, description="Perform deep analysis (slower)")
+    language: Optional[str] = Field(default="en", description="Language code for response (en/vi)")
 
 
 # New Detailed Response Structure

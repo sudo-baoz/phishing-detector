@@ -42,7 +42,7 @@ const api = axios.create({
  * @param {boolean} deepAnalysis - Enable deep analysis
  * @param {string} turnstileToken - Cloudflare Turnstile verification token
  */
-export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null) => {
+export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null, language = 'en') => {
   try {
     // Prepare headers with Turnstile token
     const headers = {
@@ -57,7 +57,8 @@ export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null) =
     const response = await api.post('/scan', {
       url,
       include_osint: true,
-      deep_analysis: deepAnalysis
+      deep_analysis: deepAnalysis,
+      language: language
     }, { headers });
 
     return {

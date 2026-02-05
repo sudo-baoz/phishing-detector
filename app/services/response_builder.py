@@ -292,17 +292,22 @@ class ResponseBuilder:
     @staticmethod
     def generate_risk_factors(
         deep_scan_results: Optional[Dict[str, Any]],
-        rag_results: Optional[List[Dict[str, Any]]]
+        rag_results: Optional[List[Dict[str, Any]]],
+        language: str = "en"
     ) -> List[str]:
         """Generate formatted risk factors"""
         factors = []
+        is_vi = language == 'vi'
         
         # 1. RAG Analysis
         if rag_results and len(rag_results) > 0:
             top_match = rag_results[0]
             score = top_match.get('similarity_score', 0) * 100
             target = top_match.get('target', 'Unknown')
-            factors.append(f"⚠️ Similarity: {score:.0f}% match with known \"{target} Phishing Kit\"")
+            if is_vi:
+                factors.append(f"⚠️ Tương đồng: {score:.0f}% khớp với mẫu lừa đảo \"{target}\" đã biết")
+            else:
+                factors.append(f"⚠️ Similarity: {score:.0f}% match with known \"{target} Phishing Kit\"")
             
         # 2. Deep Scan Analysis
         if deep_scan_results:
@@ -312,18 +317,27 @@ class ResponseBuilder:
             ssl_info = details.get('ssl', {})
             if ssl_info.get('risk'):
                 age = ssl_info.get('age_hours', 0)
-                factors.append(f"⚠️ SSL Age: {age} hours (Critical - High Freshness)")
+                if is_vi:
+                     factors.append(f"⚠️ Tuổi SSL: {age} giờ (Nghiêm trọng - Mới tạo)")
+                else:
+                     factors.append(f"⚠️ SSL Age: {age} hours (Critical - High Freshness)")
                 
             # Entropy Risk
             entropy_info = details.get('content_entropy', {})
             if entropy_info.get('risk'):
                 ent_val = entropy_info.get('entropy', 0)
-                factors.append(f"⚠️ Code Entropy: {ent_val} (High - Obfuscated JS Detected)")
+                if is_vi:
+                     factors.append(f"⚠️ Độ hỗn loạn mã: {ent_val} (Cao - Phát hiện mã hóa)")
+                else:
+                     factors.append(f"⚠️ Code Entropy: {ent_val} (High - Obfuscated JS Detected)")
                 
             # Redirect Risk
             redirect_info = details.get('redirects', {})
             if redirect_info.get('risk'):
-                factors.append("⚠️ Suspicious Redirect Chain Detected")
+                if is_vi:
+                    factors.append("⚠️ Phát hiện chuỗi chuyển hướng đáng ngờ")
+                else:
+                    factors.append("⚠️ Suspicious Redirect Chain Detected")
                 
         return factors
 
@@ -331,30 +345,47 @@ class ResponseBuilder:
     def generate_ai_conclusion(
         is_phishing: bool,
         level: str,
-        risk_factors: List[str]
+        risk_factors: List[str],
+        language: str = "en"
     ) -> str:
         """Generate narrative AI conclusion"""
+        is_vi = language == 'vi'
+        
         if not is_phishing:
+            if is_vi:
+                return "✅ Phân tích hoàn tất: Trang web an toàn dựa trên phân tích SSL, nội dung và danh tiếng. Không phát hiện mối đe dọa nghiêm trọng."
             return "✅ Analysis Complete: The site appears safe based on SSL, content, and reputation analysis. No critical threats detected."
         
         # Narrative generation for phishing
-        conclusion = "🚨 Security Alert: "
+        conclusion = "🚨 Cảnh báo bảo mật: " if is_vi else "🚨 Security Alert: "
         
         # Add context based on factors
         has_ssl_issue = any("SSL" in f for f in risk_factors)
-        has_entropy_issue = any("Entropy" in f for f in risk_factors)
-        has_similarity = any("Similarity" in f for f in risk_factors)
+        has_entropy_issue = any("Code Entropy" in f or "Loạn mã" in f or "hỗn loạn" in f for f in risk_factors)
+        has_similarity = any("Similarity" in f or "Tương đồng" in f for f in risk_factors)
         
         if has_similarity:
-            conclusion += "This site matches a known phishing pattern found in our Threat Intelligence database. "
+            if is_vi:
+                conclusion += "Trang web này khớp với một mẫu lừa đảo đã biết trong Cơ sở dữ liệu Tình báo Mối đe dọa của chúng tôi. "
+            else:
+                conclusion += "This site matches a known phishing pattern found in our Threat Intelligence database. "
         elif has_ssl_issue and has_entropy_issue:
-            conclusion += "Although the site may look visually legitimate, the technical analysis reveals a freshly issued SSL certificate and obfuscated code. This indicates a sophisticated attack. "
+            if is_vi:
+                conclusion += "Mặc dù trang web có vẻ hợp pháp về hình ảnh, phân tích kỹ thuật cho thấy chứng chỉ SSL mới được cấp và mã bị xáo trộn. Điều này cho thấy một cuộc tấn công tinh vi. "
+            else:
+                conclusion += "Although the site may look visually legitimate, the technical analysis reveals a freshly issued SSL certificate and obfuscated code. This indicates a sophisticated attack. "
         elif has_ssl_issue:
-            conclusion += "The SSL certificate was issued very recently, which is a common tactic for ephemeral phishing sites. "
+            if is_vi:
+                conclusion += "Chứng chỉ SSL mới chỉ được cấp gần đây, đây là chiến thuật phổ biến của các trang web lừa đảo ngắn hạn. "
+            else:
+                conclusion += "The SSL certificate was issued very recently, which is a common tactic for ephemeral phishing sites. "
         else:
-            conclusion += "Multiple risk indicators suggest this is a malicious site attempting to steal user credentials. "
+            if is_vi:
+                conclusion += "Nhiều chỉ số rủi ro cho thấy đây là trang web độc hại đang cố gắng đánh cắp thông tin xác thực của người dùng. "
+            else:
+                conclusion += "Multiple risk indicators suggest this is a malicious site attempting to steal user credentials. "
             
-        conclusion += "Do NOT enter any sensitive information."
+        conclusion += "KHÔNG nhập bất kỳ thông tin nhạy cảm nào." if is_vi else "Do NOT enter any sensitive information."
         return conclusion
 
     @staticmethod
@@ -364,7 +395,8 @@ class ResponseBuilder:
         threat_type: Optional[str],
         url: str,
         deep_scan_results: Optional[Dict[str, Any]] = None,
-        rag_results: Optional[List[Dict[str, Any]]] = None
+        rag_results: Optional[List[Dict[str, Any]]] = None,
+        language: str = "en"
     ) -> Dict[str, Any]:
         """Build verdict data with enhanced AI insights"""
         risk_level = ResponseBuilder.calculate_risk_level(confidence_score, is_phishing)
@@ -377,8 +409,8 @@ class ResponseBuilder:
             risk_score = int(100 - confidence_score)
             
         # Generate new fields
-        risk_factors = ResponseBuilder.generate_risk_factors(deep_scan_results, rag_results)
-        ai_conclusion = ResponseBuilder.generate_ai_conclusion(is_phishing, risk_level, risk_factors)
+        risk_factors = ResponseBuilder.generate_risk_factors(deep_scan_results, rag_results, language)
+        ai_conclusion = ResponseBuilder.generate_ai_conclusion(is_phishing, risk_level, risk_factors, language)
         
         return {
             "score": risk_score,
@@ -664,7 +696,8 @@ class ResponseBuilder:
         osint_data: Optional[Dict[str, Any]] = None,
         deep_analysis: bool = True,
         deep_scan_results: Optional[Dict[str, Any]] = None,
-        rag_results: Optional[List[Dict[str, Any]]] = None
+        rag_results: Optional[List[Dict[str, Any]]] = None,
+        language: str = "en"
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -744,7 +777,7 @@ class ResponseBuilder:
             "id": scan_id,
             "url": url,
             "scanned_at": scanned_at,
-            "verdict": ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url, deep_scan_results, rag_results),
+            "verdict": ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url, deep_scan_results, rag_results, language),
             "network": ResponseBuilder.build_network(osint_data, url),
             "forensics": forensics,
             "content": content,

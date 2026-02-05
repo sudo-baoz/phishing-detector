@@ -25,7 +25,12 @@
         "confidence": "Độ tin cậy",
         "threat_type": "Loại mối đe dọa",
         "scanned_at": "Thời gian quét",
-        "url": "URL mục tiêu"
+        "url": "URL mục tiêu",
+        "hours": "giờ",
+        "hops": "bước",
+        "issuer": "Nhà cấp phát",
+        "entropy_analysis": "Phân Tích Entropy Shannon",
+        "obfuscated": "ĐÃ MÃ HÓA"
     },
     "analysis": {
         "title": "PHÂN TÍCH CHUYÊN SÂU",
@@ -33,13 +38,24 @@
         "forensics": "Điều Tra Số",
         "content": "Phân Tích Nội Dung",
         "advanced": "Chỉ Số Nâng Cao",
-        "intelligence": "Tình Báo Mối Đe Dọa"
+        "intelligence": "Tình Báo Mối Đe Dọa",
+        "ai_conclusion": "Kết Luận Phân Tích AI",
+        "network_data": "Dữ liệu Mạng",
+        "content_forensics": "Điều Tra Số & Nội Dung",
+        "risk_factors": "Chỉ Số Rủi Ro Được Xác Định",
+        "threat_detected": "Phát Hiện Mô Hình Mối Đe Dọa Đã Biết",
+        "target": "Mục Tiêu",
+        "similarity": "Độ Khớp",
+        "technique": "Kỹ Thuật",
+        "ssl_age": "Tuổi Chứng Chỉ SSL",
+        "code_entropy": "Độ Hỗn Loạn Mã",
+        "redirect_chain": "Chuỗi Chuyển Hướng"
     },
     "network": {
         "domain": "Tên miền",
         "ip_address": "Địa chỉ IP",
         "location": "Vị trí máy chủ",
-        "isp": "Nhà cung cấp",
+        "registrar": "Nhà đăng ký",
         "domain_age": "Tuổi tên miền",
         "ssl_valid": "Chứng chỉ SSL",
         "has_https": "HTTPS",
@@ -79,7 +95,9 @@
         "view_details": "Xem chi tiết",
         "scan_another": "Quét URL khác",
         "download_report": "Tải báo cáo",
-        "share": "Chia sẻ kết quả"
+        "share": "Chia sẻ kết quả",
+        "view_raw": "Xem Dữ Liệu Gốc",
+        "hide_raw": "Ẩn Dữ Liệu Gốc"
     },
     "history": {
         "title": "LỊCH SỬ QUÉT",

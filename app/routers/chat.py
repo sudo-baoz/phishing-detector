@@ -174,10 +174,11 @@ async def chat_with_sentinel(request: SentinelChatRequest):
             if request.scan_result_id:
                 logger.info(f"[Sentinel AI] Scan Result ID: {request.scan_result_id}")
         
-        # Ask Sentinel AI (language support can be added to ask_sentinel later)
+        # Ask Sentinel AI (language support added)
         result = ask_sentinel(
             user_message=request.message,
-            scan_context=scan_context
+            scan_context=scan_context,
+            language=request.language
         )
         
         # Handle errors
