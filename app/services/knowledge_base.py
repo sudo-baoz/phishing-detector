@@ -36,6 +36,15 @@ class KnowledgeBaseService:
         try:
             # Persistent path relative to root
             self.persist_path = './chroma_db'
+            self.cache_path = './data/phishtank_cache.json'
+            self.phishing_cache = set()
+            
+            # Ensure data dir exists
+            import os
+            os.makedirs('./data', exist_ok=True)
+            
+            # Load cache if exists
+            self.load_local_cache()
             
             # Initialize ChromaDB client (Persistent)
             logger.info(f"Initializing ChromaDB client at {self.persist_path}...")
@@ -60,12 +69,51 @@ class KnowledgeBaseService:
             self.initialized = False
             self.client = None
             self.collection = None
+            self.phishing_cache = set()
+
+    def load_local_cache(self):
+        """Load local JSON cache into memory set for O(1) lookup"""
+        import json
+        try:
+            if os.path.exists(self.cache_path):
+                logger.info(f"Loading PhishTank local cache from {self.cache_path}...")
+                with open(self.cache_path, 'r') as f:
+                    data = json.load(f)
+                    self.phishing_cache = set(data.get('urls', []))
+                logger.info(f"Loaded {len(self.phishing_cache)} URLs into memory cache.")
+            else:
+                logger.info("No local PhishTank cache found. Waiting for ingestion.")
+        except Exception as e:
+            logger.error(f"Failed to load local cache: {e}")
+
+    def check_known_phish(self, url: str) -> Dict[str, Any]:
+        """
+        O(1) Exact match check against local PhishTank cache.
+        Returns immediate verdict if found.
+        """
+        if url in self.phishing_cache:
+            logger.warning(f"[FAIL-FAST] PhishTank Exact Match: {url}")
+            return {
+                'match': True,
+                'source': 'PhishTank (Local Cache)',
+                'risk': True
+            }
+        
+        # Check stripping protocol
+        domain_uri = url.split('://')[-1] if '://' in url else url
+        if domain_uri in self.phishing_cache:
+             return {
+                'match': True,
+                'source': 'PhishTank (Local Cache)',
+                'risk': True
+            }
+            
+        return {'match': False, 'risk': False}
 
     def ingest_phishtank_data(self, limit: int = 1000) -> bool:
         """
         Ingest data logic. 
-        Note: This was part of the previous requirement. 
-        Re-implementing to ensure compatibility with ingestion scripts.
+        Downloads PhishTank DB, updates local cache (O(1)), and Vector DB (RAG).
         """
         if not self.initialized or not self.collection:
             logger.error("KnowledgeBaseService not initialized correctly.")
@@ -73,14 +121,27 @@ class KnowledgeBaseService:
             
         try:
             import requests
+            import json
             url_feed = "http://data.phishtank.com/data/online-valid.json"
             logger.info(f"Downloading PhishTank data from {url_feed}...")
             
-            response = requests.get(url_feed, timeout=30)
+            response = requests.get(url_feed, timeout=60) # Increased timeout
             response.raise_for_status()
             data = response.json()
             
-            logger.info(f"Downloaded {len(data)} entries. Processing top {limit}...")
+            logger.info(f"Downloaded {len(data)} entries.")
+            
+            # 1. Update In-Memory Cache & Local File (Optimization)
+            all_urls = [entry.get('url') for entry in data]
+            self.phishing_cache = set(all_urls)
+            
+            # Save to disk
+            with open(self.cache_path, 'w') as f:
+                json.dump({'urls': list(self.phishing_cache), 'updated': str(datetime.now())}, f)
+            logger.info(f"Updated local cache with {len(self.phishing_cache)} URLs.")
+            
+            # 2. Process for Vector DB (Limit for performance)
+            logger.info(f"Processing top {limit} for Vector RAG...")
             
             documents = []
             metadatas = []

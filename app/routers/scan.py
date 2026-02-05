@@ -128,24 +128,34 @@ async def scan_url(
         is_phishing = False
         confidence_score = 0.0
         threat_type = None
+        similar_threats = None
         
-        # [NEW] 1.5 Google Safe Browsing Check (Primary Validation)
-        # Check Final URL against Google Threats
-        from app.services.external_intel import external_intel
-        gsb_result = await run_in_threadpool(external_intel.check_google_safe_browsing, final_url)
-        
-        if not gsb_result['safe']:
-             logger.warning(f"[FAIL-FAST] Google Safe Browsing Block: {final_url}")
+        # [NEW] 1.5.1 PhishTank Local Exact Match (Fail Fast)
+        pt_result = knowledge_base.check_known_phish(final_url)
+        if pt_result['match']:
+             logger.warning(f"[FAIL-FAST] PhishTank Local Block: {final_url}")
              is_phishing = True
              confidence_score = 100.0
-             threat_type = "malware" if "MALWARE" in str(gsb_result['matches']) else "phishing"
+             threat_type = "phishing (known)"
              
-             # Synthetic results
+             # Create a synthetic Deep Scan result
              deep_scan_results = deep_scanner.scan(url_str, existing_redirects=redirect_res)
+             typo_result = {'risk': False} 
              
-             # Return immediately (or skip to save logic)
-             # We reuse the return logic at the end by setting flags
-             typo_result = {'risk': False} # Skip typo check logic block
+        # [NEW] 1.5.2 Google Safe Browsing Check (Primary Validation)
+        # Check Final URL against Google Threats (If not already caught)
+        if not is_phishing:
+            from app.services.external_intel import external_intel
+            gsb_result = await run_in_threadpool(external_intel.check_google_safe_browsing, final_url)
+            
+            if not gsb_result['safe']:
+                 logger.warning(f"[FAIL-FAST] Google Safe Browsing Block: {final_url}")
+                 is_phishing = True
+                 confidence_score = 100.0
+                 threat_type = "malware" if "MALWARE" in str(gsb_result['matches']) else "phishing"
+                 
+                 deep_scan_results = deep_scanner.scan(url_str, existing_redirects=redirect_res)
+                 typo_result = {'risk': False}
              
         else:
             # Continue with typical flow if GSB is Clean
