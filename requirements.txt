@@ -45,7 +45,6 @@ passlib[bcrypt]
 
 # Optional: JWT authentication
 python-jose[cryptography]
-python-multipart
 
 # Optional: HTTP requests
 httpx
@@ -62,6 +61,7 @@ google-generativeai
 # Optional: URL parsing
 validators
 tldextract
+textdistance
 
 # Optional: Feature extraction
 beautifulsoup4
