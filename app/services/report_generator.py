@@ -235,9 +235,22 @@ class ReportGenerator:
         # NULL SAFETY: Validate all inputs before processing
         # ================================================================
         if not url:
-            logger.warning(\"[ReportGenerator] Cannot generate report: URL is empty\")\n            return {\n                'error': 'missing_url',\n                'report_id': None,\n                'generated': False\n            }\n        \n        # Ensure scan_result is a valid dict\n        if not scan_result or not isinstance(scan_result, dict):\n            logger.warning(\"[ReportGenerator] Cannot generate report: scan_result is None or invalid\")\n            scan_result = {}  # Use empty dict to prevent crashes\n        \n        # Ensure osint_data is a valid dict\n        if osint_data is None or not isinstance(osint_data, dict):\n            osint_data = {}
-            Dict with recipient, subject, body, and metadata
-        """
+            logger.warning("[ReportGenerator] Cannot generate report: URL is empty")
+            return {
+                'error': 'missing_url',
+                'report_id': None,
+                'generated': False
+            }
+        
+        # Ensure scan_result is a valid dict
+        if not scan_result or not isinstance(scan_result, dict):
+            logger.warning("[ReportGenerator] Cannot generate report: scan_result is None or invalid")
+            scan_result = {}  # Use empty dict to prevent crashes
+        
+        # Ensure osint_data is a valid dict
+        if osint_data is None or not isinstance(osint_data, dict):
+            osint_data = {}
+        
         self.report_counter += 1
         
         try:

@@ -42,10 +42,15 @@ class GodModeAnalyzer:
     """
     God Mode Phishing Analyzer using Gemini AI with specialized system prompt.
     Provides elite-level threat detection with structured JSON output.
+    Includes quota limit handling for graceful degradation.
     """
     
     _instance = None
     _initialized = False
+    
+    # Quota tracking (class-level for singleton)
+    _quota_exceeded = False
+    _quota_exceeded_message = None
     
     # Default response structure for error cases
     DEFAULT_ERROR_RESPONSE = {
@@ -59,6 +64,20 @@ class GodModeAnalyzer:
             "domain_age": "Unknown"
         },
         "recommendation": "Proceed with caution. Verify the URL manually before entering any sensitive information."
+    }
+    
+    # Quota exceeded response (shown to users)
+    QUOTA_EXCEEDED_RESPONSE = {
+        "verdict": "UNKNOWN",
+        "risk_score": 0,
+        "summary": "⚠️ Tính năng phân tích AI tạm thời không khả dụng do giới hạn API. Chúng tôi sẽ cập nhật sớm.",
+        "summary_en": "⚠️ AI analysis feature temporarily unavailable due to API limits. We will update soon.",
+        "impersonation_target": None,
+        "risk_factors": ["AI service quota exceeded"],
+        "technical_analysis": {},
+        "recommendation": "Vui lòng sử dụng kết quả phân tích ML và heuristics. / Please use ML and heuristics analysis results.",
+        "quota_exceeded": True,
+        "error": "API_QUOTA_EXCEEDED"
     }
     
     def __new__(cls):
@@ -106,8 +125,18 @@ class GodModeAnalyzer:
             self._initialized = True
     
     def is_available(self) -> bool:
-        """Check if God Mode Analyzer is available"""
+        """Check if God Mode Analyzer is available (not quota exceeded)"""
+        if self._quota_exceeded:
+            return False
         return self._available and self.model is not None
+    
+    def is_quota_exceeded(self) -> bool:
+        """Check if API quota has been exceeded"""
+        return self._quota_exceeded
+    
+    def get_quota_message(self) -> Optional[str]:
+        """Get quota exceeded message if any"""
+        return self._quota_exceeded_message
     
     def analyze(
         self,
@@ -129,6 +158,11 @@ class GodModeAnalyzer:
             Structured JSON analysis result
         """
         if not self.is_available():
+            # Return quota exceeded response if that's the reason
+            if self._quota_exceeded:
+                logger.warning("[GOD MODE] Skipped - API quota exceeded")
+                return self.QUOTA_EXCEEDED_RESPONSE.copy()
+            
             logger.warning("God Mode Analyzer not available")
             return {**self.DEFAULT_ERROR_RESPONSE, "error": "AI service unavailable"}
         
@@ -136,7 +170,7 @@ class GodModeAnalyzer:
             # Build comprehensive user prompt
             user_prompt = self._build_analysis_prompt(url, dom_text, deep_tech_data, rag_context)
             
-            logger.info(f"[GOD MODE] Analyzing URL: {url}")
+            logger.debug(f"[GOD MODE] Analyzing URL: {url}")
             logger.debug(f"[GOD MODE] Prompt length: {len(user_prompt)} chars")
             
             # Generate response from Gemini
@@ -145,15 +179,31 @@ class GodModeAnalyzer:
             # Parse JSON response
             result = self._parse_response(response.text)
             
-            logger.info(f"[GOD MODE] Analysis complete - Verdict: {result.get('verdict', 'UNKNOWN')}")
+            logger.debug(f"[GOD MODE] Analysis complete - Verdict: {result.get('verdict', 'UNKNOWN')}")
             return result
             
         except Exception as e:
-            logger.error(f"God Mode analysis failed: {e}", exc_info=True)
+            error_str = str(e).lower()
+            
+            # Detect quota/rate limit errors
+            quota_keywords = [
+                'quota', 'rate limit', 'resource exhausted', 
+                '429', 'too many requests', 'billing', 
+                'quota exceeded', 'limit exceeded'
+            ]
+            
+            if any(keyword in error_str for keyword in quota_keywords):
+                # Mark quota as exceeded (disable further calls)
+                self._quota_exceeded = True
+                self._quota_exceeded_message = str(e)[:200]
+                logger.error(f"[GOD MODE] API QUOTA EXCEEDED - Disabling service: {e}")
+                return self.QUOTA_EXCEEDED_RESPONSE.copy()
+            
+            logger.error(f"God Mode analysis failed: {e}")
             return {
                 **self.DEFAULT_ERROR_RESPONSE,
-                "error": str(e),
-                "summary": f"Analysis failed: {str(e)}"
+                "error": str(e)[:100],
+                "summary": f"Analysis failed: {str(e)[:100]}"
             }
     
     def _build_analysis_prompt(
@@ -268,6 +318,20 @@ def analyze_url_god_mode(
 def is_god_mode_available() -> bool:
     """Check if God Mode Analyzer is available"""
     return god_mode_analyzer.is_available()
+
+
+def is_quota_exceeded() -> bool:
+    """Check if API quota has been exceeded"""
+    return god_mode_analyzer.is_quota_exceeded()
+
+
+def get_quota_status() -> Dict[str, Any]:
+    """Get current quota status for API responses"""
+    return {
+        "available": god_mode_analyzer.is_available(),
+        "quota_exceeded": god_mode_analyzer.is_quota_exceeded(),
+        "message": god_mode_analyzer.get_quota_message()
+    }
 
 
 # =============================================================================

@@ -219,42 +219,74 @@ const AnalysisReport = ({ data, loading }) => {
             TASK 2: GOD MODE AI INTELLIGENCE SUMMARY
             ═══════════════════════════════════════════════════════════════════ */}
         {god_mode_analysis && (
-          <div className="mb-6 p-4 rounded-lg bg-purple-500/5 border border-purple-500/30 shadow-[0_0_15px_rgba(168,85,247,0.1)]">
+          <div className={`mb-6 p-4 rounded-lg border shadow-[0_0_15px_rgba(168,85,247,0.1)] ${
+            god_mode_analysis.quota_exceeded 
+              ? 'bg-amber-500/5 border-amber-500/30' 
+              : 'bg-purple-500/5 border-purple-500/30'
+          }`}>
             <div className="flex items-start gap-3">
-              <div className="p-2 bg-purple-500/20 rounded-lg">
-                <Eye className="w-5 h-5 text-purple-400" />
+              <div className={`p-2 rounded-lg ${
+                god_mode_analysis.quota_exceeded 
+                  ? 'bg-amber-500/20' 
+                  : 'bg-purple-500/20'
+              }`}>
+                <Eye className={`w-5 h-5 ${
+                  god_mode_analysis.quota_exceeded 
+                    ? 'text-amber-400' 
+                    : 'text-purple-400'
+                }`} />
               </div>
               <div className="flex-1">
-                <span className="text-purple-400 font-bold mb-2 block uppercase text-xs tracking-wider">
-                  🧠 AI Intelligence Summary (God Mode)
-                </span>
-                <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-4">
-                  {god_mode_analysis.summary}
-                </p>
-                
-                {/* God Mode Risk Factors */}
-                {god_mode_analysis.risk_factors && god_mode_analysis.risk_factors.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-purple-500/20">
-                    <span className="text-purple-400 text-xs font-bold uppercase tracking-wider mb-2 block">
-                      Detected Risk Factors:
+                {/* Quota Exceeded Warning Banner */}
+                {god_mode_analysis.quota_exceeded ? (
+                  <>
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-400" />
+                      <span className="text-amber-400 font-bold uppercase text-xs tracking-wider">
+                        ⚠️ AI Service Temporarily Unavailable
+                      </span>
+                    </div>
+                    <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-2">
+                      {god_mode_analysis.summary}
+                    </p>
+                    <p className="text-amber-400/80 text-xs">
+                      {god_mode_analysis.recommendation}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-purple-400 font-bold mb-2 block uppercase text-xs tracking-wider">
+                      🧠 AI Intelligence Summary (God Mode)
                     </span>
-                    <ul className="space-y-1">
-                      {god_mode_analysis.risk_factors.map((factor, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
-                          <AlertTriangle className="w-3 h-3 text-purple-400 shrink-0 mt-1" />
-                          <span>{factor}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-                
-                {/* Recommendation */}
-                {god_mode_analysis.recommendation && (
-                  <div className="mt-3 p-3 bg-slate-950/50 rounded border border-purple-500/20">
-                    <span className="text-purple-400 text-xs font-bold uppercase">Recommendation:</span>
-                    <p className="text-slate-400 text-sm mt-1">{god_mode_analysis.recommendation}</p>
-                  </div>
+                    <p className="text-slate-300 text-sm md:text-base leading-relaxed mb-4">
+                      {god_mode_analysis.summary}
+                    </p>
+                    
+                    {/* God Mode Risk Factors */}
+                    {god_mode_analysis.risk_factors && god_mode_analysis.risk_factors.length > 0 && (
+                      <div className="mt-3 pt-3 border-t border-purple-500/20">
+                        <span className="text-purple-400 text-xs font-bold uppercase tracking-wider mb-2 block">
+                          Detected Risk Factors:
+                        </span>
+                        <ul className="space-y-1">
+                          {god_mode_analysis.risk_factors.map((factor, idx) => (
+                            <li key={idx} className="flex items-start gap-2 text-sm text-slate-300">
+                              <AlertTriangle className="w-3 h-3 text-purple-400 shrink-0 mt-1" />
+                              <span>{factor}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Recommendation */}
+                    {god_mode_analysis.recommendation && (
+                      <div className="mt-3 p-3 bg-slate-950/50 rounded border border-purple-500/20">
+                        <span className="text-purple-400 text-xs font-bold uppercase">Recommendation:</span>
+                        <p className="text-slate-400 text-sm mt-1">{god_mode_analysis.recommendation}</p>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>

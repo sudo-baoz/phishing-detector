@@ -43,7 +43,7 @@ from app.services.response_builder import response_builder
 from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
 from app.services.deep_scan import deep_scanner
 from app.services.cert_monitor import check_realtime_threat  # Zero-Day Detection
-from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available  # God Mode AI
+from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available, is_quota_exceeded  # God Mode AI
 from app.services.vision_scanner import scan_url_vision, is_vision_scanner_available  # Vision Scanner
 from app.services.graph_builder import build_threat_graph  # SOC: Threat Graph
 from app.services.yara_scanner import scan_content_with_yara  # SOC: YARA Scanner

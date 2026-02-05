@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.2] - 2026-02-05
+
+### 🛡️ API Quota Protection & Syntax Fix
+
+This release adds graceful handling for AI API quota limits and fixes a critical syntax error.
+
+#### Fixed
+
+- **Report Generator Syntax Error** ([report_generator.py](app/services/report_generator.py)):
+  - Fixed `SyntaxError: unexpected character after line continuation character`
+  - Corrected malformed escape sequences in null-safety validation code
+  - Server now starts correctly
+
+#### Added
+
+- **AI Quota Limit Handling** ([chat_agent.py](app/services/chat_agent.py)):
+  - Automatic detection of quota/rate limit errors from Google Gemini API
+  - When quota is exceeded, God Mode is disabled gracefully (no crashes)
+  - Returns structured `QUOTA_EXCEEDED_RESPONSE` with bilingual message:
+    - Vietnamese: "Tính năng phân tích AI tạm thời không khả dụng do giới hạn API"
+    - English: "AI analysis feature temporarily unavailable due to API limits"
+  - New helper functions: `is_quota_exceeded()`, `get_quota_status()`
+
+- **Frontend Quota Warning** ([AnalysisReport.jsx](frontend/src/components/AnalysisReport.jsx)):
+  - God Mode section turns amber/yellow when quota is exceeded
+  - Shows warning icon with "AI Service Temporarily Unavailable" message
+  - Displays recommendation to use ML/heuristics analysis instead
+  - Normal purple styling when AI is working
+
+---
+
 ## [1.5.1] - 2026-02-05
 
 ### 🔧 Backend Reliability & Stability Fixes

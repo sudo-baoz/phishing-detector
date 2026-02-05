@@ -76,15 +76,41 @@ The frontend is a modern, responsive Single Page Application (SPA) designed for 
     *   Heuristic Boosts: +30 for Fresh SSL, +25 for Obfuscation, +25 for Keywords.
 6.  **Response**: JSON payload sent to Frontend for rendering.
 
+## Fault Tolerance & Graceful Degradation
+
+### API Quota Handling
+
+The system is designed to continue functioning even when external AI services become unavailable:
+
+*   **Quota Detection**: The `GodModeAnalyzer` class detects rate limit errors from Google Gemini API (429, quota exceeded, resource exhausted).
+*   **Automatic Disable**: When quota is hit, the service sets `_quota_exceeded = True` and stops making API calls.
+*   **Fallback Response**: Returns `QUOTA_EXCEEDED_RESPONSE` with bilingual warning:
+    *   🇻🇳 "Tính năng phân tích AI tạm thời không khả dụng do giới hạn API"
+    *   🇺🇸 "AI analysis feature temporarily unavailable due to API limits"
+*   **ML Continues**: The ML model (`ai_engine.py`) and heuristic analysis continue to work independently.
+*   **Frontend Display**: The God Mode section turns amber/yellow with a clear warning instead of crashing.
+
+### Service Isolation
+
+Each service is designed to fail gracefully without crashing the entire scan:
+
+*   **VisionScanner**: Returns fallback `{'evasion': {}, 'connections': {}}` if browser unavailable.
+*   **ReportGenerator**: Validates all inputs with null-safety before processing.
+*   **Semaphore Throttling**: Max 3 concurrent scans to prevent resource exhaustion.
+
 ## Directory Structure
 
 ```
 ├── app/
 │   ├── main.py              # App entry point
+│   ├── core/
+│   │   └── logger.py        # Smart "Quiet Mode" logging
 │   ├── services/            # Core logic
 │   │   ├── deep_scan.py     # Heuristics
 │   │   ├── ai_engine.py     # Gemini Integration
+│   │   ├── chat_agent.py    # God Mode AI (quota-aware)
 │   │   ├── knowledge_base.py# RAG / ChromaDB
+│   │   ├── vision_scanner.py# Browser forensics (graceful failure)
 │   │   └── ...
 │   ├── routers/             # API Endpoints
 │   └── schemas/             # Pydantic Models
