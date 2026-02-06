@@ -109,9 +109,10 @@ const Scanner = () => {
     const [error, setError] = useState(null);
     const [logs, setLogs] = useState([]);
 
-    // Cloudflare Turnstile state
+    // Cloudflare Turnstile state + key-remount to force fresh widget after each use (prevents zombie token)
     const [turnstileToken, setTurnstileToken] = useState(null);
     const [turnstileError, setTurnstileError] = useState(false);
+    const [widgetKey, setWidgetKey] = useState(0);
     const turnstileRef = useRef(null);
 
     // Get Turnstile site key from environment
@@ -166,24 +167,20 @@ const Scanner = () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Early validation: URL required
+        // 1. Guard clauses
+        if (loading) return;
         if (!url.trim()) {
             setError('Please enter a URL to scan.');
             return;
         }
-
-        // Require Turnstile in production (skip in dev mode)
         if (!isTurnstileDevMode && !turnstileToken) {
             setError('Please complete the security verification first.');
             setTurnstileError(true);
             return;
         }
 
-        // Prevent double-submit: block if already loading or no token
-        if (loading) return;
-
-        // --- BURN TOKEN IMMEDIATELY (prevents reuse / double-send) ---
-        const currentToken = isTurnstileDevMode ? null : turnstileToken;
+        // 2. SNAPSHOT & CLEAR — kill state immediately so no reuse / zombie token
+        const tokenToSend = isTurnstileDevMode ? null : turnstileToken;
         setTurnstileToken(null);
         setLoading(true);
         setError(null);
@@ -194,6 +191,7 @@ const Scanner = () => {
         const sanitizedUrl = sanitizeUrl(url);
         if (!sanitizedUrl) {
             setLoading(false);
+            setWidgetKey((k) => k + 1);
             setError(t('scanner.invalid_url') || 'Invalid URL format. Please enter a valid domain (e.g., google.com or https://example.com)');
             return;
         }
@@ -204,7 +202,7 @@ const Scanner = () => {
             await scanUrlStream(
                 sanitizedUrl,
                 true,
-                currentToken,
+                tokenToSend,
                 currentLang,
                 {
                     onLog: (message) => setLogs((prev) => [...prev, message]),
@@ -227,17 +225,9 @@ const Scanner = () => {
             setError(errorMessage);
         } finally {
             setLoading(false);
-            // Force reset widget so next scan requires a fresh token (avoids "token expired/reused")
-            if (!isTurnstileDevMode) {
-                const ref = turnstileRef.current;
-                if (ref) {
-                    console.log('🔄 Resetting Captcha Widget...');
-                    setTimeout(() => {
-                        if (turnstileRef.current) turnstileRef.current.reset();
-                    }, 0);
-                }
-                setTurnstileToken(null);
-            }
+            // 3. NUCLEAR RESET — remount widget so next scan always gets a fresh token (no zombie loop)
+            setWidgetKey((prev) => prev + 1);
+            setTurnstileToken(null);
         }
     };
 
@@ -248,20 +238,20 @@ const Scanner = () => {
         setError(null);
     };
 
-    // Handle Turnstile error (widget failed) — clear token and reset widget so user can retry
+    // Handle Turnstile error (widget failed) — clear token and remount widget so user can retry
     const handleTurnstileError = () => {
         setTurnstileToken(null);
         setTurnstileError(true);
         setError('Security verification failed. Please try again.');
-        if (turnstileRef.current) turnstileRef.current.reset();
+        setWidgetKey((k) => k + 1);
     };
 
-    // Handle Turnstile expiration — clear token and reset widget for a fresh challenge
+    // Handle Turnstile expiration — clear token and remount widget for a fresh challenge
     const handleTurnstileExpire = () => {
         setTurnstileToken(null);
         setTurnstileError(true);
         setError('Security verification expired. Please verify again.');
-        if (turnstileRef.current) turnstileRef.current.reset();
+        setWidgetKey((k) => k + 1);
     };
 
     const getRiskLevel = (confidence, isPhishing) => {
@@ -348,6 +338,7 @@ const Scanner = () => {
                                                 : 'border-cyan-500/30 bg-gray-950/30 backdrop-blur-sm'
                                             }`}>
                                             <Turnstile
+                                                key={widgetKey}
                                                 ref={turnstileRef}
                                                 siteKey={TURNSTILE_SITE_KEY}
                                                 onSuccess={handleTurnstileSuccess}
