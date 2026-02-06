@@ -107,6 +107,14 @@ async def scan_url(
         )
     
     # ============================================================
+    # VERIFY TURNSTILE ONCE (no Depends — token is one-time-use)
+    # ============================================================
+    try:
+        await verify_turnstile(request)
+    except HTTPException:
+        raise
+    
+    # ============================================================
     # ACQUIRE SEMAPHORE + TIMEOUT WRAPPER
     # ============================================================
     try:
@@ -242,22 +250,10 @@ async def _perform_scan(
         if log_callback:
             await log_callback(msg)
 
+    # Turnstile is verified once by the caller (stream generator or scan_url), not here.
+
     # ============================================================
-    # STEP 1: VERIFY TURNSTILE TOKEN IMMEDIATELY (FAIL FAST!)
-    # ============================================================
-    logger.debug(f"[1/4] Verifying Turnstile token for URL: {scan_request.url}")
-    await _log("[*] Verifying security token...")
-    try:
-        turnstile_verified = await verify_turnstile(request)
-        logger.debug(f"[OK] Turnstile verification successful")
-        await _log("[+] Security verification passed.")
-    except HTTPException as e:
-        # Token verification failed - reject immediately (fail fast)
-        logger.warning(f"[REJECTED] Turnstile verification failed for: {scan_request.url}")
-        raise  # Re-raise the 403 HTTPException from verify_turnstile
-    
-    # ============================================================
-    # STEP 1.5: ZERO-DAY DETECTION (CertStream Real-time Check)
+    # STEP 1: ZERO-DAY DETECTION (CertStream Real-time Check)
     # ============================================================
     url_str = str(scan_request.url)
     await _log("[*] Checking zero-day / CertStream...")

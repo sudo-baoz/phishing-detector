@@ -22,6 +22,7 @@ Verifies bot protection tokens before allowing access to protected endpoints
 """
 
 import logging
+import os
 from typing import Optional
 import httpx
 
@@ -31,24 +32,32 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
+def _skip_turnstile_env() -> bool:
+    """True if SKIP_TURNSTILE=true in env (for debugging)."""
+    return os.getenv("SKIP_TURNSTILE", "").strip().lower() == "true"
+
+
 async def verify_turnstile(request: Request) -> dict:
     """
-    Dependency function to verify Cloudflare Turnstile token.
+    Verify Cloudflare Turnstile token (single use per request).
+    
+    Call this ONCE per request—e.g. in the stream generator or at endpoint entry.
+    Do not use Depends(verify_turnstile) and also call inside a generator/helper
+    or the token will be consumed twice and the second check will fail.
     
     Validates the cf-turnstile-response token against Cloudflare's API.
-    Raises HTTPException(403) if:
-    - Turnstile is enabled and token is missing
-    - Token validation fails
+    Raises HTTPException(403/400) if token is missing or invalid.
     
     Args:
-        request: FastAPI Request object
+        request: FastAPI Request object (token from header or JSON body)
         
     Returns:
         dict: Validation result from Cloudflare
-        
-    Raises:
-        HTTPException: 403 Forbidden if verification fails
     """
+    # Dev bypass: skip verification when SKIP_TURNSTILE=true
+    if _skip_turnstile_env():
+        logger.debug("Turnstile verification skipped (SKIP_TURNSTILE=true)")
+        return {"success": True, "skipped": True}
     
     # Skip verification if Turnstile is disabled (for testing/development)
     if not settings.TURNSTILE_ENABLED:

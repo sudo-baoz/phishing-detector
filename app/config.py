@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     CAPTCHA_PROVIDER: Literal["FREE", "2CAPTCHA", "CAPSOLVER"] = "FREE"
     CAPTCHA_API_KEY: str = ""  # Required for 2CAPTCHA and CAPSOLVER
     
+    # Vision Scanner proxy (e.g. residential proxy to avoid Cloudflare IP blocks)
+    PROXY_SERVER: str = ""   # e.g. http://proxy.provider.com:8000
+    PROXY_USERNAME: str = ""
+    PROXY_PASSWORD: str = ""
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

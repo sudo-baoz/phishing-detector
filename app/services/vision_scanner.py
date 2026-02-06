@@ -56,6 +56,12 @@ except ImportError:
     STEALTH_AVAILABLE = False
     logger.warning("playwright-stealth not installed. Stealth mode will be limited.")
 
+# App config (proxy settings)
+try:
+    from app.config import settings
+except ImportError:
+    settings = None
+
 # Captcha solver (Strategy Pattern)
 try:
     from app.services.captcha_manager import CaptchaFactory
@@ -142,6 +148,38 @@ SOFT_BLOCK_BODY_MARKERS = [
 ]
 # Bypass attempt: give up after this many seconds and snapshot whatever is there
 SOFT_BLOCK_BYPASS_TIMEOUT = 10
+
+
+# ============================================================================
+# PROXY CONFIGURATION (Residential proxy to bypass Cloudflare IP blocks)
+# ============================================================================
+
+def _get_proxy_config() -> Optional[Dict[str, str]]:
+    """Build Playwright proxy dict from settings. Returns None if proxy not configured."""
+    if not settings:
+        return None
+    server = (settings.PROXY_SERVER or "").strip()
+    if not server:
+        return None
+    proxy_config: Dict[str, str] = {"server": server}
+    username = (settings.PROXY_USERNAME or "").strip()
+    password = (settings.PROXY_PASSWORD or "").strip()
+    if username and password:
+        proxy_config["username"] = username
+        proxy_config["password"] = password
+    return proxy_config
+
+
+def _is_proxy_related_error(exc: BaseException) -> bool:
+    """True if the exception is likely due to proxy failure (timeout, connection refused)."""
+    msg = (getattr(exc, "message", "") or str(exc)).lower()
+    if "timeout" in msg or "timed out" in msg:
+        return True
+    if "proxy" in msg or "connection_refused" in msg or "connection refused" in msg:
+        return True
+    if "err_proxy" in msg or "net::err_" in msg:
+        return True
+    return False
 
 
 # ============================================================================
@@ -457,12 +495,17 @@ async def full_scan(url: str) -> Dict[str, Any]:
             result['connections'] = {'external_domains': [], 'suspicious_ips': [], 'trackers': [], 'total_requests': 0, 'cross_origin_count': 0}
             return result
         
-        # Create new context with randomized User-Agent
+        proxy_config = _get_proxy_config()
+        if proxy_config:
+            logger.debug(f"[VisionScanner] Using proxy: {proxy_config.get('server', '')[:60]}")
+
+        # Create new context with randomized User-Agent and optional proxy
         context = await browser.new_context(
             user_agent=random.choice(USER_AGENTS),
             viewport={'width': 1920, 'height': 1080},
             locale='en-US',
-            timezone_id='America/New_York'
+            timezone_id='America/New_York',
+            proxy=proxy_config,
         )
         
         page = await context.new_page()
@@ -526,12 +569,42 @@ async def full_scan(url: str) -> Dict[str, Any]:
         page.on("response", response_handler)
         
         # ============================================================
-        # NAVIGATE with timeout tolerance (domcontentloaded for faster first paint)
+        # NAVIGATE with timeout tolerance (proxy fallback on failure)
         # ============================================================
+        nav_ok = False
         try:
             await page.goto(url, timeout=15000, wait_until="domcontentloaded")
+            nav_ok = True
         except Exception as nav_error:
-            logger.warning(f"[VisionScanner] Navigation warning (continuing): {str(nav_error)[:100]}")
+            if proxy_config and _is_proxy_related_error(nav_error):
+                logger.warning("⚠️ Proxy failed, retrying with direct connection...")
+                try:
+                    await page.close()
+                except Exception:
+                    pass
+                try:
+                    await context.close()
+                except Exception:
+                    pass
+                context = await browser.new_context(
+                    user_agent=random.choice(USER_AGENTS),
+                    viewport={'width': 1920, 'height': 1080},
+                    locale='en-US',
+                    timezone_id='America/New_York',
+                    proxy=None,
+                )
+                page = await context.new_page()
+                if STEALTH_AVAILABLE:
+                    await stealth_async(page)
+                page.on("request", request_handler)
+                page.on("response", response_handler)
+                try:
+                    await page.goto(url, timeout=15000, wait_until="domcontentloaded")
+                    nav_ok = True
+                except Exception as direct_error:
+                    logger.warning(f"[VisionScanner] Direct connection also failed (continuing): {str(direct_error)[:100]}")
+            else:
+                logger.warning(f"[VisionScanner] Navigation warning (continuing): {str(nav_error)[:100]}")
         
         # Wait for dynamic content and challenge widgets to appear
         await asyncio.sleep(2)
