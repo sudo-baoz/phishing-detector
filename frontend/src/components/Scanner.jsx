@@ -164,54 +164,55 @@ const Scanner = () => {
     };
 
     const handleSubmit = async (e) => {
-        // CRITICAL: Prevent default form submission to stop page reload
         e.preventDefault();
 
-        // Early validation: Check if URL is provided
+        // Early validation: URL required
         if (!url.trim()) {
             setError('Please enter a URL to scan.');
             return;
         }
 
-        // CRITICAL: Verify Turnstile token before proceeding (skip in dev mode when widget is hidden)
+        // Require Turnstile in production (skip in dev mode)
         if (!isTurnstileDevMode && !turnstileToken) {
             setError('Please complete the security verification first.');
             setTurnstileError(true);
             return;
         }
 
-        // Use try-catch-finally to guarantee loading state cleanup
+        // Prevent double-submit: block if already loading or no token
+        if (loading) return;
+
+        // --- BURN TOKEN IMMEDIATELY (prevents reuse / double-send) ---
+        const currentToken = isTurnstileDevMode ? null : turnstileToken;
+        setTurnstileToken(null);
+        setLoading(true);
+        setError(null);
+        setResult(null);
+        setLogs([]);
+        setTurnstileError(false);
+
+        const sanitizedUrl = sanitizeUrl(url);
+        if (!sanitizedUrl) {
+            setLoading(false);
+            setError(t('scanner.invalid_url') || 'Invalid URL format. Please enter a valid domain (e.g., google.com or https://example.com)');
+            return;
+        }
+
+        const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
+
         try {
-            // Set loading state FIRST - disable button and show spinner
-            setLoading(true);
-            setError(null);
-            setResult(null);
-            setLogs([]);
-            setTurnstileError(false);
-
-            const sanitizedUrl = sanitizeUrl(url);
-            if (!sanitizedUrl) {
-                setLoading(false);
-                setError(t('scanner.invalid_url') || 'Invalid URL format. Please enter a valid domain (e.g., google.com or https://example.com)');
-                return;
-            }
-
-            const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
-            const tokenToSend = isTurnstileDevMode ? null : turnstileToken;
-
             await scanUrlStream(
                 sanitizedUrl,
                 true,
-                tokenToSend,
+                currentToken,
                 currentLang,
                 {
                     onLog: (message) => setLogs((prev) => [...prev, message]),
-                    onResult: (scanData) => {
-                        setResult(scanData);
-                    },
+                    onResult: (scanData) => setResult(scanData),
                     onError: (message) => {
                         setError(message);
-                        if (message?.toLowerCase().includes('security') || message?.toLowerCase().includes('verification')) {
+                        const lower = (message || '').toLowerCase();
+                        if (lower.includes('expired') || lower.includes('already used') || lower.includes('security') || lower.includes('verification')) {
                             setTurnstileError(true);
                         }
                     },
@@ -220,18 +221,23 @@ const Scanner = () => {
         } catch (error) {
             console.error('Error during URL scan:', error);
             const errorMessage = error?.message || 'An unexpected error occurred. Please try again.';
-            if (error?.message?.toLowerCase().includes('security') || error?.message?.toLowerCase().includes('verification')) {
-                setTurnstileError(true);
-            }
+            const lower = (errorMessage || '').toLowerCase();
+            const isCaptchaError = error?.isTokenExpired || lower.includes('expired') || lower.includes('already used') || lower.includes('security') || lower.includes('verification');
+            if (isCaptchaError) setTurnstileError(true);
             setError(errorMessage);
         } finally {
-            // Always re-enable button and stop loading
             setLoading(false);
-            // CRITICAL: Reset Turnstile so the next scan gets a fresh token (prevents expired/reused token errors)
-            if (!isTurnstileDevMode && turnstileRef.current) {
-                turnstileRef.current.reset();
+            // Force reset widget so next scan requires a fresh token (avoids "token expired/reused")
+            if (!isTurnstileDevMode) {
+                const ref = turnstileRef.current;
+                if (ref) {
+                    console.log('🔄 Resetting Captcha Widget...');
+                    setTimeout(() => {
+                        if (turnstileRef.current) turnstileRef.current.reset();
+                    }, 0);
+                }
+                setTurnstileToken(null);
             }
-            setTurnstileToken(null);
         }
     };
 
@@ -242,17 +248,20 @@ const Scanner = () => {
         setError(null);
     };
 
-    // Handle Turnstile error
+    // Handle Turnstile error (widget failed) — clear token and reset widget so user can retry
     const handleTurnstileError = () => {
+        setTurnstileToken(null);
         setTurnstileError(true);
         setError('Security verification failed. Please try again.');
+        if (turnstileRef.current) turnstileRef.current.reset();
     };
 
-    // Handle Turnstile expiration
+    // Handle Turnstile expiration — clear token and reset widget for a fresh challenge
     const handleTurnstileExpire = () => {
         setTurnstileToken(null);
         setTurnstileError(true);
         setError('Security verification expired. Please verify again.');
+        if (turnstileRef.current) turnstileRef.current.reset();
     };
 
     const getRiskLevel = (confidence, isPhishing) => {

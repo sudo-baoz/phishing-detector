@@ -138,9 +138,21 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
   });
   if (!res.ok) {
     const errBody = await res.text();
-    let detail = res.status === 403 ? 'Security verification failed. Please complete the verification again.' : (errBody || 'Server error');
-    if (res.status === 503) detail = 'Server busy, please try again in a few seconds.';
-    throw new Error(detail);
+    let message = errBody || 'Server error';
+    let isTokenExpired = false;
+    try {
+      const data = JSON.parse(errBody);
+      const d = data.detail || data;
+      if (d && typeof d === 'object') {
+        message = d.message || d.detail || message;
+        if (d.error === 'token_expired') isTokenExpired = true;
+      }
+    } catch (_) { /* ignore */ }
+    if (res.status === 403 && !message.includes('verification')) message = 'Security verification failed. Please complete the verification again.';
+    if (res.status === 503) message = 'Server busy, please try again in a few seconds.';
+    const err = new Error(message);
+    err.isTokenExpired = isTokenExpired;
+    throw err;
   }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
