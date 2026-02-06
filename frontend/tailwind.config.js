@@ -18,6 +18,7 @@ export default {
         fadeIn: 'fadeIn 0.5s ease-in',
         'matrix-fall': 'matrix-fall 15s linear infinite',
         slideUp: 'slideUp 0.3s ease-out',
+        blink: 'blink 0.8s step-end infinite',
       },
       keyframes: {
         fadeIn: {
@@ -49,6 +50,10 @@ export default {
             opacity: '1',
             transform: 'translateY(0) scale(1)',
           },
+        },
+        blink: {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0' },
         },
       },
     },

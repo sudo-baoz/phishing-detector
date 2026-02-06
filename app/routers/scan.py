@@ -48,6 +48,7 @@ from app.services.vision_scanner import scan_url_vision, is_vision_scanner_avail
 from app.services.graph_builder import build_threat_graph  # SOC: Threat Graph
 from app.services.yara_scanner import scan_content_with_yara  # SOC: YARA Scanner
 from app.services.report_generator import generate_abuse_report  # SOC: Takedown Report
+from app.services.kit_detector import KitDetector  # Phishing Kit Fingerprinting
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
@@ -425,6 +426,29 @@ async def _perform_scan(
                 confidence_score = min(confidence_score + 15, 100)
         
         # ============================================================
+        # PHISHING KIT FINGERPRINTING (HTML + URL path signatures)
+        # ============================================================
+        kit_result = None
+        if deep_scan_results and deep_scan_results.get('raw_html'):
+            try:
+                kit_result = await run_in_threadpool(
+                    KitDetector.detect,
+                    deep_scan_results['raw_html'],
+                    final_url,
+                )
+                if kit_result and kit_result.get('detected'):
+                    logger.warning(f"[KitDetector] Phishing kit: {kit_result.get('kit_name')} ({kit_result.get('confidence')})")
+                    if not is_phishing:
+                        is_phishing = True
+                        confidence_score = max(confidence_score, 80)
+                        threat_type = threat_type or "phishing_kit_detected"
+                    else:
+                        confidence_score = min(confidence_score + 10, 100)
+            except Exception as e:
+                logger.error(f"Kit Detector failed: {e}")
+                kit_result = None
+
+        # ============================================================
         # GOD MODE AI ANALYSIS (needs OSINT data, runs after)
         # ============================================================
         god_mode_result = None
@@ -432,14 +456,17 @@ async def _perform_scan(
             try:
                 logger.debug("[3.7/4] Running God Mode AI Analysis...")
                 
-                # Prepare context for God Mode analysis
+                # Prepare context for God Mode analysis (include kit fingerprint for AI)
                 dom_text = None
                 deep_tech_data = deep_scan_results if deep_scan_results else {}
-                
+                if isinstance(deep_tech_data, dict):
+                    deep_tech_data = dict(deep_tech_data)
                 if osint_dict:
                     deep_tech_data['osint'] = osint_dict
                 if network_results:
                     deep_tech_data['network'] = network_results
+                if kit_result:
+                    deep_tech_data['phishing_kit'] = kit_result
                 
                 god_mode_result = await run_in_threadpool(
                     analyze_url_god_mode,
@@ -577,7 +604,8 @@ async def _perform_scan(
             vision_result=vision_result,  # Vision Scanner result
             threat_graph=threat_graph,  # SOC: Threat Graph
             yara_result=yara_result,  # SOC: YARA Analysis
-            abuse_report=abuse_report  # SOC: Takedown Report
+            abuse_report=abuse_report,  # SOC: Takedown Report
+            kit_result=kit_result,  # Phishing Kit Fingerprinting
         )
         
         # Convert to Pydantic models

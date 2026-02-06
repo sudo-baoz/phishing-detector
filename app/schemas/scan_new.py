@@ -116,6 +116,7 @@ class ScanResponse(BaseModel):
     threat_graph: Optional[dict] = Field(None, description="React Flow compatible threat graph (nodes, edges)")
     yara_analysis: Optional[dict] = Field(None, description="YARA rule matches (crypto wallets, phishing kits, obfuscation)")
     abuse_report: Optional[dict] = Field(None, description="Auto-generated takedown report (recipient, subject, body)")
+    phishing_kit: Optional[dict] = Field(None, description="Phishing kit fingerprint (detected, kit_name, confidence, matched_signatures)")
     
     model_config = {
         "json_schema_extra": {

@@ -3,7 +3,7 @@
  * Copyright (c) 2026 BaoZ
  */
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
@@ -13,20 +13,17 @@ import {
   ChevronDown, ChevronUp, Radiation, GitBranch, ShieldX
 } from 'lucide-react';
 import ThreatGraphModal from './ThreatGraphModal';
+import TrustGauge from './TrustGauge';
+import ForensicBadge from './ForensicBadge';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
-  const [circumference, setCircumference] = useState(0);
   const [showJson, setShowJson] = useState(false);
   const [showGraphModal, setShowGraphModal] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     techFacts: false,
     rawData: false,
   });
-
-  useEffect(() => {
-    setCircumference(2 * Math.PI * 70);
-  }, []);
 
   if (loading) {
     return (
@@ -49,7 +46,7 @@ const AnalysisReport = ({ data, loading }) => {
   const { 
     verdict, network, forensics, content, advanced, intelligence, 
     technical_details, rag_matches, god_mode_analysis, vision_analysis,
-    threat_graph, yara_analysis, abuse_report
+    threat_graph, yara_analysis, abuse_report, phishing_kit
   } = data;
   
   // Check for zero-day threat (from CertStream real-time detection)
@@ -81,8 +78,6 @@ const AnalysisReport = ({ data, loading }) => {
     if (level === 'MEDIUM') return 'bg-yellow-500/10';
     return 'bg-green-500/10';
   };
-
-  const strokeDashoffset = circumference - (score / 100) * circumference;
 
   return (
     <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 md:p-6 space-y-4 sm:space-y-6 font-mono relative">
@@ -187,20 +182,12 @@ const AnalysisReport = ({ data, loading }) => {
             </div>
           </div>
 
-          {/* Score Gauge */}
-          <div className="relative w-32 h-32 md:w-40 md:h-40 shrink-0">
-            <svg className="w-full h-full transform -rotate-90" viewBox="0 0 192 192">
-              <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none" className="text-slate-800" />
-              <circle cx="96" cy="96" r="70" stroke="currentColor" strokeWidth="12" fill="none"
-                strokeDasharray={circumference} strokeDashoffset={strokeDashoffset}
-                className={`${getRiskColor()} transition-all duration-1000 ease-out`} strokeLinecap="round" />
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className={`text-4xl font-bold ${getRiskColor()}`}>{score}</span>
-              <span className="text-[10px] text-slate-500 uppercase tracking-widest">SCORE</span>
-            </div>
-          </div>
+          {/* Trust Score Gauge (semi-circle, cyberpunk style) */}
+          <TrustGauge score={score} className="shrink-0" />
         </div>
+
+        {/* Forensic Evidence: Phishing Kit Detected – right below verdict */}
+        <ForensicBadge kit={phishing_kit} />
 
         {/* AI Conclusion Narrative */}
         {verdict?.ai_conclusion && (

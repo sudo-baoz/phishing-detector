@@ -5,35 +5,67 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.1] - 2026-02-06
+
+### 🔬 Phishing Kit Fingerprinting & Cyberpunk UI
+
+This release adds a **Phishing Kit Fingerprinting** module (forensic signatures) on the backend and three **cyberpunk-style** UI components for the scan result page.
+
+#### Added
+
+- **Phishing Kit Fingerprinting (Backend)**:
+  - [app/core/kit_signatures.py](app/core/kit_signatures.py): Signature library for known phishing kits (16Shop, Z118, Kr3pto, NextGen, HeartBleed, Anti-Bot, Ex-Robots, Manuscrape, Dolphin, Ankos, Greatness, Yahoo, Phenix) — keywords and regex.
+  - [app/services/kit_detector.py](app/services/kit_detector.py): `KitDetector.detect(html_content, url_path)` — matches HTML and URL path against signatures; returns `detected`, `kit_name`, `confidence` (Low/High), `matched_signatures`.
+  - Integration in [app/routers/scan.py](app/routers/scan.py): Runs after deep scan when `raw_html` is available; passes `kit_result` into God Mode context and API response; boosts confidence and sets `threat_type` when a kit is detected.
+  - [app/services/deep_scan.py](app/services/deep_scan.py): Returns `raw_html` (capped at 512KB) in scan result for Kit Detector and YARA.
+  - Schema and response: [app/schemas/scan_new.py](app/schemas/scan_new.py) and [app/services/response_builder.py](app/services/response_builder.py) add `phishing_kit` field.
+
+- **Cyberpunk UI Components (Frontend)**:
+  - [ScanTerminal.jsx](frontend/src/components/ScanTerminal.jsx): **Live Terminal Loader** — replaces spinner while scanning; black background, green monospace text, fake log lines (God Mode, network, Z118/16Shop, redirect, SSL, RAG, YARA, OSINT…); `useEffect` + `setInterval`.
+  - [TrustGauge.jsx](frontend/src/components/TrustGauge.jsx): **Trust Score Gauge** — semi-circle SVG gauge; color by score: 80–100 Safe (green/cyan), 50–79 Suspicious (orange/yellow), 0–49 High Risk (red/glow); no chart library.
+  - [ForensicBadge.jsx](frontend/src/components/ForensicBadge.jsx): **Forensic Evidence Card** — only shown when `phishing_kit.detected === true`; yellow/black diagonal stripe border, Fingerprint icon, "Phishing Kit Detected" headline, kit name, confidence, matched signatures.
+
+#### Changed
+
+- [Scanner.jsx](frontend/src/components/Scanner.jsx): When `loading`, shows `<ScanTerminal />` in the result area; Scan button no longer shows spinner, only "Scanning...".
+- [AnalysisReport.jsx](frontend/src/components/AnalysisReport.jsx): Replaced old circular gauge with `<TrustGauge score={score} />`; added `<ForensicBadge kit={phishing_kit} />` right below verdict; destructure `phishing_kit` from `data`.
+
+#### Files Touched
+
+- **Backend:** app/core/kit_signatures.py (new), app/services/kit_detector.py (new), app/services/deep_scan.py, app/routers/scan.py, app/services/response_builder.py, app/schemas/scan_new.py
+- **Frontend:** frontend/src/components/ScanTerminal.jsx (new), TrustGauge.jsx (new), ForensicBadge.jsx (new), Scanner.jsx, AnalysisReport.jsx, tailwind.config.js (blink animation)
+
+---
+
 ## [1.6.0] - 2026-02-06
 
 ### 🌐 Browser Console Fixes & Backend Venv Documentation
 
-Release tập trung vào sửa lỗi console trình duyệt (404, CSP) và cập nhật tài liệu chạy backend trong môi trường ảo.
+Release focused on fixing browser console errors (404, CSP) and documenting that the backend must run inside a virtual environment.
 
 #### Fixed
 
-- **Lỗi 404 / "normal?lang=auto" trên console**:
-  - Nguyên nhân: Widget Cloudflare Turnstile khi dùng key placeholder/test vẫn gọi Cloudflare và gây 404.
-  - Frontend **không tải widget Turnstile** khi site key là placeholder hoặc trống (dev mode) → không gửi request → hết 404.
+- **404 / "normal?lang=auto" console error**:
+  - Cause: Cloudflare Turnstile widget with placeholder/test key still calls Cloudflare and triggers 404.
+  - Frontend **does not load** the Turnstile widget when site key is placeholder or empty (dev mode) → no request sent → 404 eliminated.
 
-- **Cảnh báo "script-src was not explicitly set" (CSP)**:
-  - Thêm meta `Content-Security-Policy` trong [index.html](frontend/index.html): cho phép `script-src` và `frame-src` với `https://challenges.cloudflare.com` để Turnstile load đúng khi dùng production.
+- **"script-src was not explicitly set" (CSP) warning**:
+  - Added `Content-Security-Policy` meta in [index.html](frontend/index.html): allow `script-src` and `frame-src` for `https://challenges.cloudflare.com` so Turnstile loads correctly in production.
 
 #### Added
 
-- **Dev mode cho Turnstile** ([Scanner.jsx](frontend/src/components/Scanner.jsx)):
-  - Khi `VITE_CLOUDFLARE_SITE_KEY` là placeholder (`1x00000000000000000000AA`) hoặc rỗng: hiển thị "Dev mode — verification skipped", không render widget; scan gửi request không token (backend cần `TURNSTILE_ENABLED=false`).
+- **Turnstile dev mode** ([Scanner.jsx](frontend/src/components/Scanner.jsx)):
+  - When `VITE_CLOUDFLARE_SITE_KEY` is placeholder (`1x00000000000000000000AA`) or empty: shows "Dev mode — verification skipped", does not render widget; scan sends request without token (backend must have `TURNSTILE_ENABLED=false`).
 
-- **README: Backend bắt buộc chạy trong venv**:
-  - Ghi rõ backend **phải** chạy trong môi trường ảo; hướng dẫn kích hoạt: Windows `.venv\Scripts\activate`, Linux/macOS `source .venv/bin/activate`.
-  - Ghi chú dev: đặt `TURNSTILE_ENABLED=false` và dùng key placeholder để tránh 404/console; frontend tự bỏ widget khi key là placeholder.
+- **README: Backend must run in venv**:
+  - States that the backend **must** run inside a virtual environment; activation: Windows `.venv\Scripts\activate`, Linux/macOS `source .venv/bin/activate`.
+  - Dev note: set `TURNSTILE_ENABLED=false` and use placeholder key to avoid 404/console noise; frontend skips the widget when key is placeholder.
 
 #### Files Modified
 
-- [frontend/index.html](frontend/index.html) – CSP meta cho Turnstile
-- [frontend/src/components/Scanner.jsx](frontend/src/components/Scanner.jsx) – Dev mode (ẩn Turnstile khi key placeholder)
-- [README.md](README.md) – Yêu cầu venv, ghi chú dev Turnstile
+- [frontend/index.html](frontend/index.html) — CSP meta for Turnstile
+- [frontend/src/components/Scanner.jsx](frontend/src/components/Scanner.jsx) — Dev mode (hide Turnstile when placeholder key)
+- [README.md](README.md) — Venv requirement, dev Turnstile note
 
 ---
 
@@ -407,10 +439,10 @@ This release introduces a multi-layered security engine designed to "Fail Fast" 
 ## [1.0.0] - 2026-02-04
 
 ### Added
-- Phishing URL detector với ML model
-- Frontend React với giao diện mobile-first
-- Backend FastAPI
-- Chat widget hỗ trợ
+- Phishing URL detector with ML model
+- React frontend with mobile-first UI
+- FastAPI backend
+- Chat widget support
 - Scanner component
 - Analysis Report component
 - Cloudflare Turnstile integration

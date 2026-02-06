@@ -332,14 +332,13 @@ class DeepScanner:
             Dict: Results of entropy analysis.
         """
         try:
-             # Basic fetch to get HTML
+             # Basic fetch to get HTML (reused for kit fingerprinting / YARA)
              response = requests.get(url, timeout=self.timeout)
              content = response.text
-             
+             # Cap size for kit/YARA use (e.g. 500KB) to avoid memory issues
+             raw_html = content[:512000] if len(content) > 512000 else content
+
              # Extract script tags (Naive regex or parser)
-             # Use naive regex for lightweight dependency (avoid bs4 if possible, but bs4 is better)
-             # assuming bs4 might not be installed, use re
-             import re
              scripts = re.findall(r'<script[^>]*>(.*?)</script>', content, re.DOTALL)
              
              max_entropy = 0.0
@@ -354,12 +353,13 @@ class DeepScanner:
              
              return {
                  'max_js_entropy': max_entropy,
-                 'entropy_score': max_entropy, # Frontend combatibility
-                 'risk': risk
+                 'entropy_score': max_entropy,  # Frontend compatibility
+                 'risk': risk,
+                 'raw_html': raw_html,
              }
              
         except Exception:
-            return {'max_js_entropy': 0.0, 'risk': False}
+            return {'max_js_entropy': 0.0, 'risk': False, 'raw_html': None}
 
     def analyze_security_headers(self, url: str) -> Dict[str, Any]:
         """
@@ -520,16 +520,20 @@ class DeepScanner:
         
         # Cap at 100
         score = min(score, 100)
-        
+
+        # Expose raw HTML for Kit Fingerprinting and YARA (from content fetch above)
+        raw_html = entropy_res.get('raw_html')
+
         return {
             'technical_risk_score': score,
             'details': {
                 'ssl': ssl_res,
                 'redirects': redirect_res,
-                'content_entropy': entropy_res,
+                'content_entropy': {k: v for k, v in entropy_res.items() if k != 'raw_html'},
                 'keywords': keyword_res,
                 'security_headers': header_res
-            }
+            },
+            'raw_html': raw_html,
         }
 
 # Singleton

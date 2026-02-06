@@ -723,7 +723,8 @@ class ResponseBuilder:
         vision_result: Optional[Dict[str, Any]] = None,
         threat_graph: Optional[Dict[str, Any]] = None,
         yara_result: Optional[Dict[str, Any]] = None,
-        abuse_report: Optional[Dict[str, Any]] = None
+        abuse_report: Optional[Dict[str, Any]] = None,
+        kit_result: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -821,7 +822,8 @@ class ResponseBuilder:
             # SOC Platform Features
             "threat_graph": threat_graph,  # React Flow compatible graph visualization
             "yara_analysis": yara_result,  # YARA rule matches
-            "abuse_report": abuse_report  # Auto-generated takedown report
+            "abuse_report": abuse_report,  # Auto-generated takedown report
+            "phishing_kit": kit_result,  # Phishing Kit Fingerprinting (kit name, confidence, matched signatures)
         }
 
 
