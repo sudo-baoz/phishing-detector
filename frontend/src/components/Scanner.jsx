@@ -114,6 +114,8 @@ const Scanner = () => {
 
     // Get Turnstile site key from environment
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA';
+    // Dev mode: placeholder/test key → don't load Turnstile (avoids 404 / PAT console noise)
+    const isTurnstileDevMode = !TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY === '1x00000000000000000000AA';
 
     const sanitizeUrl = (inputUrl) => {
         let sanitized = inputUrl.trim();
@@ -169,8 +171,8 @@ const Scanner = () => {
             return;
         }
 
-        // CRITICAL: Verify Turnstile token before proceeding
-        if (!turnstileToken) {
+        // CRITICAL: Verify Turnstile token before proceeding (skip in dev mode when widget is hidden)
+        if (!isTurnstileDevMode && !turnstileToken) {
             setError('Please complete the security verification first.');
             setTurnstileError(true);
             return;
@@ -194,10 +196,10 @@ const Scanner = () => {
                 return;
             }
 
-            // Call API with Turnstile token and Language
-            // The API has 30s timeout configured in api.js
+            // Call API with Turnstile token and Language (token is null in dev mode when backend has TURNSTILE_ENABLED=false)
             const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
-            const response = await scanUrl(sanitizedUrl, true, turnstileToken, currentLang);
+            const tokenToSend = isTurnstileDevMode ? null : turnstileToken;
+            const response = await scanUrl(sanitizedUrl, true, tokenToSend, currentLang);
 
             // Handle successful response
             if (response.success) {
@@ -223,16 +225,15 @@ const Scanner = () => {
                     return;
                 }
 
-                // IMPORTANT: Delay Turnstile reset to prevent interference with result rendering
-                // Immediate reset can cause widget reload that triggers state changes
-                // Wait for results to fully render before resetting the widget
-                setTimeout(() => {
-                    if (turnstileRef.current) {
-                        console.log('🔄 Resetting Turnstile widget for next scan');
-                        turnstileRef.current.reset();
-                    }
-                    setTurnstileToken(null);
-                }, 500);  // 500ms delay to ensure results are displayed first
+                // Reset Turnstile only when widget is shown (not in dev mode)
+                if (!isTurnstileDevMode) {
+                    setTimeout(() => {
+                        if (turnstileRef.current) {
+                            turnstileRef.current.reset();
+                        }
+                        setTurnstileToken(null);
+                    }, 500);
+                }
             } else {
                 // Handle API errors with specific messages
                 let errorMessage = response.error || 'An error occurred while scanning the URL.';
@@ -246,11 +247,8 @@ const Scanner = () => {
 
                 setError(errorMessage);
 
-                // If Turnstile verification failed, reset for retry
-                if (response.code === 'TURNSTILE_REQUIRED' || response.needsRefresh) {
-                    if (turnstileRef.current) {
-                        turnstileRef.current.reset();
-                    }
+                if (!isTurnstileDevMode && (response.code === 'TURNSTILE_REQUIRED' || response.needsRefresh)) {
+                    if (turnstileRef.current) turnstileRef.current.reset();
                     setTurnstileToken(null);
                     setTurnstileError(true);
                 }
@@ -272,11 +270,10 @@ const Scanner = () => {
 
             setError(errorMessage);
 
-            // Reset Turnstile on unexpected errors
-            if (turnstileRef.current) {
+            if (!isTurnstileDevMode && turnstileRef.current) {
                 turnstileRef.current.reset();
+                setTurnstileToken(null);
             }
-            setTurnstileToken(null);
         } finally {
             // CRITICAL: Always reset loading state, even if errors occur
             // This prevents the UI from getting stuck in a loading state
@@ -373,61 +370,67 @@ const Scanner = () => {
                                 <p className="mt-2 text-xs text-gray-500">{t('scanner.example')}</p>
                             </div>
 
-                            {/* Cloudflare Turnstile Widget */}
+                            {/* Cloudflare Turnstile Widget (hidden in dev mode to avoid 404/PAT console errors) */}
                             <div className="flex flex-col items-center gap-2 sm:gap-3">
-                                <div className={`flex items-center justify-center p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 w-full max-w-[320px] min-h-[65px] ${turnstileError
-                                    ? 'border-red-500/50 bg-red-950/20'
-                                    : turnstileToken
-                                        ? 'border-green-500/50 bg-green-950/20'
-                                        : 'border-cyan-500/30 bg-gray-950/30 backdrop-blur-sm'
-                                    }`}>
-                                    <Turnstile
-                                        ref={turnstileRef}
-                                        siteKey={TURNSTILE_SITE_KEY}
-                                        onSuccess={handleTurnstileSuccess}
-                                        onError={handleTurnstileError}
-                                        onExpire={handleTurnstileExpire}
-                                        options={{
-                                            theme: 'dark',
-                                            size: 'normal',
-                                        }}
-                                        scriptOptions={{
-                                            defer: true,           // Defer script loading
-                                            async: true,           // Load script asynchronously
-                                            appendTo: 'body',      // Append to body instead of head
-                                            loadAsync: 'true',     // Cloudflare async mode
-                                        }}
-                                    />
-                                </div>
-
-                                {turnstileToken && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="flex items-center gap-2 text-green-400 text-sm font-medium"
-                                    >
-                                        <Shield className="w-4 h-4" />
-                                        <span>✓ Security verification complete</span>
-                                    </motion.div>
-                                )}
-
-                                {turnstileError && (
-                                    <motion.div
-                                        initial={{ opacity: 0, scale: 0.8 }}
-                                        animate={{ opacity: 1, scale: 1 }}
-                                        className="flex items-center gap-2 text-red-400 text-sm font-medium"
-                                    >
-                                        <AlertTriangle className="w-4 h-4" />
-                                        <span>Please complete verification</span>
-                                    </motion.div>
+                                {isTurnstileDevMode ? (
+                                    <div className="flex items-center justify-center p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 border-amber-500/40 bg-amber-950/20 w-full max-w-[320px] min-h-[65px]">
+                                        <span className="text-amber-400/90 text-sm">Dev mode — verification skipped</span>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <div className={`flex items-center justify-center p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 w-full max-w-[320px] min-h-[65px] ${turnstileError
+                                            ? 'border-red-500/50 bg-red-950/20'
+                                            : turnstileToken
+                                                ? 'border-green-500/50 bg-green-950/20'
+                                                : 'border-cyan-500/30 bg-gray-950/30 backdrop-blur-sm'
+                                            }`}>
+                                            <Turnstile
+                                                ref={turnstileRef}
+                                                siteKey={TURNSTILE_SITE_KEY}
+                                                onSuccess={handleTurnstileSuccess}
+                                                onError={handleTurnstileError}
+                                                onExpire={handleTurnstileExpire}
+                                                options={{
+                                                    theme: 'dark',
+                                                    size: 'normal',
+                                                }}
+                                                scriptOptions={{
+                                                    defer: true,
+                                                    async: true,
+                                                    appendTo: 'body',
+                                                    loadAsync: 'true',
+                                                }}
+                                            />
+                                        </div>
+                                        {turnstileToken && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="flex items-center gap-2 text-green-400 text-sm font-medium"
+                                            >
+                                                <Shield className="w-4 h-4" />
+                                                <span>✓ Security verification complete</span>
+                                            </motion.div>
+                                        )}
+                                        {turnstileError && (
+                                            <motion.div
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="flex items-center gap-2 text-red-400 text-sm font-medium"
+                                            >
+                                                <AlertTriangle className="w-4 h-4" />
+                                                <span>Please complete verification</span>
+                                            </motion.div>
+                                        )}
+                                    </>
                                 )}
                             </div>
 
                             <button
                                 type="submit"
-                                disabled={loading || !turnstileToken}
+                                disabled={loading || (!isTurnstileDevMode && !turnstileToken)}
                                 className={`w-full font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl uppercase tracking-wider transition-all duration-300 transform shadow-lg text-sm sm:text-base min-h-[48px]
-                  ${loading || !turnstileToken
+                  ${loading || (!isTurnstileDevMode && !turnstileToken)
                                         ? 'bg-linear-to-r from-gray-700 to-gray-600 opacity-50 cursor-not-allowed'
                                         : 'bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 sm:hover:scale-105 active:scale-95 shadow-cyan-500/30 hover:shadow-cyan-500/50'
                                     }`}

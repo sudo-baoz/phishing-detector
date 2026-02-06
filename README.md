@@ -80,17 +80,24 @@ cd phishing-detector
 
 ### 2. Backend Setup
 
-```bash
-# Create virtual environment
-python -m venv .venv
-source .venv/bin/activate  # Windows: .venv\Scripts\activate
+**Backend phải chạy trong môi trường ảo (venv).** Nếu không, dependencies có thể conflict với hệ thống.
 
-# Install dependencies
+```bash
+# Tạo môi trường ảo
+python -m venv .venv
+
+# Kích hoạt venv (bắt buộc trước khi chạy backend)
+# Windows (PowerShell/CMD):
+.venv\Scripts\activate
+# Linux/macOS:
+source .venv/bin/activate
+
+# Cài đặt dependencies (trong venv)
 pip install -r requirements.txt
 ```
 
-**Configuration (.env):**
-Create a `.env` file in the root directory:
+**Configuration (.env):**  
+Tạo file `.env` ở thư mục gốc:
 
 ```env
 # Database
@@ -101,18 +108,19 @@ DB_NAME=phishing_detector
 PORT=8000
 DEBUG=false
 
-# CORS (⚠️ Replace with your actual domains)
+# CORS (⚠️ Thay bằng domain frontend của bạn)
 CORS_ORIGINS=https://yourfrontend.com,http://localhost:5173
 
 # Security
 CLOUDFLARE_SECRET_KEY=your_secret_key_here
+# Dev: đặt false để bỏ xác minh Turnstile (tránh lỗi 404/CSP trên console)
 TURNSTILE_ENABLED=true
 
 # AI
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-**Run Server:**
+**Chạy server (luôn trong venv đã activate):**
 
 ```bash
 uvicorn app.main:app --reload --port 8000
@@ -134,7 +142,9 @@ cp .env.example .env
 npm run dev
 ```
 
-Access the application at: `http://localhost:5173`
+Truy cập: `http://localhost:5173`
+
+**Lưu ý (dev):** Nếu dùng key Turnstile mặc định (placeholder), frontend sẽ **không tải widget** để tránh lỗi 404 / "Private Access Token" / CSP trên console. Backend cần `TURNSTILE_ENABLED=false` trong `.env` để chấp nhận request không có token.
 
 ---
 
