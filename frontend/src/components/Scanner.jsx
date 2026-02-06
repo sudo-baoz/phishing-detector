@@ -19,7 +19,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { scanUrl } from '../services/api';
+import { scanUrlStream } from '../services/api';
 import AnalysisReport from './AnalysisReport';
 import ChatWidget from './ChatWidget';
 import ScanTerminal from './ScanTerminal';
@@ -107,6 +107,7 @@ const Scanner = () => {
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
+    const [logs, setLogs] = useState([]);
 
     // Cloudflare Turnstile state
     const [turnstileToken, setTurnstileToken] = useState(null);
@@ -185,96 +186,49 @@ const Scanner = () => {
             setLoading(true);
             setError(null);
             setResult(null);
+            setLogs([]);
             setTurnstileError(false);
 
-            // Sanitize and validate URL before sending
             const sanitizedUrl = sanitizeUrl(url);
-
-            // Check if URL is valid after sanitization
             if (!sanitizedUrl) {
                 setLoading(false);
                 setError(t('scanner.invalid_url') || 'Invalid URL format. Please enter a valid domain (e.g., google.com or https://example.com)');
                 return;
             }
 
-            // Call API with Turnstile token and Language (token is null in dev mode when backend has TURNSTILE_ENABLED=false)
             const currentLang = i18n.language?.startsWith('vi') ? 'vi' : 'en';
             const tokenToSend = isTurnstileDevMode ? null : turnstileToken;
-            const response = await scanUrl(sanitizedUrl, true, tokenToSend, currentLang);
 
-            // Handle successful response
-            if (response.success) {
-                // Defensive check: Ensure response.data exists and is valid
-                if (!response.data) {
-                    console.error('API returned success but no data:', response);
-                    setError('Server returned invalid response. Please try again.');
-                    return;
-                }
-
-                // Log successful response for debugging
-                console.log('✅ Scan completed successfully:', response.data);
-
-                // CRITICAL: Only setResult if data is valid
-                // This prevents React from crashing on malformed data
-                try {
-                    setResult(response.data);
-                    console.log('✅ Result state updated successfully');
-                } catch (renderError) {
-                    console.error('Failed to render result:', renderError);
-                    setError('Failed to display scan results. Please try again.');
-                    setResult(null);
-                    return;
-                }
-
-                // Reset Turnstile only when widget is shown (not in dev mode)
-                if (!isTurnstileDevMode) {
-                    setTimeout(() => {
-                        if (turnstileRef.current) {
-                            turnstileRef.current.reset();
+            await scanUrlStream(
+                sanitizedUrl,
+                true,
+                tokenToSend,
+                currentLang,
+                {
+                    onLog: (message) => setLogs((prev) => [...prev, message]),
+                    onResult: (scanData) => {
+                        setResult(scanData);
+                        setLoading(false);
+                        if (!isTurnstileDevMode) {
+                            setTimeout(() => {
+                                if (turnstileRef.current) turnstileRef.current.reset();
+                                setTurnstileToken(null);
+                            }, 500);
                         }
-                        setTurnstileToken(null);
-                    }, 500);
+                    },
                 }
-            } else {
-                // Handle API errors with specific messages
-                let errorMessage = response.error || 'An error occurred while scanning the URL.';
-
-                // Add helpful context for common errors
-                if (response.code === 'NETWORK_ERROR') {
-                    errorMessage += ' Please check your internet connection and try again.';
-                } else if (response.code === 'TURNSTILE_REQUIRED') {
-                    errorMessage = 'Security verification failed. Please complete the verification again.';
-                }
-
-                setError(errorMessage);
-
-                if (!isTurnstileDevMode && (response.code === 'TURNSTILE_REQUIRED' || response.needsRefresh)) {
-                    if (turnstileRef.current) turnstileRef.current.reset();
-                    setTurnstileToken(null);
-                    setTurnstileError(true);
-                }
-            }
+            );
         } catch (error) {
-            // Catch any unexpected errors (e.g., timeout, network issues)
-            console.error('Unexpected error during URL scan:', error);
-
-            // User-friendly error message
-            let errorMessage = 'An unexpected error occurred. ';
-
-            if (error.code === 'ECONNABORTED' || error.message?.includes('timeout')) {
-                errorMessage = 'The request took too long to complete. The URL might be slow or unreachable. Please try again.';
-            } else if (error.message?.includes('Network Error')) {
-                errorMessage = 'Cannot reach the server. Please check your internet connection and try again.';
-            } else {
-                errorMessage += 'Please try again or contact support if the issue persists.';
+            console.error('Error during URL scan:', error);
+            const errorMessage = error?.message || 'An unexpected error occurred. Please try again.';
+            if (error?.message?.toLowerCase().includes('security') || error?.message?.toLowerCase().includes('verification')) {
+                setTurnstileError(true);
             }
-
-            setError(errorMessage);
-
             if (!isTurnstileDevMode && turnstileRef.current) {
                 turnstileRef.current.reset();
                 setTurnstileToken(null);
             }
+            setError(errorMessage);
         } finally {
             // CRITICAL: Always reset loading state, even if errors occur
             // This prevents the UI from getting stuck in a loading state
@@ -475,7 +429,7 @@ const Scanner = () => {
                         animate={{ opacity: 1, y: 0 }}
                         className="mb-8"
                     >
-                        <ScanTerminal />
+                        <ScanTerminal logs={logs} />
                     </motion.div>
                 )}
 

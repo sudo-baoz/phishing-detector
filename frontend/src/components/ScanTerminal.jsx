@@ -2,53 +2,18 @@
  * Phishing Detector - AI-Powered Threat Intelligence System
  * Copyright (c) 2026 BaoZ
  *
- * Live Terminal Loader – Cyberpunk-style scanning simulation.
- * Replaces the default spinner while the scan API is in progress.
+ * Live Terminal – Displays real-time log lines (from NDJSON stream or fallback).
+ * Accepts `logs` prop (array of strings); auto-scrolls to bottom when new logs arrive.
  */
 
-import { useState, useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
-const LOG_LINES = [
-  '[*] Initializing God Mode AI...',
-  '[+] Intercepting network traffic...',
-  '[!] Scanning for Z118/16Shop signatures...',
-  '[+] Tracing redirect chain...',
-  '[*] Analyzing SSL Certificates...',
-  '[+] Checking RAG threat database...',
-  '[*] Running YARA pattern match...',
-  '[+] OSINT enrichment in progress...',
-  '[*] Building threat graph...',
-  '[.] Awaiting verdict...',
-];
-
-const ScanTerminal = () => {
-  const [visibleLines, setVisibleLines] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
+const ScanTerminal = ({ logs = [] }) => {
+  const bottomRef = useRef(null);
 
   useEffect(() => {
-    const interval = setInterval(() => {
-      setCurrentIndex((i) => {
-        if (i < LOG_LINES.length) {
-          setVisibleLines((prev) => [...prev, LOG_LINES[i]]);
-          return i + 1;
-        }
-        return i;
-      });
-    }, 400);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  // Cycle back to start for long scans
-  useEffect(() => {
-    if (currentIndex >= LOG_LINES.length) {
-      const reset = setTimeout(() => {
-        setVisibleLines([]);
-        setCurrentIndex(0);
-      }, 800);
-      return () => clearTimeout(reset);
-    }
-  }, [currentIndex]);
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
   return (
     <div className="w-full max-w-2xl mx-auto rounded-lg border-2 border-green-500/50 bg-black shadow-[0_0_20px_rgba(0,255,0,0.15)] overflow-hidden font-mono">
@@ -58,17 +23,17 @@ const ScanTerminal = () => {
         <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
         <span className="text-green-500/80 text-xs ml-2">scan_session</span>
       </div>
-      <div className="p-4 min-h-[180px] text-green-400 text-sm sm:text-base" style={{ color: '#00ff00' }}>
-        {visibleLines.length === 0 && (
+      <div className="p-4 min-h-[180px] max-h-[320px] overflow-y-auto text-green-400 text-sm sm:text-base" style={{ color: '#00ff00' }}>
+        {logs.length === 0 && (
           <span className="animate-pulse">Connecting...</span>
         )}
-        {visibleLines.map((line, i) => (
+        {logs.map((line, i) => (
           <div key={i} className="animate-fadeIn">
             <span className="text-green-500/70 select-none">{'> '}</span>
             {line}
           </div>
         ))}
-        <span className="inline-block w-2 h-4 ml-0.5 bg-green-400 animate-blink" aria-hidden="true" />
+        <span ref={bottomRef} className="inline-block w-2 h-4 ml-0.5 bg-green-400 animate-blink" aria-hidden="true" />
       </div>
     </div>
   );

@@ -108,4 +108,84 @@ export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null, l
   }
 };
 
+/**
+ * Scan URL with NDJSON streaming: consumes real-time log lines and final result.
+ * @param {string} url - URL to scan
+ * @param {boolean} deepAnalysis - Enable deep analysis
+ * @param {string|null} turnstileToken - Cloudflare Turnstile token
+ * @param {string} language - Language code (en/vi)
+ * @param {object} callbacks - { onLog: (message: string) => void, onResult: (data: object) => void }
+ * @returns {Promise<object>} Resolves with final scan result; rejects on stream error or type: "error"
+ */
+export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = null, language = 'en', callbacks = {}) => {
+  const { onLog = () => {}, onResult = () => {} } = callbacks;
+  const headers = {
+    'Content-Type': 'application/json',
+  };
+  if (turnstileToken) {
+    headers['cf-turnstile-response'] = turnstileToken;
+  }
+  const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+  const res = await fetch(`${baseURL}/scan/stream`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      url,
+      include_osint: true,
+      deep_analysis: deepAnalysis,
+      language,
+    }),
+  });
+  if (!res.ok) {
+    const errBody = await res.text();
+    let detail = res.status === 403 ? 'Security verification failed. Please complete the verification again.' : (errBody || 'Server error');
+    if (res.status === 503) detail = 'Server busy, please try again in a few seconds.';
+    throw new Error(detail);
+  }
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      try {
+        const obj = JSON.parse(trimmed);
+        if (obj.type === 'log' && obj.message != null) {
+          onLog(obj.message);
+        } else if (obj.type === 'result' && obj.data != null) {
+          onResult(obj.data);
+          return obj.data;
+        } else if (obj.type === 'error') {
+          throw new Error(obj.message || 'Scan failed');
+        }
+      } catch (e) {
+        if (e instanceof SyntaxError) continue;
+        throw e;
+      }
+    }
+  }
+  if (buffer.trim()) {
+    try {
+      const obj = JSON.parse(buffer.trim());
+      if (obj.type === 'result' && obj.data != null) {
+        onResult(obj.data);
+        return obj.data;
+      }
+      if (obj.type === 'error') throw new Error(obj.message || 'Scan failed');
+    } catch (e) {
+      if (e instanceof SyntaxError) {
+        throw new Error('Stream ended without result');
+      }
+      throw e;
+    }
+  }
+  throw new Error('Stream ended without result');
+};
+
 export default api;
