@@ -114,11 +114,11 @@ export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null, l
  * @param {boolean} deepAnalysis - Enable deep analysis
  * @param {string|null} turnstileToken - Cloudflare Turnstile token
  * @param {string} language - Language code (en/vi)
- * @param {object} callbacks - { onLog: (message: string) => void, onResult: (data: object) => void }
+ * @param {object} callbacks - { onLog, onResult, onError } — onError(message) called when stream yields type: "error"
  * @returns {Promise<object>} Resolves with final scan result; rejects on stream error or type: "error"
  */
 export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = null, language = 'en', callbacks = {}) => {
-  const { onLog = () => {}, onResult = () => {} } = callbacks;
+  const { onLog = () => {}, onResult = () => {}, onError = () => {} } = callbacks;
   const headers = {
     'Content-Type': 'application/json',
   };
@@ -162,7 +162,9 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
           onResult(obj.data);
           return obj.data;
         } else if (obj.type === 'error') {
-          throw new Error(obj.message || 'Scan failed');
+          const msg = obj.message || 'Scan failed';
+          onError(msg);
+          throw new Error(msg);
         }
       } catch (e) {
         if (e instanceof SyntaxError) continue;
@@ -177,7 +179,11 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
         onResult(obj.data);
         return obj.data;
       }
-      if (obj.type === 'error') throw new Error(obj.message || 'Scan failed');
+      if (obj.type === 'error') {
+        const msg = obj.message || 'Scan failed';
+        onError(msg);
+        throw new Error(msg);
+      }
     } catch (e) {
       if (e instanceof SyntaxError) {
         throw new Error('Stream ended without result');

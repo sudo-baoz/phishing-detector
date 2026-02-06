@@ -216,6 +216,14 @@ const Scanner = () => {
                             }, 500);
                         }
                     },
+                    onError: (message) => {
+                        setError(message);
+                        setLoading(false);
+                        if (!isTurnstileDevMode && turnstileRef.current) {
+                            turnstileRef.current.reset();
+                            setTurnstileToken(null);
+                        }
+                    },
                 }
             );
         } catch (error) {

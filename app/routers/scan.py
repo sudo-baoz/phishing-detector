@@ -143,7 +143,8 @@ async def scan_url_stream(
 ):
     """
     Scan a URL with NDJSON streaming: log lines first, then final result.
-    Response: application/x-ndjson. Each line is JSON: {"type": "log", "message": "..."} or {"type": "result", "data": {...}} or {"type": "error", "message": "..."}.
+    All failures (Turnstile, timeout, crash) are yielded as {"type": "error", "message": "..."}
+    so we never raise after the response has started.
     """
     semaphore = request.app.state.scan_semaphore
     timeout = request.app.state.scan_timeout
@@ -152,12 +153,26 @@ async def scan_url_stream(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Server busy, please try again in a few seconds",
         )
-    try:
-        turnstile_verified = await verify_turnstile(request)
-    except HTTPException:
-        raise
 
     async def event_generator():
+        try:
+            # 1. Turnstile check inside generator – if it fails, we yield error instead of raising
+            await verify_turnstile(request)
+            yield json.dumps({"type": "log", "message": "🚀 Captcha verified. Starting scan..."}) + "\n"
+        except HTTPException as e:
+            if isinstance(e.detail, str):
+                error_msg = e.detail
+            elif isinstance(e.detail, dict):
+                error_msg = e.detail.get("message", e.detail.get("detail", str(e.detail)))
+            else:
+                error_msg = str(e.detail)
+            yield json.dumps({"type": "error", "message": error_msg}) + "\n"
+            return
+        except Exception as e:
+            logger.exception("Stream: Turnstile/early error: %s", e)
+            yield json.dumps({"type": "error", "message": "Security verification failed."}) + "\n"
+            return
+
         async with semaphore:
             queue = asyncio.Queue()
             async def log_cb(msg: str) -> None:
@@ -172,14 +187,15 @@ async def scan_url_stream(
                     await queue.put(("result", result))
                 except asyncio.TimeoutError:
                     await queue.put(("error", "Scan timed out."))
-                except HTTPException:
-                    raise
+                except HTTPException as e:
+                    error_msg = e.detail if isinstance(e.detail, str) else str(e.detail)
+                    await queue.put(("error", error_msg))
                 except Exception as e:
-                    await queue.put(("error", str(e)))
+                    logger.exception("Stream: scan error: %s", e)
+                    await queue.put(("error", "Internal server error during scan."))
 
             task = asyncio.create_task(run_scan())
             try:
-                yield json.dumps({"type": "log", "message": "🚀 Initializing scan..."}) + "\n"
                 while True:
                     item = await queue.get()
                     if item[0] == "log":
