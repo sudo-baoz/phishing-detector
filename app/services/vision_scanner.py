@@ -56,6 +56,14 @@ except ImportError:
     STEALTH_AVAILABLE = False
     logger.warning("playwright-stealth not installed. Stealth mode will be limited.")
 
+# Captcha solver (Strategy Pattern)
+try:
+    from app.services.captcha_manager import CaptchaFactory
+    CAPTCHA_AVAILABLE = True
+except ImportError:
+    CAPTCHA_AVAILABLE = False
+    CaptchaFactory = None
+
 
 # ============================================================================
 # STATIC CONFIGURATION (Safe to share across requests)
@@ -428,6 +436,34 @@ async def full_scan(url: str) -> Dict[str, Any]:
         
         # Wait for dynamic content
         await asyncio.sleep(2)
+        
+        # ============================================================
+        # CAPTCHA BYPASS (if detected and solver configured)
+        # ============================================================
+        if CAPTCHA_AVAILABLE and CaptchaFactory:
+            try:
+                # Detect captcha widget and optional sitekey
+                captcha_info = await page.evaluate("""
+                    () => {
+                        const turnstile = document.querySelector('[data-sitekey]');
+                        const recaptcha = document.querySelector('.g-recaptcha[data-sitekey], [data-sitekey]');
+                        const sitekey = (turnstile || recaptcha)?.getAttribute('data-sitekey') || '';
+                        const hasIframe = !!document.querySelector('iframe[src*="challenges.cloudflare.com"], iframe[src*="recaptcha"]');
+                        return { sitekey, present: !!(turnstile || recaptcha || hasIframe) };
+                    }
+                """)
+                if captcha_info.get("present") or bot_check_triggered:
+                    solver = CaptchaFactory.get_solver()
+                    sitekey = captcha_info.get("sitekey") or None
+                    current_url = page.url or url
+                    is_solved = await solver.solve(page, sitekey=sitekey, url=current_url)
+                    if is_solved:
+                        logger.info("✅ Captcha bypassed!")
+                        await asyncio.sleep(1)
+                    else:
+                        logger.warning("❌ Failed to solve captcha.")
+            except Exception as cap_err:
+                logger.warning(f"[VisionScanner] Captcha solver error (continuing): {cap_err}")
         
         # ============================================================
         # DETECT EVASION TECHNIQUES

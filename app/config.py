@@ -51,6 +51,10 @@ class Settings(BaseSettings):
     CLOUDFLARE_SECRET_KEY: str = ""
     TURNSTILE_ENABLED: bool = True  # Toggle Turnstile verification
     
+    # Captcha solver (FREE | 2CAPTCHA | CAPSOLVER)
+    CAPTCHA_PROVIDER: Literal["FREE", "2CAPTCHA", "CAPSOLVER"] = "FREE"
+    CAPTCHA_API_KEY: str = ""  # Required for 2CAPTCHA and CAPSOLVER
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",

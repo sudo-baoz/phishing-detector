@@ -208,20 +208,11 @@ const Scanner = () => {
                     onLog: (message) => setLogs((prev) => [...prev, message]),
                     onResult: (scanData) => {
                         setResult(scanData);
-                        setLoading(false);
-                        if (!isTurnstileDevMode) {
-                            setTimeout(() => {
-                                if (turnstileRef.current) turnstileRef.current.reset();
-                                setTurnstileToken(null);
-                            }, 500);
-                        }
                     },
                     onError: (message) => {
                         setError(message);
-                        setLoading(false);
-                        if (!isTurnstileDevMode && turnstileRef.current) {
-                            turnstileRef.current.reset();
-                            setTurnstileToken(null);
+                        if (message?.toLowerCase().includes('security') || message?.toLowerCase().includes('verification')) {
+                            setTurnstileError(true);
                         }
                     },
                 }
@@ -232,15 +223,15 @@ const Scanner = () => {
             if (error?.message?.toLowerCase().includes('security') || error?.message?.toLowerCase().includes('verification')) {
                 setTurnstileError(true);
             }
-            if (!isTurnstileDevMode && turnstileRef.current) {
-                turnstileRef.current.reset();
-                setTurnstileToken(null);
-            }
             setError(errorMessage);
         } finally {
-            // CRITICAL: Always reset loading state, even if errors occur
-            // This prevents the UI from getting stuck in a loading state
+            // Always re-enable button and stop loading
             setLoading(false);
+            // CRITICAL: Reset Turnstile so the next scan gets a fresh token (prevents expired/reused token errors)
+            if (!isTurnstileDevMode && turnstileRef.current) {
+                turnstileRef.current.reset();
+            }
+            setTurnstileToken(null);
         }
     };
 
