@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-02-06
+
+### 🌐 Browser Console Fixes & Backend Venv Documentation
+
+Release tập trung vào sửa lỗi console trình duyệt (404, CSP) và cập nhật tài liệu chạy backend trong môi trường ảo.
+
+#### Fixed
+
+- **Lỗi 404 / "normal?lang=auto" trên console**:
+  - Nguyên nhân: Widget Cloudflare Turnstile khi dùng key placeholder/test vẫn gọi Cloudflare và gây 404.
+  - Frontend **không tải widget Turnstile** khi site key là placeholder hoặc trống (dev mode) → không gửi request → hết 404.
+
+- **Cảnh báo "script-src was not explicitly set" (CSP)**:
+  - Thêm meta `Content-Security-Policy` trong [index.html](frontend/index.html): cho phép `script-src` và `frame-src` với `https://challenges.cloudflare.com` để Turnstile load đúng khi dùng production.
+
+#### Added
+
+- **Dev mode cho Turnstile** ([Scanner.jsx](frontend/src/components/Scanner.jsx)):
+  - Khi `VITE_CLOUDFLARE_SITE_KEY` là placeholder (`1x00000000000000000000AA`) hoặc rỗng: hiển thị "Dev mode — verification skipped", không render widget; scan gửi request không token (backend cần `TURNSTILE_ENABLED=false`).
+
+- **README: Backend bắt buộc chạy trong venv**:
+  - Ghi rõ backend **phải** chạy trong môi trường ảo; hướng dẫn kích hoạt: Windows `.venv\Scripts\activate`, Linux/macOS `source .venv/bin/activate`.
+  - Ghi chú dev: đặt `TURNSTILE_ENABLED=false` và dùng key placeholder để tránh 404/console; frontend tự bỏ widget khi key là placeholder.
+
+#### Files Modified
+
+- [frontend/index.html](frontend/index.html) – CSP meta cho Turnstile
+- [frontend/src/components/Scanner.jsx](frontend/src/components/Scanner.jsx) – Dev mode (ẩn Turnstile khi key placeholder)
+- [README.md](README.md) – Yêu cầu venv, ghi chú dev Turnstile
+
+---
+
 ## [1.5.3] - 2026-02-05
 
 ### ⚡ Performance Optimization & Timeout Fixes
