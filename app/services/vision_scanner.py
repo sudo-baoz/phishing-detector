@@ -123,6 +123,106 @@ BOT_CHECK_DOMAINS = [
 # Default timeout
 PAGE_TIMEOUT = 30000  # 30 seconds
 
+# Soft-block (Cloudflare / captcha) detection keywords in title or body
+SOFT_BLOCK_TITLE_KEYWORDS = [
+    "just a moment",
+    "verify you are human",
+    "security check",
+    "attention required",
+    "checking your browser",
+    "ddos protection",
+    "please wait",
+]
+SOFT_BLOCK_BODY_MARKERS = [
+    "challenges.cloudflare.com",
+    "cf-browser-verification",
+    "turnstile",
+    "g-recaptcha",
+    "recaptcha/api",
+]
+# Bypass attempt: give up after this many seconds and snapshot whatever is there
+SOFT_BLOCK_BYPASS_TIMEOUT = 10
+
+
+# ============================================================================
+# SOFT-BLOCK BYPASS (Smart Wait & Click)
+# ============================================================================
+
+async def _is_soft_block_page(page: Page) -> bool:
+    """Return True if the current page looks like a Cloudflare/captcha verification screen."""
+    try:
+        title = (await page.title() or "").lower()
+        for kw in SOFT_BLOCK_TITLE_KEYWORDS:
+            if kw in title:
+                return True
+        content = await page.content()
+        for marker in SOFT_BLOCK_BODY_MARKERS:
+            if marker in content:
+                return True
+    except Exception:
+        pass
+    return False
+
+
+async def _try_bypass_cloudflare_click(page: Page) -> bool:
+    """
+    Attempt to bypass a Cloudflare / Turnstile "soft block" by waiting for the
+    challenge iframe, hovering, random delay, and clicking the checkbox.
+    Returns True if we believe the challenge was passed (e.g. redirect or content changed).
+    """
+    try:
+        # Wait for Cloudflare challenge iframe
+        frame_el = await page.wait_for_selector(
+            "iframe[src*='challenges.cloudflare.com'], iframe[src*='challenges'], #turnstile-wrapper iframe",
+            timeout=5000,
+        )
+        if not frame_el:
+            return False
+        frame = await frame_el.content_frame()
+        if not frame:
+            return False
+        # Find clickable area (checkbox or label inside the challenge frame)
+        checkbox = await frame.wait_for_selector(
+            "input[type='checkbox'], .ctp-checkbox-label, .mark, body",
+            timeout=3000,
+        )
+        if not checkbox:
+            return False
+        await checkbox.hover()
+        delay_ms = random.randint(500, 1500)
+        await page.wait_for_timeout(delay_ms)
+        await checkbox.click()
+        logger.info("[VisionScanner] Clicked Cloudflare widget. Waiting for reload...")
+        await page.wait_for_load_state("networkidle", timeout=8000)
+        return True
+    except Exception as e:
+        logger.debug(f"[VisionScanner] Inline bypass attempt failed: {e}")
+        return False
+
+
+async def _try_bypass_soft_block(page: Page, url: str) -> bool:
+    """
+    If the page looks like a soft-block (Cloudflare/captcha), try the smart
+    wait & click bypass. Total time limited by SOFT_BLOCK_BYPASS_TIMEOUT.
+    Returns True if bypass succeeded or no soft-block detected; False on timeout/failure.
+    """
+    if not await _is_soft_block_page(page):
+        return True
+    logger.warning(f"🚧 Cloaking detected on {url}. Attempting bypass...")
+    try:
+        await asyncio.wait_for(
+            _try_bypass_cloudflare_click(page),
+            timeout=SOFT_BLOCK_BYPASS_TIMEOUT,
+        )
+        logger.info("✅ Bypass completed (or page updated).")
+        return True
+    except asyncio.TimeoutError:
+        logger.warning(f"⚠️ Bypass timed out after {SOFT_BLOCK_BYPASS_TIMEOUT}s. Snapshotting current page.")
+        return False
+    except Exception as e:
+        logger.warning(f"⚠️ Bypass failed: {e}. Snapshotting current page.")
+        return False
+
 
 # ============================================================================
 # STATELESS DETECTION FUNCTIONS
@@ -426,19 +526,23 @@ async def full_scan(url: str) -> Dict[str, Any]:
         page.on("response", response_handler)
         
         # ============================================================
-        # NAVIGATE with timeout tolerance
+        # NAVIGATE with timeout tolerance (domcontentloaded for faster first paint)
         # ============================================================
         try:
-            await page.goto(url, timeout=PAGE_TIMEOUT, wait_until='networkidle')
+            await page.goto(url, timeout=15000, wait_until="domcontentloaded")
         except Exception as nav_error:
-            # Page may still have loaded partially - continue analysis
             logger.warning(f"[VisionScanner] Navigation warning (continuing): {str(nav_error)[:100]}")
         
-        # Wait for dynamic content
+        # Wait for dynamic content and challenge widgets to appear
         await asyncio.sleep(2)
         
         # ============================================================
-        # CAPTCHA BYPASS (if detected and solver configured)
+        # SOFT-BLOCK BYPASS (Smart Wait & Click — Cloudflare / Turnstile)
+        # ============================================================
+        await _try_bypass_soft_block(page, url)
+        
+        # ============================================================
+        # CAPTCHA BYPASS (Strategy Pattern: StealthClick / 2Captcha / CapSolver)
         # ============================================================
         if CAPTCHA_AVAILABLE and CaptchaFactory:
             try:
