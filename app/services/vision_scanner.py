@@ -70,6 +70,14 @@ except ImportError:
     CAPTCHA_AVAILABLE = False
     CaptchaFactory = None
 
+# Network traffic analyzer (XHR/Fetch exfiltration)
+try:
+    from app.services.network_forensics import NetworkAnalyzer
+    NETWORK_ANALYZER_AVAILABLE = True
+except ImportError:
+    NETWORK_ANALYZER_AVAILABLE = False
+    NetworkAnalyzer = None
+
 
 # ============================================================================
 # STATIC CONFIGURATION (Safe to share across requests)
@@ -443,6 +451,8 @@ async def full_scan(url: str) -> Dict[str, Any]:
         'url': url,
         'evasion': None,
         'connections': None,
+        'network_logs': [],
+        'network_analysis': None,
         'screenshot_path': None,
         'error': None,
         'bot_check_triggered': False
@@ -458,6 +468,7 @@ async def full_scan(url: str) -> Dict[str, Any]:
     trackers: Set[str] = set()
     total_requests = 0
     bot_check_triggered = False
+    network_logs: List[Dict[str, Any]] = []  # XHR/Fetch capture for exfiltration analysis
     
     # Parse main domain for comparison
     main_parsed = urlparse(url)
@@ -518,10 +529,10 @@ async def full_scan(url: str) -> Dict[str, Any]:
             logger.debug("[VisionScanner] Stealth mode applied")
         
         # ============================================================
-        # REQUEST HANDLER with 401/403 tolerance
+        # REQUEST HANDLER: connections + XHR/Fetch capture for exfiltration
         # ============================================================
         def request_handler(request):
-            nonlocal external_domains, suspicious_ips, trackers, total_requests
+            nonlocal external_domains, suspicious_ips, trackers, total_requests, network_logs
             try:
                 req_url = request.url
                 parsed = urlparse(req_url)
@@ -531,7 +542,20 @@ async def full_scan(url: str) -> Dict[str, Any]:
                 if not req_domain:
                     return
                 total_requests += 1
-                
+
+                # Capture XHR/Fetch for exfiltration analysis (URL, method, post_data)
+                try:
+                    res_type = getattr(request, "resource_type", None) or ""
+                    if res_type in ("xhr", "fetch"):
+                        post_data = getattr(request, "post_data", None)
+                        network_logs.append({
+                            "url": req_url,
+                            "method": (getattr(request, "method", None) or "GET").upper(),
+                            "post_data": post_data[:2000] if post_data else None,
+                        })
+                except Exception:
+                    pass
+
                 if ip_pattern.match(req_domain):
                     suspicious_ips.add(req_domain)
                     return
@@ -658,6 +682,38 @@ async def full_scan(url: str) -> Dict[str, Any]:
             'total_requests': total_requests,
             'cross_origin_count': len(external_domains)
         }
+
+        # ============================================================
+        # NETWORK TRAFFIC (XHR/Fetch) + EXFILTRATION ANALYSIS
+        # ============================================================
+        result['network_logs'] = network_logs
+        if NETWORK_ANALYZER_AVAILABLE and NetworkAnalyzer:
+            try:
+                result['network_analysis'] = NetworkAnalyzer.analyze_traffic(network_logs)
+                if result['network_analysis'].get('exfiltration_detected'):
+                    result['evasion'] = result['evasion'] or {}
+                    if isinstance(result['evasion'], dict):
+                        result['evasion']['evasion_detected'] = (
+                            result['evasion'].get('evasion_detected', False) or True
+                        )
+                        result['evasion'].setdefault('details', {})['exfiltration_risk'] = (
+                            result['network_analysis'].get('high_risk_findings', [])
+                        )
+            except Exception as na_err:
+                logger.debug("[VisionScanner] Network analysis failed: %s", na_err)
+                result['network_analysis'] = {
+                    'high_risk_findings': [],
+                    'total_captured': len(network_logs),
+                    'post_requests': sum(1 for r in network_logs if (r.get('method') or '').upper() == 'POST'),
+                    'exfiltration_detected': False,
+                }
+        else:
+            result['network_analysis'] = {
+                'high_risk_findings': [],
+                'total_captured': len(network_logs),
+                'post_requests': sum(1 for r in network_logs if (r.get('method') or '').upper() == 'POST'),
+                'exfiltration_detected': False,
+            }
         
         result['bot_check_triggered'] = bot_check_triggered
         

@@ -156,3 +156,112 @@ class NetworkForensics:
 
 # Singleton
 network_forensics = NetworkForensics()
+
+
+# =============================================================================
+# NETWORK TRAFFIC ANALYZER (XHR/Fetch exfiltration indicators)
+# =============================================================================
+
+# Signatures commonly used for credential exfiltration or C2
+SUSPICIOUS_ENDPOINTS = [
+    "api.telegram.org/bot",
+    "discord.com/api/webhooks",
+    "discordapp.com/api/webhooks",
+    "formsubmit.co",
+    "googleusercontent.com",  # Sometimes abused for C2
+    "webhook.site",
+    "requestbin.com",
+    "postman-echo.com",
+    "pipedream.com",
+    ".php",  # Generic PHP backend (login.php, save.php) - match as substring
+]
+
+
+class NetworkAnalyzer:
+    """
+    Analyzes captured XHR/Fetch traffic for exfiltration indicators.
+    Phishing sites often POST stolen data to Telegram bots, Discord webhooks, or form handlers.
+    """
+
+    @staticmethod
+    def _describe_destination(url: str) -> str:
+        """Return a short human-readable description of the destination."""
+        url_lower = url.lower()
+        if "api.telegram.org" in url_lower and "/bot" in url_lower:
+            return "Sending data to Telegram Bot API"
+        if "discord.com/api/webhooks" in url_lower or "discordapp.com/api/webhooks" in url_lower:
+            return "Sending data to Discord Webhook"
+        if "formsubmit.co" in url_lower:
+            return "Form submission to FormSubmit.co (often abused)"
+        if "webhook.site" in url_lower:
+            return "Sending data to Webhook.site (testing/exfiltration)"
+        if "requestbin" in url_lower:
+            return "Sending data to RequestBin"
+        if ".php" in url_lower:
+            return "POST to PHP backend (possible credential handler)"
+        if "googleusercontent.com" in url_lower:
+            return "Request to Google user content (possible C2)"
+        return "Sending data to suspicious endpoint"
+
+    @classmethod
+    def analyze_traffic(cls, requests_list: list) -> Dict[str, Any]:
+        """
+        Analyze a list of captured requests (from VisionScanner) for exfiltration indicators.
+
+        Args:
+            requests_list: List of dicts with keys: url, method, post_data (optional)
+
+        Returns:
+            Dict with:
+              - high_risk_findings: list of {url, method, destination_description, risk: "HIGH"}
+              - total_captured: int
+              - post_requests: int
+              - exfiltration_detected: bool
+        """
+        high_risk_findings = []
+        total_captured = len(requests_list)
+        post_requests = 0
+
+        for req in requests_list or []:
+            url = (req.get("url") or "").strip()
+            method = (req.get("method") or "GET").upper()
+            if not url:
+                continue
+            if method == "POST":
+                post_requests += 1
+
+            url_lower = url.lower()
+            matched = False
+            for sig in SUSPICIOUS_ENDPOINTS:
+                if sig.startswith("."):
+                    if sig in url_lower:
+                        matched = True
+                        break
+                elif sig in url_lower:
+                    matched = True
+                    break
+
+            if matched and method == "POST":
+                desc = cls._describe_destination(url)
+                high_risk_findings.append({
+                    "url": url[:500],
+                    "method": method,
+                    "destination_description": desc,
+                    "risk": "HIGH",
+                    "has_post_data": bool(req.get("post_data")),
+                })
+
+        exfiltration_detected = len(high_risk_findings) > 0
+        if exfiltration_detected:
+            logger.warning(
+                "[NetworkAnalyzer] Exfiltration indicators: %d HIGH RISK request(s) (e.g. %s)",
+                len(high_risk_findings),
+                high_risk_findings[0].get("destination_description", "unknown"),
+            )
+
+        return {
+            "high_risk_findings": high_risk_findings,
+            "total_captured": total_captured,
+            "post_requests": post_requests,
+            "exfiltration_detected": exfiltration_detected,
+        }

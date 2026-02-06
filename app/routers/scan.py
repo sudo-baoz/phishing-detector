@@ -42,6 +42,7 @@ from app.services.osint import collect_osint_data, get_osint_summary
 from app.services.knowledge_base import knowledge_base
 from app.services.response_builder import response_builder
 from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
+from app.services.logic_analyzer import LegitimacyChecker  # Official domain whitelist (avoid false positives)
 from app.services.deep_scan import deep_scanner
 from app.services.cert_monitor import check_realtime_threat  # Zero-Day Detection
 from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available, is_quota_exceeded  # God Mode AI
@@ -582,6 +583,30 @@ async def _perform_scan(
                 god_mode_result = None
         
         # ============================================================
+        # LEGITIMACY CHECK: If AI detected a brand, verify URL is official (avoid false positives)
+        # ============================================================
+        official_site_override = None
+        detected_brand = None
+        if god_mode_result:
+            detected_brand = god_mode_result.get("impersonation_target") or god_mode_result.get("brand_impersonated")
+        if detected_brand and (str(detected_brand).strip() or "").lower() not in ("none", ""):
+            if LegitimacyChecker.is_authorized(final_url, detected_brand):
+                logger.info(f"[LegitimacyChecker] Overriding verdict: {final_url} is official {detected_brand}")
+                is_phishing = False
+                confidence_score = 0.0
+                threat_type = None
+                official_site_override = {
+                    "brand": detected_brand,
+                    "summary": f"Verified official website of {detected_brand}.",
+                }
+                if god_mode_result:
+                    god_mode_result = dict(god_mode_result)
+                    god_mode_result["verdict"] = "SAFE"
+                    god_mode_result["risk_score"] = 0
+                    god_mode_result["impersonation_target"] = None
+                    god_mode_result["summary"] = official_site_override["summary"]
+        
+        # ============================================================
         # STEP 3.9: SOC PLATFORM FEATURES
         # ============================================================
         await _log("[*] Building threat graph...")
@@ -693,6 +718,7 @@ async def _perform_scan(
             yara_result=yara_result,  # SOC: YARA Analysis
             abuse_report=abuse_report,  # SOC: Takedown Report
             kit_result=kit_result,  # Phishing Kit Fingerprinting
+            official_site_override=official_site_override,  # LegitimacyChecker: verified official domain
         )
         
         # Convert to Pydantic models

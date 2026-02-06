@@ -30,6 +30,7 @@ from typing import Dict, Any, Optional, List
 import google.generativeai as genai
 from app.config import settings
 from app.core.prompts import GOD_MODE_SYSTEM_PROMPT
+from app.services.osint_analyzer import get_deep_analyst
 
 logger = logging.getLogger(__name__)
 
@@ -216,6 +217,15 @@ class GodModeAnalyzer:
         """Build the user prompt for God Mode analysis"""
         
         prompt_parts = [f"=== TARGET URL ===\n{url}"]
+
+        # OSINT: Domain age, registrar, SSL (evidence-based; scammers cannot fake these)
+        try:
+            osint_result = get_deep_analyst().analyze_domain(url)
+            osint_json = json.dumps(osint_result, indent=2, default=str)
+            prompt_parts.append(f"\n=== OSINT DATA (Domain Age, Registrar, SSL) ===\n{osint_json}")
+        except Exception as e:
+            logger.debug("DeepAnalyst OSINT failed: %s", e)
+            prompt_parts.append("\n=== OSINT DATA ===\n{\"error\": \"OSINT lookup failed\", \"risk_factors\": [\"WARNING: OSINT unavailable.\"]}")
         
         # Add DOM content if available
         if dom_text:
@@ -242,8 +252,8 @@ class GodModeAnalyzer:
                 )
         
         prompt_parts.append("\n\n=== ANALYSIS REQUEST ===")
-        prompt_parts.append("Perform comprehensive phishing analysis using your Chain of Thought protocol.")
-        prompt_parts.append("Return your verdict as structured JSON.")
+        prompt_parts.append("Combine the OSINT data (domain age, registrar, SSL) with the URL, page content, and threat intelligence above.")
+        prompt_parts.append("Perform evidence-based phishing analysis. Return your verdict as structured JSON.")
         
         return "\n".join(prompt_parts)
     

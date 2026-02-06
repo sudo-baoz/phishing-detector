@@ -32,6 +32,11 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
+try:
+    from app.services.logic_analyzer import LegitimacyChecker
+except ImportError:
+    LegitimacyChecker = None
+
 
 # Known brands for impersonation detection
 KNOWN_BRANDS = {
@@ -407,9 +412,18 @@ class ResponseBuilder:
         rag_results: Optional[List[Dict[str, Any]]] = None,
         language: str = "en"
     ) -> Dict[str, Any]:
-        """Build verdict data with enhanced AI insights"""
+        """Build verdict data with enhanced AI insights. Applies LegitimacyChecker to avoid false positives on official domains."""
         risk_level = ResponseBuilder.calculate_risk_level(confidence_score, is_phishing)
         target_brand = ResponseBuilder.detect_target_brand(url, threat_type) if is_phishing else None
+        official_brand_summary = None
+        if is_phishing and target_brand and LegitimacyChecker:
+            if LegitimacyChecker.is_authorized(url, target_brand):
+                official_brand_summary = f"Verified official website of {target_brand}."
+                is_phishing = False
+                confidence_score = 0.0
+                risk_level = "LOW"
+                target_brand = None
+                threat_type = None
         
         # Convert confidence to risk score (invert if safe)
         if is_phishing:
@@ -418,8 +432,8 @@ class ResponseBuilder:
             risk_score = int(100 - confidence_score)
             
         # Generate new fields
-        risk_factors = ResponseBuilder.generate_risk_factors(deep_scan_results, rag_results, language)
-        ai_conclusion = ResponseBuilder.generate_ai_conclusion(is_phishing, risk_level, risk_factors, language)
+        risk_factors = ResponseBuilder.generate_risk_factors(deep_scan_results, rag_results, language) if not official_brand_summary else []
+        ai_conclusion = official_brand_summary or ResponseBuilder.generate_ai_conclusion(is_phishing, risk_level, risk_factors, language)
         
         return {
             "score": risk_score,
@@ -725,6 +739,7 @@ class ResponseBuilder:
         yara_result: Optional[Dict[str, Any]] = None,
         abuse_report: Optional[Dict[str, Any]] = None,
         kit_result: Optional[Dict[str, Any]] = None,
+        official_site_override: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -805,11 +820,23 @@ class ResponseBuilder:
             
             logger.info(f"[Heuristic] Score adjusted: {confidence_score:.1f} -> {final_score:.1f}")
         
+        if official_site_override:
+            verdict = {
+                "score": 0,
+                "level": "LOW",
+                "target_brand": None,
+                "threat_type": None,
+                "risk_factors": [],
+                "ai_conclusion": official_site_override.get("summary", "Verified official website.")
+            }
+        else:
+            verdict = ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url, deep_scan_results, rag_results, language)
+        
         return {
             "id": scan_id,
             "url": url,
             "scanned_at": scanned_at,
-            "verdict": ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url, deep_scan_results, rag_results, language),
+            "verdict": verdict,
             "network": ResponseBuilder.build_network(osint_data, url),
             "forensics": forensics,
             "content": content,
