@@ -15,6 +15,7 @@ import {
 import ThreatGraphModal from './ThreatGraphModal';
 import TrustGauge from './TrustGauge';
 import ForensicBadge from './ForensicBadge';
+import ForensicsViewer from './ForensicsViewer';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
@@ -474,10 +475,15 @@ const AnalysisReport = ({ data, loading }) => {
           </div>
 
           <div className="space-y-4">
-            {/* Screenshot Thumb */}
-            {content?.screenshot_url ? (
+            {/* Full-page Desktop/Mobile forensics (tabbed) */}
+            {(vision_analysis?.desktop_b64 || vision_analysis?.mobile_b64) ? (
+              <ForensicsViewer
+                desktopImage={vision_analysis.desktop_b64}
+                mobileImage={vision_analysis.mobile_b64}
+              />
+            ) : content?.screenshot_url ? (
               <div className="w-full h-32 bg-slate-800 rounded overflow-hidden relative group">
-                <img src={content.screenshot_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" />
+                <img src={content.screenshot_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-100 transition-opacity" alt="Screenshot" />
               </div>
             ) : (
               <div className="w-full h-20 bg-slate-800/50 rounded flex items-center justify-center text-xs text-slate-500">

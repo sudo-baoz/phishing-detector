@@ -32,6 +32,7 @@ STEALTH MODE:
 """
 
 import asyncio
+import base64
 import logging
 import re
 import random
@@ -425,6 +426,67 @@ async def detect_evasion_techniques(page: Page) -> Dict[str, Any]:
     return result
 
 
+# ============================================================================
+# DUAL DEVICE FULL-PAGE SCREENSHOTS (Desktop + Mobile)
+# ============================================================================
+
+async def _capture_single_device(
+    browser: Any,
+    playwright: Any,
+    url: str,
+    device_config: Dict[str, Any],
+    context_name: str,
+) -> Optional[str]:
+    """
+    Capture a full-page JPEG screenshot for one device (desktop viewport or mobile preset).
+    Returns data URI string or None on failure.
+    """
+    context = None
+    try:
+        logger.debug("[VisionScanner] Starting capture for: %s", context_name)
+        if device_config.get("device_descriptor") and playwright:
+            device = playwright.devices.get(device_config["device_descriptor"])
+            if device:
+                context = await browser.new_context(**device)
+            else:
+                context = await browser.new_context(viewport={"width": 1920, "height": 1080})
+        else:
+            viewport = device_config.get("viewport", {"width": 1920, "height": 1080})
+            context = await browser.new_context(viewport=viewport)
+        page = await context.new_page()
+        try:
+            await page.goto(url, wait_until="domcontentloaded", timeout=20000)
+            await page.wait_for_timeout(2000)
+            screenshot_bytes = await page.screenshot(full_page=True, type="jpeg", quality=70)
+            b64_img = base64.b64encode(screenshot_bytes).decode("utf-8")
+            return f"data:image/jpeg;base64,{b64_img}"
+        finally:
+            await page.close()
+    except Exception as e:
+        logger.warning("[VisionScanner] Capture failed for %s: %s", context_name, e)
+        return None
+    finally:
+        if context:
+            try:
+                await context.close()
+            except Exception:
+                pass
+
+
+async def _capture_dual_screenshots(
+    browser: Any,
+    playwright: Any,
+    url: str,
+) -> Dict[str, Optional[str]]:
+    """Run desktop and mobile full-page captures in parallel. Returns { desktop_b64, mobile_b64 }."""
+    desktop_config = {"viewport": {"width": 1920, "height": 1080}}
+    mobile_config = {"device_descriptor": "iPhone 13 Pro"}
+    desktop_task = _capture_single_device(browser, playwright, url, desktop_config, "Desktop")
+    mobile_task = _capture_single_device(browser, playwright, url, mobile_config, "Mobile")
+    desktop_b64, mobile_b64 = await asyncio.gather(desktop_task, mobile_task)
+    return {"desktop_b64": desktop_b64, "mobile_b64": mobile_b64}
+
+
 async def full_scan(url: str) -> Dict[str, Any]:
     """
     Perform a complete vision scan with STEALTH MODE.
@@ -454,6 +516,8 @@ async def full_scan(url: str) -> Dict[str, Any]:
         'network_logs': [],
         'network_analysis': None,
         'screenshot_path': None,
+        'desktop_b64': None,
+        'mobile_b64': None,
         'error': None,
         'bot_check_triggered': False
     }
@@ -720,6 +784,18 @@ async def full_scan(url: str) -> Dict[str, Any]:
         logger.debug(f"[VisionScanner] Scan complete: {len(external_domains)} external domains, "
                    f"evasion_detected={evasion_result['evasion_detected']}, "
                    f"bot_check={bot_check_triggered}")
+
+        # ============================================================
+        # DUAL FULL-PAGE SCREENSHOTS (Desktop + Mobile, parallel)
+        # ============================================================
+        if browser and playwright:
+            try:
+                screenshots = await _capture_dual_screenshots(browser, playwright, url)
+                result["desktop_b64"] = screenshots.get("desktop_b64")
+                result["mobile_b64"] = screenshots.get("mobile_b64")
+                logger.debug("[VisionScanner] Dual screenshots captured.")
+            except Exception as cap_err:
+                logger.warning("[VisionScanner] Dual screenshot capture failed: %s", cap_err)
         
     except Exception as e:
         logger.error(f"[VisionScanner] Full scan error: {e}")
