@@ -5,6 +5,62 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.2] - 2026-02-06
+
+### 🔐 Turnstile, Captcha, Proxy, Legitimacy & Forensics
+
+This release fixes Turnstile token reuse, adds multi-provider captcha (Strategy Pattern), proxy and legitimacy checks, OSINT-driven AI, XHR/Fetch exfiltration detection, and full-page dual-device screenshots with a tabbed forensics viewer.
+
+#### Added
+
+- **Captcha Solver (Strategy Pattern)**:
+  - [app/services/solvers/base.py](app/services/solvers/base.py): Abstract `BaseCaptchaSolver` with `solve(page, sitekey, url)`.
+  - [app/services/solvers/strategies.py](app/services/solvers/strategies.py): `StealthClickSolver` (free, Playwright click), `TwoCaptchaSolver`, `CapSolverSolver` (paid APIs).
+  - [app/services/captcha_manager.py](app/services/captcha_manager.py): `CaptchaFactory.get_solver()` from `CAPTCHA_PROVIDER` (FREE / 2CAPTCHA / CAPSOLVER) and `CAPTCHA_API_KEY` in `.env`.
+  - Vision scanner runs captcha bypass after soft-block detection; config in [app/config.py](app/config.py) and [.env.example](.env.example).
+
+- **Legitimacy Checker (False Positive Fix)**:
+  - [app/services/logic_analyzer.py](app/services/logic_analyzer.py): `OFFICIAL_BRANDS` (Google, Facebook, Microsoft, Netflix, PayPal, Amazon, Apple, etc.) and `LegitimacyChecker.is_authorized(url, detected_brand)`.
+  - Scan flow and [app/services/response_builder.py](app/services/response_builder.py): When AI detects a brand, if the scanned URL is an official domain for that brand → verdict overridden to SAFE (e.g. google.com no longer flagged as impersonation).
+
+- **OSINT for AI (Evidence-Based Verdicts)**:
+  - [app/services/osint_analyzer.py](app/services/osint_analyzer.py): `DeepAnalyst.analyze_domain(url)` — WHOIS (age, registrar), SSL issuer, risk factors (new domain, DV cert).
+  - [app/core/prompts.py](app/core/prompts.py): God Mode system prompt updated to use OSINT (domain age, SSL) with Scenario A/B (e.g. “Facebook look + 3-day domain + Let’s Encrypt → PHISHING”).
+  - [app/services/chat_agent.py](app/services/chat_agent.py): Injects OSINT JSON into the analysis prompt before Gemini call.
+
+- **Network Traffic Capture & Exfiltration Analysis**:
+  - [app/services/vision_scanner.py](app/services/vision_scanner.py): Captures XHR/Fetch requests (URL, method, post_data) during scan; `result['network_logs']` and `result['network_analysis']`.
+  - [app/services/network_forensics.py](app/services/network_forensics.py): `NetworkAnalyzer.analyze_traffic(requests_list)` — flags POSTs to Telegram bot, Discord webhooks, formsubmit.co, .php, etc. as HIGH RISK; `exfiltration_detected` and `high_risk_findings`; sets evasion when exfiltration is detected.
+
+- **Full-Page Dual-Device Screenshots**:
+  - [app/services/vision_scanner.py](app/services/vision_scanner.py): `_capture_single_device`, `_capture_dual_screenshots` — parallel desktop (1920×1080) and mobile (iPhone 13 Pro) full-page JPEG screenshots; `result['desktop_b64']`, `result['mobile_b64']` (data URI).
+  - [ForensicsViewer.jsx](frontend/src/components/ForensicsViewer.jsx): Tabbed “🖥️ Desktop View” / “📱 Mobile View”; scrollable container (`max-h-[600px]`); mobile image centered with `max-w-sm`.
+  - [AnalysisReport.jsx](frontend/src/components/AnalysisReport.jsx): Content Forensics section shows `<ForensicsViewer>` when `vision_analysis.desktop_b64` or `vision_analysis.mobile_b64` exist; fallback to legacy screenshot or “Screenshot Unavailable”.
+
+- **Vision Scanner Proxy & Soft-Block Bypass**:
+  - [app/config.py](app/config.py), [.env.example](.env.example): `PROXY_SERVER`, `PROXY_USERNAME`, `PROXY_PASSWORD` for residential proxy.
+  - [app/services/vision_scanner.py](app/services/vision_scanner.py): Browser context uses proxy when set; on connection/timeout error, retries with direct connection (no proxy).
+  - Soft-block detection (e.g. “Just a moment”, challenges.cloudflare.com) and smart wait-and-click bypass (iframe checkbox hover + click); 10s timeout then snapshot anyway.
+
+#### Changed
+
+- **Turnstile: Single Verification (No Double Consume)**:
+  - [app/routers/scan.py](app/routers/scan.py): Removed duplicate Turnstile check; verification only inside stream `event_generator` and once at start of non-stream scan; `_perform_scan` no longer verifies (caller does once).
+  - [app/security/turnstile.py](app/security/turnstile.py): `SKIP_TURNSTILE=true` in env skips verification (debug); docstring notes token is one-time-use.
+
+- **Frontend Turnstile (Zombie Token Fix)**:
+  - [Scanner.jsx](frontend/src/components/Scanner.jsx): Snapshot token then `setTurnstileToken(null)` and `setLoading(true)` at submit start; `key={widgetKey}` on `<Turnstile />` and `setWidgetKey(prev => prev + 1)` in `finally` to force remount; `handleTurnstileError` / `handleTurnstileExpire` also remount widget.
+  - [api.js](frontend/src/services/api.js): On non-OK response, parses JSON body and sets `error.isTokenExpired` when backend returns `error: "token_expired"`.
+
+- **CSP**: [frontend/index.html](frontend/index.html) — `script-src` extended with `https://static.cloudflareinsights.com` for Cloudflare analytics.
+
+#### Files Touched
+
+- **Backend:** app/config.py, app/security/turnstile.py, app/routers/scan.py, app/services/vision_scanner.py, app/services/response_builder.py, app/services/captcha_manager.py, app/services/solvers/base.py, app/services/solvers/strategies.py, app/services/logic_analyzer.py, app/services/osint_analyzer.py, app/services/network_forensics.py, app/services/chat_agent.py, app/core/prompts.py, .env.example
+- **Frontend:** frontend/index.html, frontend/src/components/Scanner.jsx, ForensicsViewer.jsx (new), AnalysisReport.jsx, frontend/src/services/api.js
+
+---
+
 ## [1.6.1] - 2026-02-06
 
 ### 🔬 Phishing Kit Fingerprinting & Cyberpunk UI
