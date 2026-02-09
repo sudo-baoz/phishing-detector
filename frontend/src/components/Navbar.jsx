@@ -1,6 +1,6 @@
 /**
- * Modern Glassmorphism Navbar – Left (Logo), Center (Links), Right (Lang + GitHub + Ethics).
- * Sticky z-50, mobile hamburger includes Language Switcher.
+ * Modern Glassmorphism Navbar – i18n via translations[language].
+ * Left (Logo), Center (Links), Right (Lang + GitHub + Ethics).
  */
 
 import { useState } from 'react';
@@ -8,12 +8,14 @@ import { NavLink } from 'react-router-dom';
 import { Shield, Wrench, Menu, X, Github, Scale } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import EthicsModal from './EthicsModal';
+import { getTranslations } from '../constants/translations';
 
 const GITHUB_URL = import.meta.env.VITE_GITHUB_REPO || 'https://github.com';
 
-export default function Navbar() {
+export default function Navbar({ language = 'en' }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ethicsOpen, setEthicsOpen] = useState(false);
+  const t = getTranslations(language).nav;
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
@@ -40,7 +42,7 @@ export default function Navbar() {
         className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-all"
       >
         <Scale className="w-4 h-4" />
-        Ethics
+        {t.ethics}
       </button>
     </div>
   );
@@ -50,34 +52,30 @@ export default function Navbar() {
       <nav className="sticky top-0 z-50 backdrop-blur-md bg-black/60 border-b border-white/10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
-            {/* Left: Logo */}
             <NavLink to="/" className="flex items-center gap-2 shrink-0" onClick={() => setMobileOpen(false)}>
               <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
                 CyberSentinel
               </span>
             </NavLink>
 
-            {/* Center: Nav links (desktop) */}
             <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
               <NavLink to="/" end className={linkClass}>
                 <Shield className="w-4 h-4" />
-                Home
+                {t.home}
               </NavLink>
               <NavLink to="/tools" className={linkClass}>
                 <Wrench className="w-4 h-4" />
-                Tools
+                {t.tools}
               </NavLink>
               <NavLink to="/about" className={linkClass}>
-                About
+                {t.about}
               </NavLink>
             </div>
 
-            {/* Right: Lang + GitHub + Ethics (desktop) */}
             <div className="hidden md:flex items-center gap-2 shrink-0">
               {rightSection}
             </div>
 
-            {/* Mobile: hamburger */}
             <div className="flex md:hidden items-center gap-2">
               {rightSection}
               <button
@@ -91,19 +89,18 @@ export default function Navbar() {
             </div>
           </div>
 
-          {/* Mobile menu */}
           {mobileOpen && (
             <div className="md:hidden py-3 border-t border-white/10 flex flex-col gap-1">
               <NavLink to="/" end className={linkClass} onClick={() => setMobileOpen(false)}>
                 <Shield className="w-4 h-4" />
-                Home
+                {t.home}
               </NavLink>
               <NavLink to="/tools" className={linkClass} onClick={() => setMobileOpen(false)}>
                 <Wrench className="w-4 h-4" />
-                Tools
+                {t.tools}
               </NavLink>
               <NavLink to="/about" className={linkClass} onClick={() => setMobileOpen(false)}>
-                About
+                {t.about}
               </NavLink>
             </div>
           )}

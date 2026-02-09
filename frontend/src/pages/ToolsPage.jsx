@@ -1,37 +1,17 @@
 /**
- * Security Toolbox – Single-column list view with feature cards and descriptions.
+ * Security Toolbox – Single-column list view, i18n via translations[language].
  */
 
 import BreachChecker from '../components/tools/BreachChecker';
 import LinkExpander from '../components/tools/LinkExpander';
 import PasswordGenerator from '../components/tools/PasswordGenerator';
 import { Shield, Link2, KeyRound } from 'lucide-react';
+import { getTranslations } from '../constants/translations';
 
-const TOOLS = [
-  {
-    id: 'breach',
-    icon: Shield,
-    title: 'Data Breach Checker',
-    description:
-      'Kiểm tra xem email của bạn có bị lộ trong các vụ rò rỉ dữ liệu lớn (Facebook, LinkedIn...) hay không. Sử dụng dữ liệu thực từ XposedOrNot.',
-    Component: BreachChecker,
-  },
-  {
-    id: 'unshorten',
-    icon: Link2,
-    title: 'Link Unshortener',
-    description:
-      'Giải mã các đường link rút gọn (bit.ly, tinyurl...) để xem đích đến thực sự trước khi click. Tránh bị chuyển hướng đến web độc hại.',
-    Component: LinkExpander,
-  },
-  {
-    id: 'password',
-    icon: KeyRound,
-    title: 'Password Generator',
-    description:
-      'Tạo mật khẩu mạnh ngẫu nhiên với độ khó cao (Chữ hoa, ký tự đặc biệt) ngay tại trình duyệt. Không gửi dữ liệu về server.',
-    Component: PasswordGenerator,
-  },
+const TOOL_KEYS = [
+  { id: 'breach', icon: Shield, titleKey: 'breach_title', descKey: 'breach_desc', Component: BreachChecker },
+  { id: 'unshorten', icon: Link2, titleKey: 'unshorten_title', descKey: 'unshorten_desc', Component: LinkExpander },
+  { id: 'password', icon: KeyRound, titleKey: 'pass_title', descKey: 'pass_desc', Component: PasswordGenerator },
 ];
 
 function FeatureCard({ icon: Icon, title, description, children }) {
@@ -51,22 +31,27 @@ function FeatureCard({ icon: Icon, title, description, children }) {
   );
 }
 
-export default function ToolsPage() {
+export default function ToolsPage({ language = 'en' }) {
+  const t = getTranslations(language).tools;
+
   return (
     <div className="min-h-screen bg-black text-slate-200">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <header className="mb-8 sm:mb-10">
           <h1 className="text-3xl sm:text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 mb-2">
-            Security Toolbox
+            {t.title}
           </h1>
-          <p className="text-slate-400 text-base sm:text-lg">
-            Essential utilities for your digital safety.
-          </p>
+          <p className="text-slate-400 text-base sm:text-lg">{t.subtitle}</p>
         </header>
 
         <section className="flex flex-col gap-6">
-          {TOOLS.map(({ id, icon, title, description, Component }) => (
-            <FeatureCard key={id} icon={icon} title={title} description={description}>
+          {TOOL_KEYS.map(({ id, icon, titleKey, descKey, Component }) => (
+            <FeatureCard
+              key={id}
+              icon={icon}
+              title={t[titleKey]}
+              description={t[descKey]}
+            >
               <Component />
             </FeatureCard>
           ))}

@@ -17,6 +17,7 @@
  */
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Scanner from './components/Scanner';
 import Navbar from './components/Navbar';
 import SecurityNewsTicker from './components/tools/SecurityNewsTicker';
@@ -24,15 +25,18 @@ import ToolsPage from './pages/ToolsPage';
 import AboutPage from './pages/AboutPage';
 
 function App() {
+  const { i18n } = useTranslation();
+  const language = i18n.language && String(i18n.language).toLowerCase().startsWith('vi') ? 'vi' : 'en';
+
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-black">
-        <Navbar />
+        <Navbar language={language} />
         <SecurityNewsTicker />
         <Routes>
           <Route path="/" element={<Scanner />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/about" element={<AboutPage />} />
+          <Route path="/tools" element={<ToolsPage language={language} />} />
+          <Route path="/about" element={<AboutPage language={language} />} />
         </Routes>
       </div>
     </BrowserRouter>
