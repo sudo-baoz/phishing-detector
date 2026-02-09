@@ -27,9 +27,15 @@ On first run, `create_default_admin()` creates:
 
 Use these to log in at **POST /auth/token** (or the frontend Login).
 
-## If you already have a database (migration)
+## Automatic migration (existing `users` table)
 
-If the `users` table already exists **without** `email`, `role`, or `api_key`:
+If the `users` table already exists **without** `email`, `role`, or `api_key` (e.g. from before the SaaS upgrade), the app **automatically adds** these columns on startup when using SQLite:
+
+- On the next start, `init_db()` runs `create_all()` then `_migrate_users_table_sqlite()`.
+- That migration runs `PRAGMA table_info(users)` and adds any missing columns: `email`, `role`, `api_key`.
+- No manual SQL is required; just restart the API server.
+
+If you prefer to run SQL yourself instead:
 
 ### Option A – SQLite (add columns)
 

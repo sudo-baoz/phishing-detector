@@ -110,8 +110,31 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             await session.close()
 
 
+def _migrate_users_table_sqlite(sync_conn):
+    """Add SaaS columns to existing users table if missing (SQLite). Idempotent."""
+    result = sync_conn.execute(text("PRAGMA table_info(users)"))
+    rows = result.fetchall()
+    if not rows:
+        return  # table doesn't exist yet; create_all will create it
+    # PRAGMA table_info returns (cid, name, type, notnull, dflt_value, pk)
+    columns = [row[1] for row in rows]
+    additions = []
+    if "email" not in columns:
+        additions.append(("email", "ALTER TABLE users ADD COLUMN email VARCHAR(255)"))
+    if "role" not in columns:
+        additions.append(("role", "ALTER TABLE users ADD COLUMN role VARCHAR(32) DEFAULT 'user' NOT NULL"))
+    if "api_key" not in columns:
+        additions.append(("api_key", "ALTER TABLE users ADD COLUMN api_key VARCHAR(64)"))
+    for name, sql in additions:
+        try:
+            sync_conn.execute(text(sql))
+            logger.info("[Migration] Added column users.%s", name)
+        except Exception as e:
+            logger.warning("[Migration] Skip users.%s: %s", name, e)
+
+
 async def init_db():
-    """Initialize database - create tables"""
+    """Initialize database - create tables and run idempotent migrations"""
     logger.info("Initializing database...")
     
     try:
@@ -120,6 +143,8 @@ async def init_db():
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
             logger.info("Database tables created")
+            if settings.DB_TYPE == "sqlite":
+                await conn.run_sync(_migrate_users_table_sqlite)
         
         table_names = list(Base.metadata.tables.keys())
         logger.info(f"Tables: {', '.join(table_names)}")
