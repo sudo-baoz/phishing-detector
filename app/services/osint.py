@@ -395,12 +395,18 @@ def get_osint_summary(osint_data: Dict[str, Any]) -> Dict[str, Any]:
         'domain': osint_data.get('domain'),
         'ip': osint_data.get('primary_ip'),
         'server_location': osint_data.get('server_location'),
+        'lat': None,
+        'lon': None,
         'isp': None,
         'registrar': None,
         'domain_age_days': None,
         'has_mail_server': False
     }
-    
+    # Geo for attack heatmap
+    if osint_data.get('geolocation') and osint_data['geolocation'].get('available'):
+        g = osint_data['geolocation']
+        summary['lat'] = g.get('latitude')
+        summary['lon'] = g.get('longitude')
     # Extract ISP
     if osint_data.get('geolocation') and osint_data['geolocation'].get('isp'):
         summary['isp'] = osint_data['geolocation']['isp']

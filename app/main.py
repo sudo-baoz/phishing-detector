@@ -34,7 +34,7 @@ from app.config import settings
 from app.core.logger import configure_logging, log_startup_banner, log_shutdown_banner, get_logger
 from app.security.turnstile import verify_turnstile
 from app.database import init_db, close_db
-from app.routers import health, scan, auth, chat
+from app.routers import health, scan, auth, chat, feedback
 from app.services.ai_engine import phishing_predictor
 from app.services.cert_monitor import start_cert_monitor, stop_cert_monitor, get_cache_stats
 
@@ -260,6 +260,7 @@ app.include_router(health.router, tags=["Health"])
 app.include_router(scan.router, prefix="/scan", tags=["URL Scanning"])
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
+app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
 
 
 # Root endpoint
@@ -276,7 +277,8 @@ async def root():
             "scan_history": "GET /scan/history",
             "login": "POST /auth/login",
             "register": "POST /auth/register",
-            "chat_ai": "POST /chat"
+            "chat_ai": "POST /chat",
+            "feedback": "POST /feedback"
         }
     }
 

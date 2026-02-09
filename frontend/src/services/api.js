@@ -206,4 +206,13 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
   throw new Error('Stream ended without result');
 };
 
+/**
+ * Submit community feedback (false positive / false negative).
+ * @param {{ url: string, predicted_verdict: 'SAFE'|'PHISHING', user_correction: 'SAFE'|'PHISHING', reason?: string }} payload
+ */
+export const submitFeedback = async (payload) => {
+  const response = await api.post('/feedback', payload);
+  return response.data;
+};
+
 export default api;

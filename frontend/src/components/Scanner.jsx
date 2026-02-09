@@ -23,6 +23,7 @@ import { scanUrlStream } from '../services/api';
 import AnalysisReport from './AnalysisReport';
 import ChatWidget from './ChatWidget';
 import ScanTerminal from './ScanTerminal';
+import EthicsModal from './EthicsModal';
 import { Shield, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -446,6 +447,11 @@ const Scanner = () => {
 
                 {/* AI Chat Widget - Always visible */}
                 <ChatWidget scanResult={result} />
+
+                {/* Footer: Ethics & Safety Policy */}
+                <footer className="mt-12 sm:mt-16 pb-8 flex flex-col items-center gap-4">
+                    <EthicsModal />
+                </footer>
             </div>
         </div>
     );

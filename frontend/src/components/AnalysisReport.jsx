@@ -16,6 +16,7 @@ import ThreatGraphModal from './ThreatGraphModal';
 import TrustGauge from './TrustGauge';
 import ForensicBadge from './ForensicBadge';
 import ForensicsViewer from './ForensicsViewer';
+import FeedbackWidget from './FeedbackWidget';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
@@ -648,6 +649,12 @@ const AnalysisReport = ({ data, loading }) => {
             </div>
           )}
         </div>
+
+        {/* Community Feedback: Report false positive / false negative */}
+        <FeedbackWidget
+          url={data.url}
+          predictedVerdict={isPhishing ? 'PHISHING' : 'SAFE'}
+        />
       </div>
 
     </div>

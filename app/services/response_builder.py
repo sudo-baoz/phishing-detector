@@ -446,24 +446,26 @@ class ResponseBuilder:
     
     @staticmethod
     def build_network(osint_data: Optional[Dict[str, Any]], url: str) -> Dict[str, Any]:
-        """Build network data"""
+        """Build network data including geo for attack heatmap."""
         if not osint_data:
             return {
                 "domain_age": None,
                 "registrar": None,
                 "isp": None,
                 "country": None,
-                "ip": None
+                "ip": None,
+                "lat": None,
+                "lon": None,
             }
-        
         domain_age = ResponseBuilder.format_domain_age(osint_data.get('domain_age_days'))
-        
         return {
             "domain_age": domain_age,
             "registrar": osint_data.get('registrar'),
             "isp": osint_data.get('isp'),
             "country": osint_data.get('server_location'),
-            "ip": osint_data.get('ip')
+            "ip": osint_data.get('ip'),
+            "lat": osint_data.get('lat'),
+            "lon": osint_data.get('lon'),
         }
     
     @staticmethod
