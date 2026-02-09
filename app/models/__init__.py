@@ -21,5 +21,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 from app.database import Base
 from app.models.user import User
 from app.models.scan_history import ScanHistory
+from app.models.scan_log import ScanLog
 
-__all__ = ["Base", "User", "ScanHistory"]
+__all__ = ["Base", "User", "ScanHistory", "ScanLog"]

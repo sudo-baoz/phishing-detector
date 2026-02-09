@@ -35,6 +35,9 @@ from app.core.logger import configure_logging, log_startup_banner, log_shutdown_
 from app.security.turnstile import verify_turnstile
 from app.database import init_db, close_db
 from app.routers import health, scan, auth, chat, feedback, report, tools, websocket as ws_router
+from app.routers.auth import create_default_admin
+from app.routers import admin as admin_router
+from app.routers import share as share_router
 from app.services.ai_engine import phishing_predictor
 from app.services.cert_monitor import start_cert_monitor, stop_cert_monitor, get_cache_stats
 
@@ -166,9 +169,10 @@ async def lifespan(app: FastAPI):
     # Initialize Database
     try:
         await init_db()
+        await create_default_admin()
     except Exception as e:
         logger.error(f"[STARTUP] Database init failed: {e}")
-    
+
     # Print startup banner (always visible)
     log_startup_banner(logger, settings.PORT, settings.DEBUG)
     
@@ -264,6 +268,8 @@ app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
 app.include_router(report.router, prefix="/report", tags=["Report"])
 app.include_router(tools.router, prefix="/tools", tags=["Security Tools"])
 app.include_router(ws_router.router, tags=["Live Map"])
+app.include_router(admin_router.router)
+app.include_router(share_router.router)
 
 
 # Root endpoint

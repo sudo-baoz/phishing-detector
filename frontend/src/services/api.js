@@ -71,17 +71,23 @@ export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null, l
       const status = error.response.status;
       const detail = error.response.data?.detail;
 
-      // Handle 403 Forbidden (Turnstile verification failed)
+      if (status === 408) {
+        return { success: false, error: '⏳ Scan timed out. The server is slow.', code: 'TIMEOUT' };
+      }
+      if (status === 400) {
+        return { success: false, error: '🚫 Invalid URL format.', code: 'BAD_REQUEST' };
+      }
       if (status === 403) {
         return {
           success: false,
-          error: 'Security check failed. Please complete the verification and try again.',
+          error: '🛡️ Access to this domain is restricted.',
           code: 'TURNSTILE_REQUIRED',
           needsRefresh: true
         };
       }
-
-      // Handle other server errors
+      if (status === 500) {
+        return { success: false, error: '🔥 Server internal error.', code: 'SERVER_ERROR' };
+      }
       return {
         success: false,
         error: typeof detail === 'string' ? detail : (detail?.message || 'Server error occurred'),
@@ -148,10 +154,15 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
         if (d.error === 'token_expired') isTokenExpired = true;
       }
     } catch (_) { /* ignore */ }
-    if (res.status === 403 && !message.includes('verification')) message = 'Security verification failed. Please complete the verification again.';
-    if (res.status === 503) message = 'Server busy, please try again in a few seconds.';
+    if (res.status === 408) message = '⏳ Scan timed out. The server is slow.';
+    else if (res.status === 400) message = '🚫 Invalid URL format.';
+    else if (res.status === 403) message = '🛡️ Access to this domain is restricted.';
+    else if (res.status === 500) message = '🔥 Server internal error.';
+    else if (res.status === 503) message = 'Server busy, please try again in a few seconds.';
+    else if (res.status === 403 && !message.includes('verification')) message = 'Security verification failed. Please complete the verification again.';
     const err = new Error(message);
     err.isTokenExpired = isTokenExpired;
+    err.status = res.status;
     throw err;
   }
   const reader = res.body.getReader();
@@ -213,6 +224,35 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
 export const submitFeedback = async (payload) => {
   const response = await api.post('/feedback', payload);
   return response.data;
+};
+
+const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+
+/** Fetch shared scan result by scan_id (from ScanLog). */
+export const fetchShareResult = async (scanId) => {
+  const res = await fetch(`${API_BASE}/share/${scanId}`);
+  if (!res.ok) throw new Error(res.status === 404 ? 'Scan not found' : 'Failed to load');
+  return res.json();
+};
+
+/** Single scan for batch: POST /scan (stream or non-stream). Returns { url, verdict, score } or throws. */
+export const scanOneUrl = async (url, turnstileToken = null) => {
+  const headers = { 'Content-Type': 'application/json' };
+  if (turnstileToken) headers['cf-turnstile-response'] = turnstileToken;
+  const r = await fetch(`${API_BASE}/scan`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ url, include_osint: true, deep_analysis: false, language: 'en' }),
+  });
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    const msg = d.detail || (r.status === 408 ? 'Timeout' : r.status === 400 ? 'Invalid URL' : 'Error');
+    throw new Error(msg);
+  }
+  const data = await r.json();
+  const verdict = data.verdict?.level || (data.is_phishing ? 'PHISHING' : 'SAFE');
+  const score = data.verdict?.score ?? data.confidence_score ?? 0;
+  return { url, verdict, score: Number(score) };
 };
 
 export default api;

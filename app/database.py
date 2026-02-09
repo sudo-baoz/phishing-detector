@@ -115,7 +115,7 @@ async def init_db():
     logger.info("Initializing database...")
     
     try:
-        from app.models import User, ScanHistory  # noqa
+        from app.models import User, ScanHistory, ScanLog  # noqa
         
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

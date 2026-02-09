@@ -18,6 +18,7 @@ import ForensicBadge from './ForensicBadge';
 import ForensicsViewer from './ForensicsViewer';
 import FeedbackWidget from './FeedbackWidget';
 import DownloadReportBtn from './DownloadReportBtn';
+import { MODEL_VERSION } from '../constants/modelVersion';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
@@ -670,6 +671,7 @@ const AnalysisReport = ({ data, loading }) => {
         />
       </div>
 
+      <p className="mt-6 text-slate-500 text-xs">{MODEL_VERSION}</p>
     </div>
   );
 };

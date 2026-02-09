@@ -24,6 +24,7 @@ import AnalysisReport from './AnalysisReport';
 import ChatWidget from './ChatWidget';
 import ScanTerminal from './ScanTerminal';
 import EthicsModal from './EthicsModal';
+import ScanHistory, { addToScanHistory } from './ScanHistory';
 import { Shield, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -207,7 +208,12 @@ const Scanner = () => {
                 currentLang,
                 {
                     onLog: (message) => setLogs((prev) => [...prev, message]),
-                    onResult: (scanData) => setResult(scanData),
+                    onResult: (scanData) => {
+                        setResult(scanData);
+                        const shareId = scanData.share_id ?? scanData.id;
+                        const verdict = scanData.verdict?.level ?? (scanData.is_phishing ? 'PHISHING' : 'SAFE');
+                        if (shareId != null) addToScanHistory(shareId, scanData.url, verdict, scanData.scanned_at);
+                    },
                     onError: (message) => {
                         setError(message);
                         const lower = (message || '').toLowerCase();
@@ -444,6 +450,10 @@ const Scanner = () => {
                         <AnalysisReport data={result} loading={false} />
                     </motion.div>
                 )}
+
+                <div className="mb-8 max-w-xl">
+                    <ScanHistory />
+                </div>
 
                 {/* AI Chat Widget - Always visible */}
                 <ChatWidget scanResult={result} />

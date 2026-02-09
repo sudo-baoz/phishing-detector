@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """User schemas for request/response validation"""
 
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, Field
 
 
@@ -35,8 +36,10 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     """Schema for user response"""
     id: int
+    email: Optional[str] = None
+    role: Optional[str] = None
     created_at: datetime
-    
+
     model_config = {"from_attributes": True}
 
 

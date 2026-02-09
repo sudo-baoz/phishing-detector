@@ -18,26 +18,39 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from './context/ThemeContext';
 import Scanner from './components/Scanner';
 import Navbar from './components/Navbar';
 import SecurityNewsTicker from './components/tools/SecurityNewsTicker';
 import ToolsPage from './pages/ToolsPage';
 import AboutPage from './pages/AboutPage';
+import BatchScanPage from './pages/BatchScanPage';
+import ShareResultPage from './pages/ShareResultPage';
+import AdminDashboard from './pages/AdminDashboard';
+import { MODEL_VERSION } from './constants/modelVersion';
 
 function App() {
   const { i18n } = useTranslation();
+  const { theme } = useTheme();
   const language = i18n.language && String(i18n.language).toLowerCase().startsWith('vi') ? 'vi' : 'en';
+  const isDark = theme === 'dark';
 
   return (
     <BrowserRouter>
-      <div className="min-h-screen bg-black">
+      <div className={`min-h-screen ${isDark ? 'bg-black' : 'bg-gray-50'}`}>
         <Navbar language={language} />
         <SecurityNewsTicker />
         <Routes>
           <Route path="/" element={<Scanner />} />
           <Route path="/tools" element={<ToolsPage language={language} />} />
+          <Route path="/batch" element={<BatchScanPage />} />
           <Route path="/about" element={<AboutPage language={language} />} />
+          <Route path="/share/:scanId" element={<ShareResultPage />} />
+          <Route path="/admin" element={<AdminDashboard />} />
         </Routes>
+        <footer className={`py-4 text-center text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
+          {MODEL_VERSION}
+        </footer>
       </div>
     </BrowserRouter>
   );

@@ -2,247 +2,218 @@
 Phishing Detector - AI-Powered Threat Intelligence System
 Copyright (c) 2026 BaoZ
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <https://www.gnu.org/licenses/>.
+Authentication Router - JWT, POST /auth/token, default admin on startup.
 """
 
-"""Authentication Router - User Registration and Login"""
-
 import logging
+import secrets
 from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
+from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from passlib.context import CryptContext
 
-from app.database import get_db
+from app.config import settings
+from app.database import get_db, AsyncSessionLocal
 from app.models import User
 from app.schemas.user import UserCreate, UserResponse, UserLogin
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-# Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-# HTTP Bearer token
 security = HTTPBearer()
 
 
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt"""
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify password against hash"""
     return pwd_context.verify(plain_password, hashed_password)
 
 
+def create_access_token(data: dict) -> str:
+    to_encode = data.copy()
+    expire = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)
+
+
+def verify_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET, algorithms=[settings.JWT_ALGORITHM])
+        return payload
+    except JWTError:
+        return None
+
+
+async def get_user_by_email(db: AsyncSession, email: str) -> Optional[User]:
+    query = select(User).where(User.email == email)
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
+
+
 async def get_user_by_username(db: AsyncSession, username: str) -> Optional[User]:
-    """Get user by username"""
     query = select(User).where(User.username == username)
     result = await db.execute(query)
     return result.scalar_one_or_none()
 
 
-@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def register_user(
-    user_data: UserCreate,
-    db: AsyncSession = Depends(get_db)
+async def get_user_by_id(db: AsyncSession, user_id: int) -> Optional[User]:
+    query = select(User).where(User.id == user_id)
+    result = await db.execute(query)
+    return result.scalar_one_or_none()
+
+
+async def create_default_admin():
+    """Create default admin on startup: admin@cybersentinel.com / password123"""
+    async with AsyncSessionLocal() as db:
+        try:
+            existing = await get_user_by_email(db, "admin@cybersentinel.com")
+            if existing:
+                logger.info("[Auth] Default admin already exists")
+                return
+            hashed = hash_password("password123")
+            admin = User(
+                email="admin@cybersentinel.com",
+                username="admin",
+                password_hash=hashed,
+                role="admin",
+                api_key="sk-live-" + secrets.token_hex(16),
+            )
+            db.add(admin)
+            await db.commit()
+            logger.info("[Auth] Default admin created: admin@cybersentinel.com")
+        except Exception as e:
+            logger.warning(f"[Auth] Could not create default admin: {e}")
+            await db.rollback()
+
+
+@router.post("/token")
+async def login_token(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_db),
 ):
     """
-    Register a new user
-    
-    - **username**: Unique username (3-100 characters)
-    - **password**: Password (minimum 6 characters)
+    OAuth2 compatible token login. Use username=email and password.
+    Returns JWT access_token.
     """
-    
-    logger.info(f"Attempting to register user: {user_data.username}")
-    
-    try:
-        # Check if username already exists
-        existing_user = await get_user_by_username(db, user_data.username)
-        if existing_user:
-            logger.warning(f"Registration failed: Username '{user_data.username}' already exists")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username already registered"
-            )
-        
-        # Create new user
-        hashed_pw = hash_password(user_data.password)
-        new_user = User(
-            username=user_data.username,
-            password_hash=hashed_pw,
-            created_at=datetime.utcnow()
-        )
-        
-        db.add(new_user)
-        await db.commit()
-        await db.refresh(new_user)
-        
-        logger.info(f"[OK] User registered successfully: {new_user.username} (ID: {new_user.id})")
-        
-        return UserResponse(
-            id=new_user.id,
-            username=new_user.username,
-            created_at=new_user.created_at
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error during registration: {e}", exc_info=True)
-        await db.rollback()
+    email = form_data.username
+    user = await get_user_by_email(db, email)
+    if not user:
+        user = await get_user_by_username(db, email)
+    if not user or not verify_password(form_data.password, user.password_hash):
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to register user"
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid email or password",
+            headers={"WWW-Authenticate": "Bearer"},
         )
+    access_token = create_access_token({"sub": str(user.id), "email": user.email or "", "role": user.role})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "role": user.role,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        },
+    }
+
+
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+async def register_user(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
+    """Register with email (use username field as email for compatibility)."""
+    email = getattr(user_data, "email", None) or user_data.username
+    if await get_user_by_email(db, email):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
+    if await get_user_by_username(db, user_data.username):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already registered")
+    hashed = hash_password(user_data.password)
+    new_user = User(
+        email=email,
+        username=user_data.username,
+        password_hash=hashed,
+        role="user",
+        api_key="sk-live-" + secrets.token_hex(16),
+    )
+    db.add(new_user)
+    await db.commit()
+    await db.refresh(new_user)
+    return UserResponse(
+        id=new_user.id,
+        username=new_user.username or new_user.email,
+        created_at=new_user.created_at,
+    )
 
 
 @router.post("/login")
-async def login_user(
-    credentials: UserLogin,
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Login user
-    
-    - **username**: Username
-    - **password**: Password
-    
-    Returns access token (simplified - in production use JWT)
-    """
-    
-    logger.info(f"Login attempt for user: {credentials.username}")
-    
-    try:
-        # Get user
-        user = await get_user_by_username(db, credentials.username)
-        
-        if not user:
-            logger.warning(f"Login failed: User '{credentials.username}' not found")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password"
-            )
-        
-        # Verify password
-        if not verify_password(credentials.password, user.password_hash):
-            logger.warning(f"Login failed: Invalid password for user '{credentials.username}'")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid username or password"
-            )
-        
-        logger.info(f"[OK] User logged in successfully: {user.username}")
-        
-        # TODO: Generate proper JWT token in production
-        # For now, return simplified response
-        return {
-            "message": "Login successful",
-            "access_token": f"token_{user.id}_{user.username}",
-            "token_type": "bearer",
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "created_at": user.created_at.isoformat()
-            }
-        }
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error during login: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to login"
-        )
+async def login_user(credentials: UserLogin, db: AsyncSession = Depends(get_db)):
+    """Login (JSON body). Returns JWT. Prefer POST /auth/token for OAuth2."""
+    user = await get_user_by_email(db, credentials.username) or await get_user_by_username(db, credentials.username)
+    if not user or not verify_password(credentials.password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
+    access_token = create_access_token({"sub": str(user.id), "email": user.email or "", "role": user.role})
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": {
+            "id": user.id,
+            "email": user.email,
+            "username": user.username,
+            "role": user.role,
+            "created_at": user.created_at.isoformat() if user.created_at else None,
+        },
+    }
+
+
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: AsyncSession = Depends(get_db),
+) -> User:
+    """Dependency: current user from JWT Bearer token."""
+    token = credentials.credentials
+    payload = verify_token(token)
+    if not payload or "sub" not in payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token")
+    user_id = int(payload["sub"])
+    user = await get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    return user
+
+
+async def get_current_user_optional(
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(HTTPBearer(auto_error=False)),
+    db: AsyncSession = Depends(get_db),
+) -> Optional[User]:
+    """Dependency: current user if token present, else None."""
+    if not credentials:
+        return None
+    payload = verify_token(credentials.credentials)
+    if not payload or "sub" not in payload:
+        return None
+    user = await get_user_by_id(db, int(payload["sub"]))
+    return user
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
-    db: AsyncSession = Depends(get_db)
-):
-    """
-    Get current user information (requires authentication)
-    
-    NOTE: This is a simplified implementation
-    In production, use proper JWT token validation
-    """
-    
-    try:
-        # Simplified token parsing (token format: token_{user_id}_{username})
-        token = credentials.credentials
-        
-        if not token.startswith("token_"):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token format"
-            )
-        
-        # Extract user_id from token
-        parts = token.split("_")
-        if len(parts) < 3:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token format"
-            )
-        
-        user_id = int(parts[1])
-        
-        # Get user from database
-        query = select(User).where(User.id == user_id)
-        result = await db.execute(query)
-        user = result.scalar_one_or_none()
-        
-        if not user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="User not found"
-            )
-        
-        return UserResponse(
-            id=user.id,
-            username=user.username,
-            created_at=user.created_at
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting current user: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid or expired token"
-        )
+async def me(user: User = Depends(get_current_user)):
+    return UserResponse(
+        id=user.id,
+        username=user.username or user.email or "",
+        email=user.email,
+        role=user.role,
+        created_at=user.created_at,
+    )
 
 
 @router.post("/logout")
 async def logout_user():
-    """
-    Logout user
-    
-    NOTE: In production with JWT, implement token blacklisting
-    For now, just return success message
-    """
-    return {
-        "message": "Logout successful",
-        "detail": "Please remove the token from client storage"
-    }
+    return {"message": "Logout successful"}

@@ -96,6 +96,7 @@ class GodModeAnalysis(BaseModel):
 class ScanResponse(BaseModel):
     """Complete scan response with new structure"""
     id: int = Field(..., description="Scan record ID")
+    share_id: Optional[int] = Field(None, description="ID for share link (ScanLog)")
     url: str = Field(..., description="Scanned URL")
     scanned_at: datetime = Field(..., description="Scan timestamp")
     

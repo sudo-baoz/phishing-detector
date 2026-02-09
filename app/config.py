@@ -42,6 +42,11 @@ class Settings(BaseSettings):
     # Application settings
     APP_NAME: str = "Phishing URL Detection API"
     DEBUG: bool = False
+
+    # JWT (SaaS)
+    JWT_SECRET: str = "change-me-in-production-cybersentinel"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     
     # AI Integration settings
     GEMINI_API_KEY: str = ""

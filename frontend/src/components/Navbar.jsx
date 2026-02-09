@@ -1,55 +1,105 @@
 /**
- * Modern Glassmorphism Navbar – i18n via translations[language].
- * Left (Logo), Center (Links), Right (Lang + GitHub + Ethics).
+ * SaaS Navbar: Theme toggle, Login / Admin / Avatar dropdown. Glassmorphism dark & light.
  */
 
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Shield, Wrench, Menu, X, Github, Scale } from 'lucide-react';
+import { Shield, Wrench, Menu, X, Github, Scale, Sun, Moon, LogIn, LayoutDashboard, User, LogOut } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import EthicsModal from './EthicsModal';
 import { getTranslations } from '../constants/translations';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 
-const GITHUB_URL = import.meta.env.VITE_GITHUB_REPO || 'https://github.com';
+const GITHUB_URL = import.meta.env.VITE_GITHUB_REPO || 'https://github.com/sudo-baoz/phishing-detector';
 
 export default function Navbar({ language = 'en' }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [ethicsOpen, setEthicsOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [avatarOpen, setAvatarOpen] = useState(false);
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const { theme, setTheme } = useTheme();
+  const { user, login, logout } = useAuth();
   const t = getTranslations(language).nav;
 
+  const isDark = theme === 'dark';
+  const navBg = isDark ? 'bg-black/70 border-white/10' : 'bg-white/70 border-gray-200 text-gray-900';
+  const navLinkBase = isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60';
+  const navLinkActive = isDark ? 'text-cyan-400 bg-white/10' : 'text-cyan-600 bg-gray-200/80';
+
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-      isActive
-        ? 'text-cyan-400 bg-white/10 shadow-[0_0_12px_rgba(34,211,238,0.2)]'
-        : 'text-slate-300 hover:text-white hover:bg-white/10'
-    }`;
+    `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? navLinkActive : navLinkBase}`;
+
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError('');
+    try {
+      await login(loginEmail, loginPassword);
+      setLoginOpen(false);
+      setLoginEmail('');
+      setLoginPassword('');
+    } catch (err) {
+      setLoginError(err.response?.data?.detail || 'Login failed');
+    }
+  };
 
   const rightSection = (
     <div className="flex items-center gap-2">
-      <LanguageSwitcher embedded />
-      <a
-        href={GITHUB_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="p-2.5 rounded-lg text-slate-400 hover:text-white hover:bg-white/10 transition-all"
-        aria-label="GitHub"
-      >
-        <Github className="w-5 h-5" />
-      </a>
       <button
         type="button"
-        onClick={() => setEthicsOpen(true)}
-        className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:text-white hover:bg-white/10 transition-all"
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`}
+        aria-label="Toggle theme"
       >
+        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+      <LanguageSwitcher embedded />
+      <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
+        <Github className="w-5 h-5" />
+      </a>
+      <button type="button" onClick={() => setEthicsOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
         <Scale className="w-4 h-4" />
         {t.ethics}
       </button>
+      {!user ? (
+        <button type="button" onClick={() => setLoginOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
+          <LogIn className="w-4 h-4" />
+          Login
+        </button>
+      ) : (
+        <div className="relative">
+          <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-200/60'}`}>
+            <User className="w-4 h-4" />
+            <span className="text-sm truncate max-w-[100px]">{user.email || user.username}</span>
+          </button>
+          {avatarOpen && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} aria-hidden />
+              <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg shadow-xl z-50 min-w-[160px] ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
+                {user.role === 'admin' && (
+                  <NavLink to="/admin" className={`flex items-center gap-2 px-4 py-2 text-sm ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setAvatarOpen(false)}>
+                    <LayoutDashboard className="w-4 h-4" />
+                    Admin Dashboard
+                  </NavLink>
+                )}
+                <button type="button" onClick={() => { logout(); setAvatarOpen(false); }} className={`flex items-center gap-2 w-full px-4 py-2 text-sm ${isDark ? 'text-red-400 hover:bg-white/10' : 'text-red-600 hover:bg-gray-100'}`}>
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 
   return (
     <>
-      <nav className="sticky top-0 z-50 backdrop-blur-md bg-black/60 border-b border-white/10">
+      <nav className={`sticky top-0 z-50 backdrop-blur-md border-b ${navBg}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <NavLink to="/" className="flex items-center gap-2 shrink-0" onClick={() => setMobileOpen(false)}>
@@ -57,7 +107,6 @@ export default function Navbar({ language = 'en' }) {
                 CyberSentinel
               </span>
             </NavLink>
-
             <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
               <NavLink to="/" end className={linkClass}>
                 <Shield className="w-4 h-4" />
@@ -67,30 +116,23 @@ export default function Navbar({ language = 'en' }) {
                 <Wrench className="w-4 h-4" />
                 {t.tools}
               </NavLink>
+              <NavLink to="/batch" className={linkClass}>
+                Batch
+              </NavLink>
               <NavLink to="/about" className={linkClass}>
                 {t.about}
               </NavLink>
             </div>
-
-            <div className="hidden md:flex items-center gap-2 shrink-0">
-              {rightSection}
-            </div>
-
+            <div className="hidden md:flex items-center gap-2 shrink-0">{rightSection}</div>
             <div className="flex md:hidden items-center gap-2">
               {rightSection}
-              <button
-                type="button"
-                onClick={() => setMobileOpen((o) => !o)}
-                className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
-                aria-label="Toggle menu"
-              >
+              <button type="button" onClick={() => setMobileOpen((o) => !o)} className={`p-2 rounded-lg ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-200/60'}`} aria-label="Toggle menu">
                 {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
           </div>
-
           {mobileOpen && (
-            <div className="md:hidden py-3 border-t border-white/10 flex flex-col gap-1">
+            <div className={`md:hidden py-3 border-t ${isDark ? 'border-white/10' : 'border-gray-200'} flex flex-col gap-1`}>
               <NavLink to="/" end className={linkClass} onClick={() => setMobileOpen(false)}>
                 <Shield className="w-4 h-4" />
                 {t.home}
@@ -99,6 +141,9 @@ export default function Navbar({ language = 'en' }) {
                 <Wrench className="w-4 h-4" />
                 {t.tools}
               </NavLink>
+              <NavLink to="/batch" className={linkClass} onClick={() => setMobileOpen(false)}>
+                Batch
+              </NavLink>
               <NavLink to="/about" className={linkClass} onClick={() => setMobileOpen(false)}>
                 {t.about}
               </NavLink>
@@ -106,6 +151,23 @@ export default function Navbar({ language = 'en' }) {
           )}
         </div>
       </nav>
+
+      {loginOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setLoginOpen(false)}>
+          <div className={`w-full max-w-sm rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
+            <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Login</h3>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className={`w-full px-4 py-2 rounded-lg border ${isDark ? 'bg-gray-800 border-white/20 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`} />
+              <input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className={`w-full px-4 py-2 rounded-lg border ${isDark ? 'bg-gray-800 border-white/20 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`} />
+              {loginError && <p className="text-sm text-red-400">{loginError}</p>}
+              <button type="submit" className="w-full py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium">
+                Sign in
+              </button>
+            </form>
+            <p className={`mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Demo: admin@cybersentinel.com / password123</p>
+          </div>
+        </div>
+      )}
 
       <EthicsModal open={ethicsOpen} onClose={() => setEthicsOpen(false)} hideTrigger language={language} />
     </>

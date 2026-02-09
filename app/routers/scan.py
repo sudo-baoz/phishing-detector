@@ -31,7 +31,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc
 
 from app.database import get_db
-from app.models import ScanHistory
+from app.models import ScanHistory, ScanLog, User
+from app.routers.auth import get_current_user_optional
 from app.schemas.scan_new import (
     ScanRequest, ScanResponse, ScanHistoryResponse,
     VerdictData, NetworkData, ForensicsData, 
@@ -121,7 +122,8 @@ def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Opt
 async def scan_url(
     scan_request: ScanRequest,
     request: Request,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional["User"] = Depends(get_current_user_optional),
 ):
     """
     Scan a URL for phishing detection (Protected by Cloudflare Turnstile)
@@ -162,7 +164,7 @@ async def scan_url(
             # Wrap entire scan in timeout
             try:
                 result = await asyncio.wait_for(
-                    _perform_scan(scan_request, request, db),
+                    _perform_scan(scan_request, request, db, user_id=current_user.id if current_user else None),
                     timeout=timeout
                 )
                 return result
@@ -188,6 +190,7 @@ async def scan_url_stream(
     scan_request: ScanRequest,
     request: Request,
     db: AsyncSession = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
 ):
     """
     Scan a URL with NDJSON streaming: log lines first, then final result.
@@ -229,7 +232,11 @@ async def scan_url_stream(
             async def run_scan() -> None:
                 try:
                     result = await asyncio.wait_for(
-                        _perform_scan(scan_request, request, db, log_callback=log_cb),
+                        _perform_scan(
+                            scan_request, request, db,
+                            log_callback=log_cb,
+                            user_id=current_user.id if current_user else None,
+                        ),
                         timeout=timeout,
                     )
                     await queue.put(("result", result))
@@ -281,6 +288,7 @@ async def _perform_scan(
     db: AsyncSession,
     *,
     log_callback: Optional[Callable[[str], Awaitable[None]]] = None,
+    user_id: Optional[int] = None,
 ) -> ScanResponse:
     """
     Internal scan implementation (wrapped by semaphore + timeout).
@@ -790,6 +798,22 @@ async def _perform_scan(
         # Live Map: broadcast scan event (source -> target) to WebSocket clients
         asyncio.create_task(_broadcast_scan_event(request, osint_dict, is_phishing))
 
+        # Save to ScanLog for share link and analytics
+        verdict_level = (response_data.get("verdict") or {}).get("level") or ("PHISHING" if is_phishing else "SAFE")
+        verdict_score = float((response_data.get("verdict") or {}).get("score") or confidence_score)
+        scan_log = ScanLog(
+            user_id=user_id,
+            url=url_str,
+            verdict=verdict_level,
+            score=verdict_score,
+            timestamp=scan_record.scanned_at,
+            full_result_json=json.dumps(response_data, default=str),
+        )
+        db.add(scan_log)
+        await db.commit()
+        await db.refresh(scan_log)
+        response_data["share_id"] = scan_log.id
+
         # Cache full result for PDF report download
         cache = getattr(request.app.state, "scan_result_cache", None)
         if cache is not None:
@@ -798,7 +822,6 @@ async def _perform_scan(
                 oldest = next(iter(cache))
                 del cache[oldest]
 
-        # Convert to Pydantic models
         return ScanResponse(**response_data)
         
     except HTTPException:
