@@ -21,9 +21,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Share"])
 
 
+# PUBLIC: no authentication. Required for shared links (e.g. /share/3) opened in incognito or direct.
 @router.get("/share/{scan_id}")
 async def get_share_result(scan_id: int, db: AsyncSession = Depends(get_db)):
-    """Fetch full scan result from DB for share link. Returns stored JSON."""
+    """Fetch full scan result from DB for share link. Returns stored JSON. No auth."""
     result = await db.execute(select(ScanLog).where(ScanLog.id == scan_id))
     scan_log = result.scalar_one_or_none()
     if not scan_log or not scan_log.full_result_json:

@@ -101,6 +101,7 @@ export default function Navbar({ language = 'en' }) {
     <>
       <nav className="w-full shrink-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
+          {/* Layout: h-16 (64px) required – must match MainLayout header offset */}
           <div className="h-16 flex items-center justify-between relative">
             {/* Left: Logo */}
             <div className="flex-shrink-0">

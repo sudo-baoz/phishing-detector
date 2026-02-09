@@ -228,10 +228,15 @@ export const submitFeedback = async (payload) => {
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
-/** Fetch shared scan result by scan_id (from ScanLog). */
+/** Fetch shared scan result by scan_id (from ScanLog). PUBLIC endpoint, no auth. */
 export const fetchShareResult = async (scanId) => {
   const res = await fetch(`${API_BASE}/share/${scanId}`);
-  if (!res.ok) throw new Error(res.status === 404 ? 'Scan not found' : 'Failed to load');
+  if (!res.ok) {
+    const message = res.status === 404 ? 'Scan not found' : res.status >= 500 ? 'Server error' : 'Failed to load';
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
   return res.json();
 };
 

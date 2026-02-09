@@ -1,8 +1,7 @@
 /**
- * SOC-style Security News Ticker – Slim bar, THREAT INTEL label, monospace.
- * Fetches GET /tools/news (The Hacker News RSS).
+ * SOC-style Security News Ticker. Fixed height required for MainLayout (40px).
+ * Root MUST be h-10 overflow-hidden – do not allow dynamic height or layout breaks.
  */
-
 import { useState, useEffect } from 'react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
@@ -50,7 +49,7 @@ export default function SecurityNewsTicker() {
 
   return (
     <div
-      className="h-10 flex items-center border-b border-gray-800 bg-black/80 overflow-hidden shrink-0"
+      className="h-10 overflow-hidden flex items-center border-b border-gray-800 bg-black/80 shrink-0"
       style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace' }}
     >
       <div className="shrink-0 flex items-center gap-2 h-full px-3 sm:px-4 bg-gray-900/80 border-r border-gray-800">

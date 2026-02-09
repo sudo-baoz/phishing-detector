@@ -1,5 +1,6 @@
 /**
  * Share view: GET /share/:scanId, render result read-only.
+ * Fetches from API_BASE/share/:scanId (public, no auth). Handles 404 vs 5xx in UI.
  */
 
 import { useState, useEffect } from 'react';
@@ -12,6 +13,7 @@ export default function ShareResultPage() {
   const { scanId } = useParams();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
+  const [errorStatus, setErrorStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,9 +22,15 @@ export default function ShareResultPage() {
       setLoading(false);
       return;
     }
+    setLoading(true);
+    setError(null);
+    setErrorStatus(null);
     fetchShareResult(scanId)
       .then(setData)
-      .catch((e) => setError(e.message))
+      .catch((e) => {
+        setError(e.message || 'Failed to load');
+        setErrorStatus(e.status ?? null);
+      })
       .finally(() => setLoading(false));
   }, [scanId]);
 
@@ -34,9 +42,20 @@ export default function ShareResultPage() {
     );
   }
   if (error || !data) {
+    const is404 = errorStatus === 404;
+    const is5xx = errorStatus >= 500;
+    const title = is404 ? 'Scan not found' : is5xx ? 'Server error' : 'Error';
+    const message = is404
+      ? 'This scan may have been removed or the link is invalid.'
+      : is5xx
+        ? 'Something went wrong on our side. Please try again later.'
+        : error || 'Scan not found';
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-red-400 font-mono">{error || 'Scan not found'}</div>
+      <div className="min-h-screen bg-black flex items-center justify-center px-4">
+        <div className="text-center max-w-md">
+          <p className="text-red-400 font-mono font-semibold text-lg">{title}</p>
+          <p className="text-slate-400 font-mono text-sm mt-2">{message}</p>
+        </div>
       </div>
     );
   }
