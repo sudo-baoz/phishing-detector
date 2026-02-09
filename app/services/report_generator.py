@@ -25,16 +25,16 @@ import base64
 import io
 import logging
 import re
+import textwrap
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
 
 try:
-    from reportlab.lib import colors
     from reportlab.lib.pagesizes import A4
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
-    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    from reportlab.pdfgen import canvas as pdf_canvas
+    from reportlab.lib.utils import ImageReader
     REPORTLAB_AVAILABLE = True
 except ImportError:
     REPORTLAB_AVAILABLE = False
@@ -447,135 +447,200 @@ def generate_abuse_report(
 
 
 # =============================================================================
-# FORENSIC PDF REPORT
+# FORENSIC PDF REPORT (Canvas-based, rich content)
 # =============================================================================
+
+def _safe_str(v: Any, default: str = "N/A") -> str:
+    if v is None:
+        return default
+    s = str(v).strip()
+    return s if s else default
+
 
 def generate_pdf(scan_data: Dict[str, Any]) -> io.BytesIO:
     """
-    Generate a professional Forensic Analysis Report PDF.
-
-    scan_data should contain:
-        - id (scan_id), url, scanned_at
-        - verdict: { score, level, ai_conclusion } or is_phishing + confidence_score
-        - network: { ip, country, domain_age, registrar }
-        - technical_details: { ssl_issuer } (optional)
-        - screenshot_base64 (optional), mobile_screenshot_base64 (optional)
-
-    Returns:
-        BytesIO buffer containing the PDF.
+    Generate a comprehensive Forensic Analysis Report PDF using reportlab Canvas.
+    Sections: Header, Executive Summary, Technical Intelligence, AI Analysis, Visual Evidence.
+    Footer strictly: "Generated automatically by CyberSentinel AI".
     """
     buf = io.BytesIO()
     if not REPORTLAB_AVAILABLE:
         logger.warning("reportlab not installed. Install with: pip install reportlab")
         return buf
 
-    doc = SimpleDocTemplate(
-        buf, pagesize=A4,
-        rightMargin=50, leftMargin=50, topMargin=40, bottomMargin=40
-    )
-    styles = getSampleStyleSheet()
-    story: List[Any] = []
+    c = pdf_canvas.Canvas(buf, pagesize=A4)
+    width, height = A4
+    margin = 50
+    y = height - margin
+    line_height = 14
+    small_line = 11
 
-    # ----- Header -----
-    title_style = ParagraphStyle(
-        name="ReportTitle",
-        parent=styles["Heading1"],
-        fontSize=18,
-        spaceAfter=6,
-    )
-    story.append(Paragraph("CYBER SENTINEL - FORENSIC REPORT", title_style))
+    def _draw_heading(text: str, font_size: int = 14) -> None:
+        nonlocal y
+        c.setFont("Helvetica-Bold", font_size)
+        c.drawString(margin, y, text)
+        y -= line_height + 4
+
+    def _draw_text(text: str, font_size: int = 10) -> None:
+        nonlocal y
+        c.setFont("Helvetica", font_size)
+        c.drawString(margin, y, text[:120] if len(text) > 120 else text)
+        y -= line_height
+
+    def _wrap_draw(long_text: str, wrap_width: int = 85, font_size: int = 10) -> None:
+        nonlocal y
+        if not long_text or not isinstance(long_text, str):
+            return
+        c.setFont("Helvetica", font_size)
+        for line in textwrap.wrap(long_text, width=wrap_width):
+            if y < margin + 40:
+                c.showPage()
+                y = height - margin
+            c.drawString(margin, y, line[:100])
+            y -= line_height
+
+    def _new_page_if_needed(need: int = 80) -> None:
+        nonlocal y
+        if y < margin + need:
+            c.showPage()
+            y = height - margin
+
+    # ----- Header: Project Name, Date, Scan ID -----
+    c.setFont("Helvetica-Bold", 18)
+    c.drawString(margin, y, "CYBER SENTINEL - FORENSIC REPORT")
+    y -= line_height + 4
     scan_id = scan_data.get("id") or scan_data.get("scan_id") or "N/A"
     scanned_at = scan_data.get("scanned_at")
     if hasattr(scanned_at, "strftime"):
         date_str = scanned_at.strftime("%Y-%m-%d %H:%M UTC")
     else:
-        date_str = str(scanned_at) if scanned_at else "N/A"
-    story.append(Paragraph(f"Date: {date_str} | Scan ID: {scan_id}", styles["Normal"]))
-    story.append(Spacer(1, 16))
+        date_str = _safe_str(scanned_at) if scanned_at else "N/A"
+    c.setFont("Helvetica", 10)
+    c.drawString(margin, y, f"Date: {date_str}  |  Scan ID: {scan_id}")
+    y -= line_height * 2
 
     # ----- Executive Summary -----
-    story.append(Paragraph("Executive Summary", styles["Heading2"]))
-    url = scan_data.get("url") or "N/A"
-    story.append(Paragraph(f"<b>URL:</b> {url}", styles["Normal"]))
-    story.append(Spacer(1, 8))
-
+    _draw_heading("Executive Summary", 12)
+    url = _safe_str(scan_data.get("url"))
+    _draw_text(f"URL: {url}")
     verdict = scan_data.get("verdict") or {}
     if isinstance(verdict, dict):
         score = verdict.get("score")
-        level = (verdict.get("level") or "").upper()
         if score is None:
             score = scan_data.get("confidence_score", 0)
-        is_phishing = scan_data.get("is_phishing") if "is_phishing" in scan_data else (level == "CRITICAL" or level == "HIGH" or (score or 0) >= 50)
+        level = (verdict.get("level") or "").upper()
+        is_phishing = (
+            scan_data.get("is_phishing")
+            if "is_phishing" in scan_data
+            else (level in ("CRITICAL", "HIGH") or (score or 0) >= 50)
+        )
     else:
         score = scan_data.get("confidence_score", 0)
         is_phishing = scan_data.get("is_phishing", False)
-
+    c.setFont("Helvetica-Bold", 11)
     if is_phishing:
-        story.append(Paragraph('<font color="red"><b>Verdict: PHISHING</b></font>', styles["Normal"]))
+        c.setFillColorRGB(0.9, 0.2, 0.2)
+        c.drawString(margin, y, "Verdict: PHISHING")
+        c.setFillColorRGB(0, 0, 0)
     else:
-        story.append(Paragraph('<font color="green"><b>Verdict: SAFE</b></font>', styles["Normal"]))
-    story.append(Paragraph(f"<b>Risk Score:</b> {score}/100", styles["Normal"]))
-    story.append(Spacer(1, 16))
+        c.setFillColorRGB(0.1, 0.7, 0.3)
+        c.drawString(margin, y, "Verdict: SAFE")
+        c.setFillColorRGB(0, 0, 0)
+    y -= line_height
+    c.setFont("Helvetica", 10)
+    c.drawString(margin, y, f"Risk Score: {score}/100")
+    y -= line_height * 2
 
-    # ----- Evidence Screenshots -----
-    story.append(Paragraph("Evidence Screenshots", styles["Heading2"]))
+    # ----- Technical Intelligence (table) -----
+    _draw_heading("Technical Intelligence", 12)
+    network = scan_data.get("network") or {}
+    tech = scan_data.get("technical_details") or {}
+    advanced = scan_data.get("advanced") or {}
+    ssl_issuer = _safe_str(tech.get("ssl_issuer") or network.get("ssl_issuer"))
+    ssl_validity = _safe_str(advanced.get("ssl_validity") or tech.get("ssl_validity"))
+    server_headers = _safe_str(advanced.get("server") or tech.get("server_headers"))
+    rows = [
+        ("IP Address", _safe_str(network.get("ip"))),
+        ("Country", _safe_str(network.get("country"))),
+        ("Domain Age", _safe_str(network.get("domain_age"))),
+        ("Registrar", _safe_str(network.get("registrar"))),
+        ("SSL Issuer", ssl_issuer),
+        ("SSL Validity", ssl_validity),
+        ("Server Headers", server_headers),
+    ]
+    c.setFont("Helvetica-Bold", 9)
+    c.drawString(margin, y, "Field")
+    c.drawString(margin + 180, y, "Value")
+    y -= line_height
+    c.setFont("Helvetica", 9)
+    for label, value in rows:
+        if y < margin + 30:
+            c.showPage()
+            y = height - margin
+        val_short = (value[:70] + "..") if len(value) > 70 else value
+        c.drawString(margin, y, label)
+        c.drawString(margin + 180, y, val_short)
+        y -= small_line
+    y -= line_height
+
+    # ----- AI Analysis (full summary, wrapped) -----
+    _new_page_if_needed(120)
+    _draw_heading("AI Analysis", 12)
+    ai_text = None
+    god = scan_data.get("god_mode_analysis") or {}
+    if isinstance(god, dict) and god.get("summary"):
+        ai_text = god.get("summary")
+    if not ai_text and isinstance(verdict, dict) and verdict.get("ai_conclusion"):
+        ai_text = verdict.get("ai_conclusion")
+    if ai_text:
+        _wrap_draw(ai_text, wrap_width=85, font_size=10)
+    else:
+        _draw_text("No AI summary available for this scan.")
+    y -= line_height
+
+    # ----- Visual Evidence: Desktop (large) + Mobile (smaller) -----
+    _new_page_if_needed(200)
+    _draw_heading("Visual Evidence", 12)
     screenshot_b64 = scan_data.get("screenshot_base64")
+    img_w_desktop = 5.2 * inch
+    img_h_desktop = 3.2 * inch
     if screenshot_b64:
         try:
-            im_bytes = base64.b64decode(screenshot_b64)
-            img = Image(io.BytesIO(im_bytes), width=5.5 * inch, height=min(3.5 * inch, 5.5 * 0.6 * inch))
-            story.append(img)
-            story.append(Spacer(1, 8))
+            im_bytes = base64.b64decode(screenshot_b64, validate=True)
+            reader = ImageReader(io.BytesIO(im_bytes))
+            c.drawImage(reader, margin, y - img_h_desktop, width=img_w_desktop, height=img_h_desktop)
+            y -= img_h_desktop + line_height
+            c.setFont("Helvetica", 9)
+            c.drawString(margin, y, "Desktop Screenshot")
+            y -= line_height * 2
         except Exception as e:
-            logger.debug("Failed to embed screenshot: %s", e)
-            story.append(Paragraph("<i>Screenshot could not be embedded.</i>", styles["Normal"]))
+            logger.debug("Failed to embed desktop screenshot: %s", e)
+            _draw_text("Desktop screenshot could not be embedded.")
     else:
-        story.append(Paragraph("<i>Desktop screenshot not available for this scan.</i>", styles["Normal"]))
+        _draw_text("Desktop screenshot not available for this scan.")
     mobile_b64 = scan_data.get("mobile_screenshot_base64")
     if mobile_b64:
         try:
-            im_bytes = base64.b64decode(mobile_b64)
-            img = Image(io.BytesIO(im_bytes), width=2.5 * inch, height=min(4 * inch, 2.5 * 1.6 * inch))
-            story.append(Spacer(1, 8))
-            story.append(Paragraph("Mobile view (optional)", styles["Normal"]))
-            story.append(img)
+            im_bytes = base64.b64decode(mobile_b64, validate=True)
+            reader = ImageReader(io.BytesIO(im_bytes))
+            mw, mh = 2.4 * inch, 3.6 * inch
+            if y - mh < margin + 60:
+                c.showPage()
+                y = height - margin
+            c.drawImage(reader, margin, y - mh, width=mw, height=mh)
+            y -= mh + small_line
+            c.setFont("Helvetica", 9)
+            c.drawString(margin, y, "Mobile Screenshot")
+            y -= line_height
         except Exception:
             pass
-    story.append(Spacer(1, 16))
 
-    # ----- Technical Details (Table) -----
-    story.append(Paragraph("Technical Details", styles["Heading2"]))
-    network = scan_data.get("network") or {}
-    tech = scan_data.get("technical_details") or {}
-    ssl_issuer = tech.get("ssl_issuer") or network.get("ssl_issuer") or "N/A"
-    data = [
-        ["Field", "Value"],
-        ["IP Address", str(network.get("ip") or "N/A")],
-        ["Country", str(network.get("country") or "N/A")],
-        ["Domain Age", str(network.get("domain_age") or "N/A")],
-        ["Registrar", str(network.get("registrar") or "N/A")],
-        ["SSL Issuer", str(ssl_issuer)],
-    ]
-    t = Table(data, colWidths=[2 * inch, 4 * inch])
-    t.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-        ("FONTSIZE", (0, 0), (-1, 0), 10),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
-        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
-        ("FONTSIZE", (0, 0), (-1, -1), 9),
-    ]))
-    story.append(t)
-    story.append(Spacer(1, 24))
+    # ----- Footer on final page -----
+    c.showPage()
+    c.setFont("Helvetica", 9)
+    footer_text = "Generated automatically by CyberSentinel AI"
+    c.drawString(margin, 30, footer_text)
 
-    # ----- Footer -----
-    story.append(Paragraph(
-        "<i>Generated automatically by CyberSentinel AI. Do not trust this document for legal proceedings.</i>",
-        styles["Normal"]
-    ))
-
-    doc.build(story)
+    c.save()
     buf.seek(0)
     return buf

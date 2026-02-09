@@ -154,6 +154,18 @@ const AnalysisReport = ({ data, loading }) => {
 
       {/* Section 1: THE VERDICT - Hero Section */}
       <div className={`bg-slate-900 rounded-lg border-2 ${getRiskColor()} p-4 sm:p-6 md:p-8 shadow-2xl ${getRiskBg()} transition-all duration-500`}>
+        {/* Result Header: Scan ID, Time, Download Report */}
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-700/50">
+          <div className="text-slate-400 text-sm font-mono">
+            <span>Scan ID: {data.id}</span>
+            {data.scanned_at && (
+              <span className="ml-3 sm:ml-4">
+                • {typeof data.scanned_at === 'string' ? data.scanned_at.slice(0, 19) : (data.scanned_at?.toISOString?.()?.slice(0, 19) ?? '')} UTC
+              </span>
+            )}
+          </div>
+          <DownloadReportBtn scanId={data.id} className="shrink-0" />
+        </div>
         <div className="flex flex-col lg:flex-row items-center justify-between mb-6 gap-6">
           <div className="flex items-center gap-6">
             {isPhishing ? (
@@ -191,9 +203,6 @@ const AnalysisReport = ({ data, loading }) => {
 
         {/* Forensic Evidence: Phishing Kit Detected – right below verdict */}
         <ForensicBadge kit={phishing_kit} />
-
-        {/* Download Forensic PDF Report */}
-        <DownloadReportBtn scanId={data.id} className="mt-4" />
 
         {/* AI Conclusion Narrative */}
         {verdict?.ai_conclusion && (

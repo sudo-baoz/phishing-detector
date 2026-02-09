@@ -52,7 +52,7 @@ export default function DownloadReportBtn({ scanId, className = '' }) {
         type="button"
         onClick={handleDownload}
         disabled={!scanId || loading}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-700 hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium transition-colors shadow-lg shadow-cyan-500/20"
       >
         {loading ? (
           <Loader2 className="w-4 h-4 animate-spin" />

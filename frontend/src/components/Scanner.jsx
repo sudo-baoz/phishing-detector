@@ -24,8 +24,7 @@ import AnalysisReport from './AnalysisReport';
 import ChatWidget from './ChatWidget';
 import ScanTerminal from './ScanTerminal';
 import EthicsModal from './EthicsModal';
-import CyberMap from './CyberMap';
-import { Shield, AlertTriangle, Search, RefreshCw, Activity } from 'lucide-react';
+import { Shield, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const MatrixRain = () => {
@@ -448,15 +447,6 @@ const Scanner = () => {
 
                 {/* AI Chat Widget - Always visible */}
                 <ChatWidget scanResult={result} />
-
-                {/* Live Cyber Attack Map */}
-                <section className="mt-10 mb-6">
-                    <h2 className="text-lg font-bold text-slate-300 mb-3 flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-cyan-400" />
-                        Live Cyber Attack Map
-                    </h2>
-                    <CyberMap className="w-full max-w-4xl mx-auto" />
-                </section>
 
                 {/* Footer: Ethics & Safety Policy */}
                 <footer className="mt-12 sm:mt-16 pb-8 flex flex-col items-center gap-4">
