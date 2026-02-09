@@ -1,7 +1,7 @@
 /**
- * SaaS Navbar: Theme toggle, Login / Admin / Avatar dropdown. Glassmorphism dark & light.
+ * Dumb Navbar: static flex container. Positioning handled by MainLayout (Fixed Header Wrapper).
+ * No fixed, sticky, or top-0. LanguageSwitcher lives inside Right flex (no absolute).
  */
-
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { Shield, Wrench, Menu, X, Github, Scale, Sun, Moon, LogIn, LayoutDashboard, User, LogOut } from 'lucide-react';
@@ -26,7 +26,6 @@ export default function Navbar({ language = 'en' }) {
   const t = getTranslations(language).nav;
 
   const isDark = theme === 'dark';
-  const navBg = isDark ? 'bg-black/80 border-white/10' : 'bg-white/90 border-gray-200 text-gray-900';
   const navLinkBase = isDark ? 'text-gray-200 hover:text-blue-400 hover:bg-white/10' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-200/60';
   const navLinkActive = isDark ? 'text-blue-400 bg-white/10' : 'text-blue-600 bg-gray-200/80';
 
@@ -47,37 +46,31 @@ export default function Navbar({ language = 'en' }) {
     }
   };
 
-  const rightSection = (
-    <div className="relative flex items-center gap-2 shrink-0">
-      <div className="relative flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setTheme(isDark ? 'light' : 'dark')}
-          className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`}
-          aria-label="Toggle theme"
-        >
-          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-        </button>
-        <div className="relative">
-          <LanguageSwitcher embedded theme={theme} />
-        </div>
-        <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
-          <Github className="w-5 h-5" />
-        </a>
-        <button type="button" onClick={() => setEthicsOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all shrink-0 ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
-          <Scale className="w-4 h-4" />
-          {t.ethics}
-        </button>
-      </div>
+  const rightActions = (
+    <div className="flex items-center gap-4 shrink-0">
+      <button
+        type="button"
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`}
+        aria-label="Toggle theme"
+      >
+        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+      </button>
+      <LanguageSwitcher embedded theme={theme} />
+      <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
+        <Github className="w-5 h-5" />
+      </a>
+      <button type="button" onClick={() => setEthicsOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
+        <Scale className="w-4 h-4" />
+        {t.ethics}
+      </button>
       {!user ? (
-        <div className="relative">
-          <button type="button" onClick={() => setLoginOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all shrink-0 ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
-            <LogIn className="w-4 h-4" />
-            Login
-          </button>
-        </div>
+        <button type="button" onClick={() => setLoginOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
+          <LogIn className="w-4 h-4" />
+          Login
+        </button>
       ) : (
-        <div className="relative shrink-0">
+        <div className="relative">
           <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-200/60'}`}>
             <User className="w-4 h-4 shrink-0" />
             <span className="text-sm truncate max-w-[100px]">{user.email || user.username}</span>
@@ -106,15 +99,20 @@ export default function Navbar({ language = 'en' }) {
 
   return (
     <>
-      <nav className={`backdrop-blur-md border-b ${navBg}`}>
+      <nav className="w-full shrink-0">
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
-          <div className="flex items-center justify-between h-14 sm:h-16">
-            <NavLink to="/" className="flex items-center gap-2 shrink-0" onClick={() => setMobileOpen(false)}>
-              <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
-                CyberSentinel
-              </span>
-            </NavLink>
-            <div className="hidden md:flex items-center gap-1 absolute left-1/2 -translate-x-1/2">
+          <div className="h-16 flex items-center justify-between relative">
+            {/* Left: Logo */}
+            <div className="flex-shrink-0">
+              <NavLink to="/" className="flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.3)]">
+                  CyberSentinel
+                </span>
+              </NavLink>
+            </div>
+
+            {/* Middle: Links (centered on desktop) */}
+            <div className="hidden md:flex items-center gap-6 absolute left-1/2 -translate-x-1/2">
               <NavLink to="/" end className={linkClass}>
                 <Shield className="w-4 h-4" />
                 {t.home}
@@ -130,14 +128,20 @@ export default function Navbar({ language = 'en' }) {
                 {t.about}
               </NavLink>
             </div>
-            <div className="hidden md:flex items-center gap-2 shrink-0">{rightSection}</div>
+
+            {/* Right: Actions (theme, language, github, ethics, login/avatar) */}
+            <div className="hidden md:flex items-center">{rightActions}</div>
+
+            {/* Mobile: actions + hamburger */}
             <div className="flex md:hidden items-center gap-2">
-              {rightSection}
+              {rightActions}
               <button type="button" onClick={() => setMobileOpen((o) => !o)} className={`p-2 rounded-lg ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-200/60'}`} aria-label="Toggle menu">
                 {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
               </button>
             </div>
           </div>
+
+          {/* Mobile menu */}
           {mobileOpen && (
             <div className={`md:hidden py-3 border-t ${isDark ? 'border-white/10' : 'border-gray-200'} flex flex-col gap-1`}>
               <NavLink to="/" end className={linkClass} onClick={() => setMobileOpen(false)}>

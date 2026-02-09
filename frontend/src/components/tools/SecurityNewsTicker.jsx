@@ -50,7 +50,7 @@ export default function SecurityNewsTicker() {
 
   return (
     <div
-      className="h-9 flex items-center border-b border-gray-800 bg-black/80 overflow-hidden"
+      className="h-10 flex items-center border-b border-gray-800 bg-black/80 overflow-hidden shrink-0"
       style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace' }}
     >
       <div className="shrink-0 flex items-center gap-2 h-full px-3 sm:px-4 bg-gray-900/80 border-r border-gray-800">
