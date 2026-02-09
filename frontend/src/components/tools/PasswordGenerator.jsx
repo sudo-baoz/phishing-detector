@@ -61,8 +61,7 @@ export default function PasswordGenerator() {
   const strengthColor = strength <= 2 ? 'bg-red-500' : strength <= 4 ? 'bg-amber-500' : 'bg-green-500';
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5 sm:p-6">
-      <h3 className="text-lg font-bold text-slate-200 mb-3">Password Generator</h3>
+    <div className="w-full bg-transparent">
       <p className="text-slate-400 text-sm mb-4">Generate a strong password (client-side only).</p>
 
       <div className="space-y-4">

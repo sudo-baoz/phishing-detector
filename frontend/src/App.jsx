@@ -19,7 +19,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Scanner from './components/Scanner';
 import LanguageSwitcher from './components/LanguageSwitcher';
-import AppNav from './components/AppNav';
+import Navbar from './components/Navbar';
 import ToolsPage from './pages/ToolsPage';
 
 function App() {
@@ -27,7 +27,7 @@ function App() {
     <BrowserRouter>
       <div className="min-h-screen bg-black">
         <LanguageSwitcher />
-        <AppNav />
+        <Navbar />
         <Routes>
           <Route path="/" element={<Scanner />} />
           <Route path="/tools" element={<ToolsPage />} />

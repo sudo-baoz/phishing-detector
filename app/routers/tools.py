@@ -65,14 +65,20 @@ async def breach_check(body: BreachCheckInput) -> Dict[str, Any]:
     except Exception:
         return {"status": "SAFE", "breaches": [], "count": 0}
 
-    # XposedOrNot response shape: may have "breaches" list or similar
-    breaches_raw = data.get("breaches") or data.get("data") or data.get("found") or []
-    if isinstance(breaches_raw, list):
-        breaches = [b if isinstance(b, str) else str(b.get("name", b)) for b in breaches_raw]
-    elif isinstance(breaches_raw, dict):
-        breaches = list(breaches_raw.keys()) if breaches_raw else []
-    else:
-        breaches = []
+    # XposedOrNot returns Breaches as list of lists e.g. [["BreachName", "Desc..."], ...]
+    breaches_raw = data.get("Breaches") or data.get("breaches") or data.get("data") or data.get("found") or []
+    if not isinstance(breaches_raw, list):
+        breaches_raw = []
+
+    breaches = []
+    for b in breaches_raw:
+        if isinstance(b, list) and len(b) > 0:
+            breaches.append(str(b[0]))  # First item is the breach name
+        elif isinstance(b, dict):
+            breaches.append(str(b.get("name", b.get("Name", "Unknown"))))
+        else:
+            breaches.append(str(b))
+
     return {"status": "LEAKED", "breaches": breaches, "count": len(breaches)}
 
 

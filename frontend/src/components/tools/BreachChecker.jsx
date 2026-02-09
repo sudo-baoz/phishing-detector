@@ -40,8 +40,7 @@ export default function BreachChecker() {
   };
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-5 sm:p-6">
-      <h3 className="text-lg font-bold text-slate-200 mb-3">Data Breach Checker</h3>
+    <div className="w-full bg-transparent">
       <p className="text-slate-400 text-sm mb-4">Check if your email appeared in known breaches.</p>
       <div className="flex flex-wrap gap-2 mb-4">
         <input
