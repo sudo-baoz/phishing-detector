@@ -107,7 +107,7 @@ export default function Navbar({ language = 'en' }) {
         </div>
       </nav>
 
-      <EthicsModal open={ethicsOpen} onClose={() => setEthicsOpen(false)} hideTrigger />
+      <EthicsModal open={ethicsOpen} onClose={() => setEthicsOpen(false)} hideTrigger language={language} />
     </>
   );
 }

@@ -34,6 +34,25 @@ export const translations = {
       contact_title: 'Connect with the Developer',
       github_btn: 'View on GitHub',
     },
+    ethics: {
+      title: 'Ethics & Safety Policy',
+      trigger: 'Ethics & Safety Policy',
+      acknowledge: 'Acknowledge',
+      cards: [
+        {
+          title: 'No Unauthorized Crawling',
+          text: 'We strictly adhere to robots.txt protocols. This tool performs On-Demand Analysis only. We do not engage in mass scanning or unauthorized data scraping of legitimate websites.',
+        },
+        {
+          title: 'Anonymous & Ephemeral',
+          text: 'We prioritize privacy. We employ Anonymous Logging. Personal Identifiable Information (PII) like emails, passwords, or body content is NEVER stored. Data is ephemeral and used solely for session analysis.',
+        },
+        {
+          title: 'Passive Analysis Only',
+          text: 'This is a defensive security tool. We generally DO NOT host, distribute, or share malicious source code (Phishing Kits). Detected threats are reported as metadata/hashes only to aid the security community.',
+        },
+      ],
+    },
   },
   vi: {
     nav: {
@@ -65,6 +84,25 @@ export const translations = {
         'Giúp Internet trở nên an toàn hơn bằng cách cung cấp các công cụ phân tích bảo mật miễn phí và dễ tiếp cận.',
       contact_title: 'Liên Hệ Nhà Phát Triển',
       github_btn: 'Xem trên GitHub',
+    },
+    ethics: {
+      title: 'Chính Sách Đạo Đức & An Toàn',
+      trigger: 'Chính Sách Đạo Đức & An Toàn',
+      acknowledge: 'Đã hiểu',
+      cards: [
+        {
+          title: 'Không Thu Thập Dữ Liệu Trái Phép',
+          text: 'Chúng tôi tuân thủ nghiêm ngặt robots.txt. Công cụ chỉ thực hiện phân tích theo yêu cầu. Chúng tôi không quét hàng loạt hay thu thập dữ liệu trái phép từ các trang web hợp pháp.',
+        },
+        {
+          title: 'Ẩn Danh & Không Lưu Trữ',
+          text: 'Chúng tôi ưu tiên quyền riêng tư. Dữ liệu được ghi nhận ẩn danh. Thông tin cá nhân (email, mật khẩu, nội dung) KHÔNG BAO GIỜ được lưu trữ. Dữ liệu chỉ dùng cho phiên phân tích và không được giữ lại.',
+        },
+        {
+          title: 'Chỉ Phân Tích Thụ Động',
+          text: 'Đây là công cụ bảo mật phòng thủ. Chúng tôi KHÔNG lưu trữ, phân phối hay chia sẻ mã nguồn độc hại (Phishing Kit). Các mối đe dọa chỉ được báo cáo dưới dạng metadata/hash để hỗ trợ cộng đồng bảo mật.',
+        },
+      ],
     },
   },
 };

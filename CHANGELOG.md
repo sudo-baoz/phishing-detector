@@ -5,6 +5,69 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-02-06
+
+### 🌐 i18n Sync, Navbar & Toolbox Redesign, Backend Fix
+
+This release fixes backend breach-check crash, centralizes frontend text in translations (en/vi), redesigns the Navbar and Security Toolbox, adds a professional About page with contact info, and makes the Ethics & Safety Policy modal fully bilingual.
+
+#### Fixed
+
+- **Backend – Breach check crash** ([app/routers/tools.py](app/routers/tools.py)):
+  - `AttributeError: 'list' object has no attribute 'get'`: XposedOrNot API returns breaches as a **list of lists** (e.g. `[["BreachName", "Desc..."], ...]`), but the code treated each item as a dict.
+  - Breach parsing now supports list items (`b[0]` as name), dict fallback (`b.get("name","Name")`), and string fallback; uses `data.get("Breaches", [])` (with fallbacks). Returns `{ status, breaches, count }` correctly.
+
+- **Frontend – Language Switcher overlap**:
+  - Language Switcher was fixed in the corner and overlapped by the sticky Navbar. It is now **integrated inside the Navbar** (right section) with an `embedded` prop so it no longer uses fixed positioning.
+
+- **Frontend – Ethics & Safety Policy only in English**:
+  - Ethics modal (Navbar and Scanner footer) now uses **translations (en/vi)**. Added `ethics` section in [frontend/src/constants/translations.js](frontend/src/constants/translations.js) (title, trigger, acknowledge, three policy cards in both languages).
+  - [EthicsModal.jsx](frontend/src/components/EthicsModal.jsx) accepts optional `language` prop and falls back to `useTranslation()` so it stays in sync when opened from Navbar or Scanner.
+
+#### Added
+
+- **Centralized i18n** ([frontend/src/constants/translations.js](frontend/src/constants/translations.js)):
+  - Single source of truth for **nav** (home, tools, about, ethics), **tools** (title, subtitle, breach/unshorten/pass title & description), **about** (title, subtitle, description, mission, contact, github_btn), **ethics** (modal title, trigger, acknowledge, three policy cards).
+  - `getTranslations(lang)` helper; supports `vi` / `vi-VN` and falls back to `en`.
+
+- **App global language** ([frontend/src/App.jsx](frontend/src/App.jsx)):
+  - `useTranslation()` to derive `language` (`'vi'` when `i18n.language` starts with `vi`, else `'en'`). Passes `language` to `<Navbar />`, `<ToolsPage />`, `<AboutPage />` so all nav, toolbox, and about text switch with the Language Switcher.
+
+- **Navbar redesign** ([frontend/src/components/Navbar.jsx](frontend/src/components/Navbar.jsx)):
+  - **Layout:** Left (CyberSentinel logo), Center (Home, Tools, About), Right (Language Switcher, GitHub icon, Ethics button). Glassmorphism (`backdrop-blur-md`, `bg-black/60`, `border-white/10`), sticky `z-50`.
+  - All labels from `translations[language].nav`. Mobile: hamburger + same right section (Lang, GitHub, Ethics). Ethics opens controlled EthicsModal with `hideTrigger`.
+
+- **Security News Ticker – SOC style** ([frontend/src/components/tools/SecurityNewsTicker.jsx](frontend/src/components/tools/SecurityNewsTicker.jsx)):
+  - Slim bar (`h-9`), `bg-black/80`, `border-b border-gray-800`. Left label: “🔴 THREAT INTEL:” with monospace/small text; scrolling ticker from `/tools/news`. Placed **globally** in [App.jsx](frontend/src/App.jsx) immediately below Navbar so it appears on every page.
+
+- **Tools page – single-column layout** ([frontend/src/pages/ToolsPage.jsx](frontend/src/pages/ToolsPage.jsx)):
+  - Replaced 3-column grid with **single-column list**. `max-w-4xl`; each tool (Breach Checker, Link Expander, Password Generator) in a **feature card** with icon, title, and description from `translations[language].tools`. Card style: `bg-gray-900/50`, `border-gray-700`, `rounded-xl`, `p-6`. Descriptions in Vietnamese/English as per translations.
+
+- **About page revamp** ([frontend/src/pages/AboutPage.jsx](frontend/src/pages/AboutPage.jsx)):
+  - **Hero:** Title, subtitle, and project description from `translations[language].about`.
+  - **Mission** block with glassmorphism card and cyan border glow.
+  - **Contact grid:** Author (Mai Quoc Bao), Email (mailto), Phone (tel), Telegram (@darius_baoz), GitHub (sudo-baoz/phishing-detector). Each row with lucide icon; “View on GitHub” / “Xem trên GitHub” button. All contact strings fixed; labels/buttons use i18n.
+
+- **About route:** New route `/about` and “About” link in Navbar; [AboutPage.jsx](frontend/src/pages/AboutPage.jsx) placeholder replaced by the new design.
+
+#### Changed
+
+- **EthicsModal** ([frontend/src/components/EthicsModal.jsx](frontend/src/components/EthicsModal.jsx)):
+  - Supports controlled usage (`open`, `onClose`, `hideTrigger`) for Navbar. When `language` is not passed, uses `useTranslation()` so Scanner footer modal also shows the current app language (en/vi).
+  - Policy cards content moved from hardcoded `POLICY_CARDS` to `translations[language].ethics.cards`.
+
+- **LanguageSwitcher** ([frontend/src/components/LanguageSwitcher.jsx](frontend/src/components/LanguageSwitcher.jsx)):
+  - New `embedded` prop: when `true`, wrapper uses `relative flex` instead of `fixed` positioning so it fits inside the Navbar and no longer overlaps.
+
+- **Tool components** (BreachChecker, LinkExpander, PasswordGenerator): Outer wrappers already `w-full bg-transparent`; ToolsPage provides card chrome and translated title/description from `translations[language].tools`.
+
+#### Files Touched
+
+- **Backend:** app/routers/tools.py
+- **Frontend:** frontend/src/App.jsx, frontend/src/constants/translations.js (new), frontend/src/components/Navbar.jsx, frontend/src/components/EthicsModal.jsx, frontend/src/components/LanguageSwitcher.jsx, frontend/src/components/tools/SecurityNewsTicker.jsx, frontend/src/pages/ToolsPage.jsx, frontend/src/pages/AboutPage.jsx
+
+---
+
 ## [1.6.2] - 2026-02-06
 
 ### 🔐 Turnstile, Captcha, Proxy, Legitimacy & Forensics
