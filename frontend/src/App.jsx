@@ -27,7 +27,7 @@ import AboutPage from './pages/AboutPage';
 import BatchScanPage from './pages/BatchScanPage';
 import ShareResultPage from './pages/ShareResultPage';
 import AdminDashboard from './pages/AdminDashboard';
-import { VERSION_BADGE } from './constants/appInfo';
+import VersionBadge from './components/VersionBadge';
 
 function App() {
   const { i18n } = useTranslation();
@@ -54,7 +54,7 @@ function App() {
           </Routes>
         </main>
         <footer className={`py-4 text-center text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>
-          {VERSION_BADGE}
+          <VersionBadge />
         </footer>
       </div>
     </BrowserRouter>

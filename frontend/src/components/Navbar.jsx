@@ -48,38 +48,44 @@ export default function Navbar({ language = 'en' }) {
   };
 
   const rightSection = (
-    <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={() => setTheme(isDark ? 'light' : 'dark')}
-        className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`}
-        aria-label="Toggle theme"
-      >
-        {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-      </button>
-      <LanguageSwitcher embedded theme={theme} />
-      <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
-        <Github className="w-5 h-5" />
-      </a>
-      <button type="button" onClick={() => setEthicsOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
-        <Scale className="w-4 h-4" />
-        {t.ethics}
-      </button>
-      {!user ? (
-        <button type="button" onClick={() => setLoginOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
-          <LogIn className="w-4 h-4" />
-          Login
+    <div className="relative flex items-center gap-2 shrink-0">
+      <div className="relative flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setTheme(isDark ? 'light' : 'dark')}
+          className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`}
+          aria-label="Toggle theme"
+        >
+          {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
         </button>
-      ) : (
         <div className="relative">
+          <LanguageSwitcher embedded theme={theme} />
+        </div>
+        <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
+          <Github className="w-5 h-5" />
+        </a>
+        <button type="button" onClick={() => setEthicsOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all shrink-0 ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
+          <Scale className="w-4 h-4" />
+          {t.ethics}
+        </button>
+      </div>
+      {!user ? (
+        <div className="relative">
+          <button type="button" onClick={() => setLoginOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all shrink-0 ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
+            <LogIn className="w-4 h-4" />
+            Login
+          </button>
+        </div>
+      ) : (
+        <div className="relative shrink-0">
           <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-200/60'}`}>
-            <User className="w-4 h-4" />
+            <User className="w-4 h-4 shrink-0" />
             <span className="text-sm truncate max-w-[100px]">{user.email || user.username}</span>
           </button>
           {avatarOpen && (
             <>
               <div className="fixed inset-0 z-[55]" onClick={() => setAvatarOpen(false)} aria-hidden />
-              <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg shadow-xl z-[60] min-w-[160px] ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
+              <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg shadow-xl z-[100] min-w-[160px] ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
                 {user.role === 'admin' && (
                   <NavLink to="/admin" className={`flex items-center gap-2 px-4 py-2 text-sm ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setAvatarOpen(false)}>
                     <LayoutDashboard className="w-4 h-4" />
