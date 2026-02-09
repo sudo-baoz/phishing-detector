@@ -55,10 +55,30 @@ export function AuthProvider({ children }) {
   }, [loadStored]);
 
   const login = useCallback(async (email, password) => {
-    const body = new URLSearchParams({ username: email, password });
-    const { data } = await axios.post(`${API_URL}/auth/token`, body, {
+    // CRITICAL: OAuth2 /auth/token expects form-urlencoded with "username" and "password".
+    // Do NOT send JSON. Use fetch + URLSearchParams so the server receives form data.
+    const body = new URLSearchParams();
+    body.append('username', email);
+    body.append('password', password);
+
+    const res = await fetch(`${API_URL}/auth/token`, {
+      method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
     });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      const message = Array.isArray(data.detail)
+        ? data.detail.map((x) => x?.msg || x).join(', ')
+        : (data.detail || data.message || `Request failed (${res.status})`);
+      const err = new Error(message);
+      err.status = res.status;
+      err.response = { data };
+      throw err;
+    }
+
     const t = data.access_token;
     localStorage.setItem(STORAGE_KEY, t);
     setToken(t);

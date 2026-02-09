@@ -100,31 +100,46 @@ async def login_token(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    OAuth2 compatible token login. Use username=email and password.
-    Returns JWT access_token.
+    OAuth2 compatible token login.
+    CRITICAL: This route expects form-urlencoded body with keys "username" and "password".
+    The frontend must send Content-Type: application/x-www-form-urlencoded and body like:
+    username=admin@cybersentinel.com&password=password123
+    (Use "username" even when the user types an email.)
     """
-    email = form_data.username
-    user = await get_user_by_email(db, email)
-    if not user:
-        user = await get_user_by_username(db, email)
-    if not user or not verify_password(form_data.password, user.password_hash):
+    try:
+        # OAuth2PasswordRequestForm provides .username and .password (form fields)
+        email_or_username = form_data.username
+        user = await get_user_by_email(db, email_or_username)
+        if not user:
+            user = await get_user_by_username(db, email_or_username)
+        if not user or not verify_password(form_data.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid email or password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        role = getattr(user, "role", "user")
+        access_token = create_access_token({"sub": str(user.id), "email": user.email or "", "role": role})
+        created_at = user.created_at
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": user.id,
+                "email": getattr(user, "email", None),
+                "username": getattr(user, "username", None),
+                "role": role,
+                "created_at": created_at.isoformat() if created_at else None,
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("Login token error: %s", e)
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid email or password",
-            headers={"WWW-Authenticate": "Bearer"},
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e) if settings.DEBUG else "Internal server error during login",
         )
-    access_token = create_access_token({"sub": str(user.id), "email": user.email or "", "role": user.role})
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "username": user.username,
-            "role": user.role,
-            "created_at": user.created_at.isoformat() if user.created_at else None,
-        },
-    }
 
 
 @router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

@@ -27,8 +27,8 @@ export default function Navbar({ language = 'en' }) {
 
   const isDark = theme === 'dark';
   const navBg = isDark ? 'bg-black/70 border-white/10' : 'bg-white/70 border-gray-200 text-gray-900';
-  const navLinkBase = isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60';
-  const navLinkActive = isDark ? 'text-cyan-400 bg-white/10' : 'text-cyan-600 bg-gray-200/80';
+  const navLinkBase = isDark ? 'text-gray-200 hover:text-blue-400 hover:bg-white/10' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-200/60';
+  const navLinkActive = isDark ? 'text-blue-400 bg-white/10' : 'text-blue-600 bg-gray-200/80';
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? navLinkActive : navLinkBase}`;
@@ -42,7 +42,8 @@ export default function Navbar({ language = 'en' }) {
       setLoginEmail('');
       setLoginPassword('');
     } catch (err) {
-      setLoginError(err.response?.data?.detail || 'Login failed');
+      const msg = err.response?.data?.detail ?? err.message ?? 'Login failed';
+      setLoginError(Array.isArray(msg) ? msg.map((x) => x?.msg ?? x).join(', ') : msg);
     }
   };
 
@@ -56,7 +57,7 @@ export default function Navbar({ language = 'en' }) {
       >
         {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
       </button>
-      <LanguageSwitcher embedded />
+      <LanguageSwitcher embedded theme={theme} />
       <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
         <Github className="w-5 h-5" />
       </a>
@@ -77,8 +78,8 @@ export default function Navbar({ language = 'en' }) {
           </button>
           {avatarOpen && (
             <>
-              <div className="fixed inset-0 z-40" onClick={() => setAvatarOpen(false)} aria-hidden />
-              <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg shadow-xl z-50 min-w-[160px] ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
+              <div className="fixed inset-0 z-[55]" onClick={() => setAvatarOpen(false)} aria-hidden />
+              <div className={`absolute right-0 top-full mt-1 py-1 rounded-lg shadow-xl z-[60] min-w-[160px] ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`}>
                 {user.role === 'admin' && (
                   <NavLink to="/admin" className={`flex items-center gap-2 px-4 py-2 text-sm ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-100'}`} onClick={() => setAvatarOpen(false)}>
                     <LayoutDashboard className="w-4 h-4" />
@@ -99,7 +100,7 @@ export default function Navbar({ language = 'en' }) {
 
   return (
     <>
-      <nav className={`sticky top-0 z-50 backdrop-blur-md border-b ${navBg}`}>
+      <nav className={`sticky top-0 z-[50] backdrop-blur-md border-b ${navBg}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <NavLink to="/" className="flex items-center gap-2 shrink-0" onClick={() => setMobileOpen(false)}>
@@ -153,7 +154,7 @@ export default function Navbar({ language = 'en' }) {
       </nav>
 
       {loginOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setLoginOpen(false)}>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setLoginOpen(false)}>
           <div className={`w-full max-w-sm rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
             <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Login</h3>
             <form onSubmit={handleLogin} className="space-y-4">

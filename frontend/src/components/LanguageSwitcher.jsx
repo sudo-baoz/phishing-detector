@@ -38,24 +38,33 @@ const LanguageSwitcher = (props = {}) => {
     };
 
     const isEmbedded = !!props.embedded;
+    const theme = props.theme || 'dark';
+    const isDark = theme === 'dark';
+
+    const btnClass = isEmbedded && !isDark
+        ? 'flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 bg-white/80 border border-gray-300 rounded-lg hover:border-blue-400 hover:bg-gray-50 text-gray-700 min-h-[44px]'
+        : 'flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 bg-gray-900/80 backdrop-blur-md border border-cyan-500/30 rounded-lg hover:border-cyan-500/60 hover:bg-gray-800/90 text-gray-200 min-h-[44px]';
+    const iconClass = isEmbedded && !isDark ? 'text-blue-600' : 'text-cyan-400';
+    const labelClass = isEmbedded && !isDark ? 'text-gray-700' : 'text-white';
+    const codeClass = isEmbedded && !isDark ? 'text-blue-600 text-xs sm:text-sm font-semibold' : 'text-cyan-400 text-xs sm:text-sm font-semibold';
+    const dropdownClass = isEmbedded && !isDark
+        ? 'absolute top-full right-0 mt-2 w-48 z-[60] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden'
+        : 'absolute top-full right-0 mt-2 w-48 z-[60] bg-gray-900/95 backdrop-blur-md border border-cyan-500/30 rounded-lg shadow-xl overflow-hidden';
+    const itemClass = isEmbedded && !isDark
+        ? 'w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 text-gray-700'
+        : 'w-full px-4 py-3 flex items-center gap-3 hover:bg-cyan-500/10 text-white';
 
     return (
-        <div className={isEmbedded ? 'relative flex' : 'fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex'}>
+        <div className={isEmbedded ? 'relative flex items-center' : 'fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex items-center'}>
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 
-          bg-gray-900/80 backdrop-blur-md
-          border border-cyan-500/30 rounded-lg
-          hover:border-cyan-500/60 hover:bg-gray-800/90
-          transition-all duration-300
-          shadow-lg shadow-cyan-500/20
-          min-h-[44px]"
+                className={btnClass}
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
             >
-                <Globe className="w-4 h-4 sm:w-5 sm:h-5 text-cyan-400" />
-                <span className="text-white font-medium">{currentLanguage.flag}</span>
-                <span className="text-cyan-400 text-xs sm:text-sm font-semibold">
+                <Globe className={`w-4 h-4 sm:w-5 sm:h-5 ${iconClass}`} />
+                <span className={`font-medium ${labelClass}`}>{currentLanguage.flag}</span>
+                <span className={codeClass}>
                     {currentLanguage.code.toUpperCase()}
                 </span>
             </motion.button>
@@ -67,25 +76,18 @@ const LanguageSwitcher = (props = {}) => {
                         animate={{ opacity: 1, y: 0 }}
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute top-full right-0 mt-2 w-48
-              bg-gray-900/95 backdrop-blur-md
-              border border-cyan-500/30 rounded-lg
-              shadow-xl shadow-cyan-500/20
-              overflow-hidden"
+                        className={dropdownClass}
                     >
                         {languages.map((language) => (
                             <button
                                 key={language.code}
                                 onClick={() => changeLanguage(language.code)}
-                                className={`w-full px-4 py-3 flex items-center gap-3
-                  hover:bg-cyan-500/10 transition-colors duration-200
-                  ${i18n.language === language.code ? 'bg-cyan-500/20' : ''}
-                `}
+                                className={`${itemClass} transition-colors duration-200 ${i18n.language === language.code ? (isDark ? 'bg-cyan-500/20' : 'bg-blue-50') : ''}`}
                             >
                                 <span className="text-2xl">{language.flag}</span>
                                 <div className="text-left flex-1">
-                                    <div className="text-white font-medium">{language.label}</div>
-                                    <div className="text-cyan-400 text-xs">{language.code.toUpperCase()}</div>
+                                    <div className="font-medium">{language.label}</div>
+                                    <div className={`text-xs ${isDark ? 'text-cyan-400' : 'text-blue-600'}`}>{language.code.toUpperCase()}</div>
                                 </div>
                                 {i18n.language === language.code && (
                                     <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
