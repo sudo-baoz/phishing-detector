@@ -34,20 +34,26 @@ const POLICY_CARDS = [
   },
 ];
 
-const EthicsModal = () => {
-  const [open, setOpen] = useState(false);
+const EthicsModal = ({ open: controlledOpen, onClose, hideTrigger = false }) => {
+  const [internalOpen, setInternalOpen] = useState(false);
+  const isControlled = controlledOpen !== undefined && controlledOpen !== null;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const handleClose = () => (isControlled ? onClose?.() : setInternalOpen(false));
+  const handleOpen = () => { if (!isControlled) setInternalOpen(true); };
 
   return (
     <>
-      {/* Trigger: pill-shaped button for footer */}
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/50 bg-slate-900/50 backdrop-blur-sm transition-all duration-200"
-      >
-        <Shield className="w-4 h-4" />
-        🛡️ Ethics & Safety Policy
-      </button>
+      {/* Trigger: pill-shaped button for footer (hidden when hideTrigger) */}
+      {!hideTrigger && (
+        <button
+          type="button"
+          onClick={handleOpen}
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium text-slate-400 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/50 bg-slate-900/50 backdrop-blur-sm transition-all duration-200"
+        >
+          <Shield className="w-4 h-4" />
+          🛡️ Ethics & Safety Policy
+        </button>
+      )}
 
       <AnimatePresence>
         {open && (
@@ -58,17 +64,17 @@ const EthicsModal = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
-              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-sm"
+              onClick={handleClose}
               aria-hidden="true"
             />
-            {/* Modal */}
+            {/* Modal - z-[60] so above navbar z-50 */}
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
               transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-              className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none"
+              className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none"
             >
               <div
                 className="w-full max-w-4xl max-h-[90vh] overflow-y-auto pointer-events-auto bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl shadow-black/50"
@@ -82,7 +88,7 @@ const EthicsModal = () => {
                   </h2>
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={handleClose}
                     className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-gray-800 transition-colors"
                     aria-label="Close"
                   >
@@ -122,7 +128,7 @@ const EthicsModal = () => {
                 <div className="p-5 sm:p-6 pt-0 flex justify-end border-t border-gray-800/80">
                   <button
                     type="button"
-                    onClick={() => setOpen(false)}
+                    onClick={handleClose}
                     className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium transition-colors"
                   >
                     Acknowledge

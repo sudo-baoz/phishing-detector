@@ -1,10 +1,9 @@
 /**
- * Security Suite - Security News Ticker
- * Fetches GET /tools/news (The Hacker News RSS), marquee-style.
+ * SOC-style Security News Ticker – Slim bar, THREAT INTEL label, monospace.
+ * Fetches GET /tools/news (The Hacker News RSS).
  */
 
 import { useState, useEffect } from 'react';
-import { Newspaper } from 'lucide-react';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
@@ -29,56 +28,46 @@ export default function SecurityNewsTicker() {
     return () => { cancelled = true; };
   }, []);
 
-  if (loading && items.length === 0) {
-    return (
-      <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 flex items-center gap-2 text-slate-400">
-        <Newspaper className="w-5 h-5" />
-        <span>Loading security news…</span>
-      </div>
-    );
-  }
+  const staticLabel =
+    error && items.length === 0
+      ? `News feed unavailable: ${error}`
+      : loading && items.length === 0
+        ? 'Loading threat intel…'
+        : null;
 
-  if (error && items.length === 0) {
-    return (
-      <div className="rounded-xl border border-slate-700 bg-slate-900/80 p-4 text-amber-400">
-        News ticker unavailable: {error}
-      </div>
-    );
-  }
+  const linkFragment = (keyPrefix) =>
+    items.map((item, i) => (
+      <a
+        key={`${keyPrefix}-${i}`}
+        href={item.link || '#'}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-slate-400 hover:text-cyan-400 transition-colors px-4"
+      >
+        {item.title || 'No title'}
+      </a>
+    ));
 
   return (
-    <div className="rounded-xl border border-red-500/30 bg-slate-900 overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border-b border-red-500/30">
-        <span className="px-2 py-0.5 rounded bg-red-500 text-white text-xs font-bold uppercase tracking-wider">
-          Breaking News
+    <div
+      className="h-9 flex items-center border-b border-gray-800 bg-black/80 overflow-hidden"
+      style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace' }}
+    >
+      <div className="shrink-0 flex items-center gap-2 h-full px-3 sm:px-4 bg-gray-900/80 border-r border-gray-800">
+        <span className="text-red-500 text-xs" aria-hidden>🔴</span>
+        <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
+          Threat Intel:
         </span>
-        <Newspaper className="w-4 h-4 text-red-400" />
       </div>
-      <div className="relative py-3 overflow-hidden">
-        <div className="flex animate-ticker gap-8 whitespace-nowrap">
-          {items.map((item, i) => (
-            <a
-              key={i}
-              href={item.link || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-200 hover:text-cyan-400 transition-colors px-4"
-            >
-              {item.title || 'No title'}
-            </a>
-          ))}
-          {items.length > 0 && items.map((item, i) => (
-            <a
-              key={`dup-${i}`}
-              href={item.link || '#'}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-slate-200 hover:text-cyan-400 transition-colors px-4"
-            >
-              {item.title || 'No title'}
-            </a>
-          ))}
-        </div>
+      <div className="flex-1 min-w-0 py-1.5 overflow-hidden">
+        {staticLabel ? (
+          <span className="pl-4 text-xs sm:text-sm text-slate-500">{staticLabel}</span>
+        ) : (
+          <div className="flex animate-ticker gap-8 whitespace-nowrap text-xs sm:text-sm">
+            {linkFragment('a')}
+            {linkFragment('b')}
+          </div>
+        )}
       </div>
       <style>{`
         @keyframes ticker {
@@ -86,7 +75,7 @@ export default function SecurityNewsTicker() {
           100% { transform: translateX(-50%); }
         }
         .animate-ticker {
-          animation: ticker 40s linear infinite;
+          animation: ticker 50s linear infinite;
         }
       `}</style>
     </div>

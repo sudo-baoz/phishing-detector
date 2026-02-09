@@ -18,19 +18,21 @@
 
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Scanner from './components/Scanner';
-import LanguageSwitcher from './components/LanguageSwitcher';
 import Navbar from './components/Navbar';
+import SecurityNewsTicker from './components/tools/SecurityNewsTicker';
 import ToolsPage from './pages/ToolsPage';
+import AboutPage from './pages/AboutPage';
 
 function App() {
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-black">
-        <LanguageSwitcher />
         <Navbar />
+        <SecurityNewsTicker />
         <Routes>
           <Route path="/" element={<Scanner />} />
           <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/about" element={<AboutPage />} />
         </Routes>
       </div>
     </BrowserRouter>

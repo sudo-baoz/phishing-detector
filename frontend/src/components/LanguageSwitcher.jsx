@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const LanguageSwitcher = () => {
+const LanguageSwitcher = (props = {}) => {
     const { i18n } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
 
@@ -37,8 +37,10 @@ const LanguageSwitcher = () => {
         setIsOpen(false);
     };
 
+    const isEmbedded = !!props.embedded;
+
     return (
-        <div className="fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex">
+        <div className={isEmbedded ? 'relative flex' : 'fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex'}>
             <motion.button
                 onClick={() => setIsOpen(!isOpen)}
                 className="flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 
