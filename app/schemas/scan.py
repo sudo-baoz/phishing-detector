@@ -28,6 +28,7 @@ class ScanRequest(BaseModel):
     """Schema for URL scan request"""
     url: str = Field(..., description="URL to scan for phishing")
     include_osint: bool = Field(default=True, description="Include OSINT data in response")
+    language: str = Field(default="en", description="Language for AI analysis and report (en/vi)")
     
     @field_validator('url')
     @classmethod

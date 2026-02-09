@@ -17,15 +17,27 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
 """
-Automated Takedown Report Generator
-Generates formal abuse reports for registrars and hosting providers
+Automated Takedown Report Generator + Forensic PDF Reports
+Generates formal abuse reports and professional PDF forensic reports.
 """
 
+import base64
+import io
 import logging
 import re
 from datetime import datetime, timezone
-from typing import Dict, Any, Optional, List
+from typing import Any, Dict, List, Optional
 from urllib.parse import urlparse
+
+try:
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    REPORTLAB_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -422,13 +434,148 @@ def generate_abuse_report(
 ) -> Dict[str, Any]:
     """
     Convenience function to generate abuse report.
-    
+
     Args:
         url: Phishing URL
         scan_result: Full scan result
         osint_data: Optional OSINT/WHOIS data
-        
+
     Returns:
         Abuse report dict with recipient, subject, body
     """
     return report_generator.generate_abuse_report(url, scan_result, osint_data)
+
+
+# =============================================================================
+# FORENSIC PDF REPORT
+# =============================================================================
+
+def generate_pdf(scan_data: Dict[str, Any]) -> io.BytesIO:
+    """
+    Generate a professional Forensic Analysis Report PDF.
+
+    scan_data should contain:
+        - id (scan_id), url, scanned_at
+        - verdict: { score, level, ai_conclusion } or is_phishing + confidence_score
+        - network: { ip, country, domain_age, registrar }
+        - technical_details: { ssl_issuer } (optional)
+        - screenshot_base64 (optional), mobile_screenshot_base64 (optional)
+
+    Returns:
+        BytesIO buffer containing the PDF.
+    """
+    buf = io.BytesIO()
+    if not REPORTLAB_AVAILABLE:
+        logger.warning("reportlab not installed. Install with: pip install reportlab")
+        return buf
+
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        rightMargin=50, leftMargin=50, topMargin=40, bottomMargin=40
+    )
+    styles = getSampleStyleSheet()
+    story: List[Any] = []
+
+    # ----- Header -----
+    title_style = ParagraphStyle(
+        name="ReportTitle",
+        parent=styles["Heading1"],
+        fontSize=18,
+        spaceAfter=6,
+    )
+    story.append(Paragraph("CYBER SENTINEL - FORENSIC REPORT", title_style))
+    scan_id = scan_data.get("id") or scan_data.get("scan_id") or "N/A"
+    scanned_at = scan_data.get("scanned_at")
+    if hasattr(scanned_at, "strftime"):
+        date_str = scanned_at.strftime("%Y-%m-%d %H:%M UTC")
+    else:
+        date_str = str(scanned_at) if scanned_at else "N/A"
+    story.append(Paragraph(f"Date: {date_str} | Scan ID: {scan_id}", styles["Normal"]))
+    story.append(Spacer(1, 16))
+
+    # ----- Executive Summary -----
+    story.append(Paragraph("Executive Summary", styles["Heading2"]))
+    url = scan_data.get("url") or "N/A"
+    story.append(Paragraph(f"<b>URL:</b> {url}", styles["Normal"]))
+    story.append(Spacer(1, 8))
+
+    verdict = scan_data.get("verdict") or {}
+    if isinstance(verdict, dict):
+        score = verdict.get("score")
+        level = (verdict.get("level") or "").upper()
+        if score is None:
+            score = scan_data.get("confidence_score", 0)
+        is_phishing = scan_data.get("is_phishing") if "is_phishing" in scan_data else (level == "CRITICAL" or level == "HIGH" or (score or 0) >= 50)
+    else:
+        score = scan_data.get("confidence_score", 0)
+        is_phishing = scan_data.get("is_phishing", False)
+
+    if is_phishing:
+        story.append(Paragraph('<font color="red"><b>Verdict: PHISHING</b></font>', styles["Normal"]))
+    else:
+        story.append(Paragraph('<font color="green"><b>Verdict: SAFE</b></font>', styles["Normal"]))
+    story.append(Paragraph(f"<b>Risk Score:</b> {score}/100", styles["Normal"]))
+    story.append(Spacer(1, 16))
+
+    # ----- Evidence Screenshots -----
+    story.append(Paragraph("Evidence Screenshots", styles["Heading2"]))
+    screenshot_b64 = scan_data.get("screenshot_base64")
+    if screenshot_b64:
+        try:
+            im_bytes = base64.b64decode(screenshot_b64)
+            img = Image(io.BytesIO(im_bytes), width=5.5 * inch, height=min(3.5 * inch, 5.5 * 0.6 * inch))
+            story.append(img)
+            story.append(Spacer(1, 8))
+        except Exception as e:
+            logger.debug("Failed to embed screenshot: %s", e)
+            story.append(Paragraph("<i>Screenshot could not be embedded.</i>", styles["Normal"]))
+    else:
+        story.append(Paragraph("<i>Desktop screenshot not available for this scan.</i>", styles["Normal"]))
+    mobile_b64 = scan_data.get("mobile_screenshot_base64")
+    if mobile_b64:
+        try:
+            im_bytes = base64.b64decode(mobile_b64)
+            img = Image(io.BytesIO(im_bytes), width=2.5 * inch, height=min(4 * inch, 2.5 * 1.6 * inch))
+            story.append(Spacer(1, 8))
+            story.append(Paragraph("Mobile view (optional)", styles["Normal"]))
+            story.append(img)
+        except Exception:
+            pass
+    story.append(Spacer(1, 16))
+
+    # ----- Technical Details (Table) -----
+    story.append(Paragraph("Technical Details", styles["Heading2"]))
+    network = scan_data.get("network") or {}
+    tech = scan_data.get("technical_details") or {}
+    ssl_issuer = tech.get("ssl_issuer") or network.get("ssl_issuer") or "N/A"
+    data = [
+        ["Field", "Value"],
+        ["IP Address", str(network.get("ip") or "N/A")],
+        ["Country", str(network.get("country") or "N/A")],
+        ["Domain Age", str(network.get("domain_age") or "N/A")],
+        ["Registrar", str(network.get("registrar") or "N/A")],
+        ["SSL Issuer", str(ssl_issuer)],
+    ]
+    t = Table(data, colWidths=[2 * inch, 4 * inch])
+    t.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+        ("FONTSIZE", (0, 0), (-1, -1), 9),
+    ]))
+    story.append(t)
+    story.append(Spacer(1, 24))
+
+    # ----- Footer -----
+    story.append(Paragraph(
+        "<i>Generated automatically by CyberSentinel AI. Do not trust this document for legal proceedings.</i>",
+        styles["Normal"]
+    ))
+
+    doc.build(story)
+    buf.seek(0)
+    return buf

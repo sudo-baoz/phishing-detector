@@ -51,9 +51,48 @@ from app.services.graph_builder import build_threat_graph  # SOC: Threat Graph
 from app.services.yara_scanner import scan_content_with_yara  # SOC: YARA Scanner
 from app.services.report_generator import generate_abuse_report  # SOC: Takedown Report
 from app.services.kit_detector import KitDetector  # Phishing Kit Fingerprinting
+from app.services.geoip_locator import get_geolocation
+from app.routers.websocket import live_map_manager
 from fastapi.concurrency import run_in_threadpool
 
 logger = logging.getLogger(__name__)
+
+
+def _client_ip(request: Request) -> Optional[str]:
+    """Get client IP (supports X-Forwarded-For behind proxy)."""
+    forwarded = request.headers.get("x-forwarded-for")
+    if forwarded:
+        return forwarded.strip().split(",")[0].strip()
+    if request.client:
+        return request.client.host
+    return None
+
+
+async def _broadcast_scan_event(
+    request: Request,
+    osint_dict: Optional[dict],
+    is_phishing: bool,
+) -> None:
+    """Fire-and-forget: broadcast scan event to Live Map WebSocket clients."""
+    try:
+        target_lat = osint_dict.get("lat") if osint_dict else None
+        target_lon = osint_dict.get("lon") if osint_dict else None
+        if target_lat is None or target_lon is None:
+            return
+        source_lat, source_lon = None, None
+        client_ip = _client_ip(request)
+        if client_ip and not client_ip.startswith("127.") and client_ip != "::1":
+            geo = await run_in_threadpool(get_geolocation, client_ip)
+            if geo.get("lat") is not None and geo.get("lon") is not None:
+                source_lat, source_lon = geo["lat"], geo["lon"]
+        payload = {
+            "source": {"lat": source_lat, "lon": source_lon},
+            "target": {"lat": target_lat, "lon": target_lon},
+            "type": "PHISHING" if is_phishing else "SAFE",
+        }
+        await live_map_manager.broadcast(payload)
+    except Exception as e:
+        logger.debug("[LiveMap] Broadcast skipped or failed: %s", e)
 
 router = APIRouter()
 
@@ -572,7 +611,8 @@ async def _perform_scan(
                     final_url,
                     dom_text,
                     deep_tech_data,
-                    similar_threats
+                    similar_threats,
+                    scan_request.language or "en",
                 )
                 
                 await _log(f"[+] God Mode verdict: {god_mode_result.get('verdict', 'UNKNOWN')}.")
@@ -747,9 +787,18 @@ async def _perform_scan(
             official_site_override=official_site_override,  # LegitimacyChecker: verified official domain
         )
         
+        # Live Map: broadcast scan event (source -> target) to WebSocket clients
+        asyncio.create_task(_broadcast_scan_event(request, osint_dict, is_phishing))
+
+        # Cache full result for PDF report download
+        cache = getattr(request.app.state, "scan_result_cache", None)
+        if cache is not None:
+            cache[scan_record.id] = response_data
+            if len(cache) > 100:
+                oldest = next(iter(cache))
+                del cache[oldest]
+
         # Convert to Pydantic models
-        # Convert to Pydantic models
-        # Pydantic will automatically parse nested dictionaries
         return ScanResponse(**response_data)
         
     except HTTPException:

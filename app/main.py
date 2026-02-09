@@ -34,7 +34,7 @@ from app.config import settings
 from app.core.logger import configure_logging, log_startup_banner, log_shutdown_banner, get_logger
 from app.security.turnstile import verify_turnstile
 from app.database import init_db, close_db
-from app.routers import health, scan, auth, chat, feedback
+from app.routers import health, scan, auth, chat, feedback, report, websocket as ws_router
 from app.services.ai_engine import phishing_predictor
 from app.services.cert_monitor import start_cert_monitor, stop_cert_monitor, get_cache_stats
 
@@ -261,6 +261,8 @@ app.include_router(scan.router, prefix="/scan", tags=["URL Scanning"])
 app.include_router(auth.router, prefix="/auth", tags=["Authentication"])
 app.include_router(chat.router, prefix="/chat", tags=["Chat"])
 app.include_router(feedback.router, prefix="/feedback", tags=["Feedback"])
+app.include_router(report.router, prefix="/report", tags=["Report"])
+app.include_router(ws_router.router, tags=["Live Map"])
 
 
 # Root endpoint
@@ -304,6 +306,8 @@ app.state.get_ml_feature_names = get_ml_feature_names
 # Export concurrency controls for scan router
 app.state.scan_semaphore = SCAN_SEMAPHORE
 app.state.scan_timeout = SCAN_TIMEOUT
+# Cache full scan results for PDF report download (scan_id -> response_data)
+app.state.scan_result_cache = {}
 
 
 if __name__ == "__main__":

@@ -144,17 +144,19 @@ class GodModeAnalyzer:
         url: str,
         dom_text: Optional[str] = None,
         deep_tech_data: Optional[Dict[str, Any]] = None,
-        rag_context: Optional[List[Dict[str, Any]]] = None
+        rag_context: Optional[List[Dict[str, Any]]] = None,
+        language: str = "en",
     ) -> Dict[str, Any]:
         """
         Perform God Mode analysis on a URL with optional context.
-        
+
         Args:
             url: The URL to analyze
             dom_text: Optional page DOM/content text
             deep_tech_data: Optional technical analysis data (SSL, headers, etc.)
             rag_context: Optional RAG context from knowledge base
-            
+            language: Output language for analysis report (en/vi)
+
         Returns:
             Structured JSON analysis result
         """
@@ -163,13 +165,13 @@ class GodModeAnalyzer:
             if self._quota_exceeded:
                 logger.warning("[GOD MODE] Skipped - API quota exceeded")
                 return self.QUOTA_EXCEEDED_RESPONSE.copy()
-            
+
             logger.warning("God Mode Analyzer not available")
             return {**self.DEFAULT_ERROR_RESPONSE, "error": "AI service unavailable"}
-        
+
         try:
-            # Build comprehensive user prompt
-            user_prompt = self._build_analysis_prompt(url, dom_text, deep_tech_data, rag_context)
+            # Build comprehensive user prompt (with language instruction)
+            user_prompt = self._build_analysis_prompt(url, dom_text, deep_tech_data, rag_context, language)
             
             logger.debug(f"[GOD MODE] Analyzing URL: {url}")
             logger.debug(f"[GOD MODE] Prompt length: {len(user_prompt)} chars")
@@ -212,11 +214,25 @@ class GodModeAnalyzer:
         url: str,
         dom_text: Optional[str],
         deep_tech_data: Optional[Dict[str, Any]],
-        rag_context: Optional[List[Dict[str, Any]]]
+        rag_context: Optional[List[Dict[str, Any]]],
+        language: str = "en",
     ) -> str:
-        """Build the user prompt for God Mode analysis"""
-        
-        prompt_parts = [f"=== TARGET URL ===\n{url}"]
+        """Build the user prompt for God Mode analysis (with language instruction)."""
+        if language == "vi":
+            lang_instruction = (
+                "IMPORTANT: OUTPUT IN VIETNAMESE (Tiếng Việt). "
+                "Translate technical concepts naturally (e.g., Phishing -> Lừa đảo, Domain -> Tên miền). "
+                "Keep critical technical terms like SSL, DNS, Header in English if needed for clarity. "
+                "Tone: Professional, Warning, Cyber Security Expert. "
+                "All summary, risk_factors, recommendation, and technical_analysis text must be in Vietnamese."
+            )
+        else:
+            lang_instruction = "Output in English. Tone: Professional, Warning, Cyber Security Expert."
+
+        prompt_parts = [
+            f"=== LANGUAGE INSTRUCTION ===\n{lang_instruction}\n",
+            f"=== TARGET URL ===\n{url}",
+        ]
 
         # OSINT: Domain age, registrar, SSL (evidence-based; scammers cannot fake these)
         try:
@@ -308,21 +324,23 @@ def analyze_url_god_mode(
     url: str,
     dom_text: Optional[str] = None,
     deep_tech_data: Optional[Dict[str, Any]] = None,
-    rag_context: Optional[List[Dict[str, Any]]] = None
+    rag_context: Optional[List[Dict[str, Any]]] = None,
+    language: str = "en",
 ) -> Dict[str, Any]:
     """
     Convenience function for God Mode URL analysis.
-    
+
     Args:
         url: URL to analyze
         dom_text: Optional page content
         deep_tech_data: Optional technical data
         rag_context: Optional RAG threat intelligence
-        
+        language: Output language for report (en/vi)
+
     Returns:
         Structured analysis result
     """
-    return god_mode_analyzer.analyze(url, dom_text, deep_tech_data, rag_context)
+    return god_mode_analyzer.analyze(url, dom_text, deep_tech_data, rag_context, language)
 
 
 def is_god_mode_available() -> bool:

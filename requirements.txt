@@ -75,6 +75,7 @@ python-whois
 pytz
 PyYAML
 regex
+reportlab
 requests
 requests-file
 rsa

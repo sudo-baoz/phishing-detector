@@ -17,6 +17,7 @@ import TrustGauge from './TrustGauge';
 import ForensicBadge from './ForensicBadge';
 import ForensicsViewer from './ForensicsViewer';
 import FeedbackWidget from './FeedbackWidget';
+import DownloadReportBtn from './DownloadReportBtn';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
@@ -190,6 +191,9 @@ const AnalysisReport = ({ data, loading }) => {
 
         {/* Forensic Evidence: Phishing Kit Detected – right below verdict */}
         <ForensicBadge kit={phishing_kit} />
+
+        {/* Download Forensic PDF Report */}
+        <DownloadReportBtn scanId={data.id} className="mt-4" />
 
         {/* AI Conclusion Narrative */}
         {verdict?.ai_conclusion && (
