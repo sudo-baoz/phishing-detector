@@ -21,6 +21,21 @@ Complete FastAPI Main Application
 Phishing URL Detection System with God Mode Integration
 """
 
+# -----------------------------------------------------------------------------
+# Monkey patch: passlib expects bcrypt.__about__ (removed in bcrypt 4.1+).
+# Run before any import that loads passlib (e.g. app.routers.auth).
+# Alternative: pip install bcrypt==4.0.1
+# -----------------------------------------------------------------------------
+import types
+try:
+    import bcrypt
+    if not hasattr(bcrypt, "__about__"):
+        _fake = types.ModuleType("bcrypt")
+        _fake.__version__ = getattr(bcrypt, "__version__", "4.0.x")
+        bcrypt.__about__ = _fake
+except Exception:
+    pass
+
 import asyncio
 from contextlib import asynccontextmanager
 from pathlib import Path

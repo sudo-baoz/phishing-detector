@@ -75,19 +75,32 @@ class KnowledgeBaseService:
             self.phishing_cache = set()
 
     def load_local_cache(self):
-        """Load local JSON cache into memory set for O(1) lookup"""
+        """Load local JSON cache into memory set for O(1) lookup. Returns empty list on corrupt/missing file and repairs file if needed."""
         import json
+        self.phishing_cache = set()
         try:
-            if os.path.exists(self.cache_path):
-                logger.info(f"Loading PhishTank local cache from {self.cache_path}...")
-                with open(self.cache_path, 'r') as f:
-                    data = json.load(f)
-                    self.phishing_cache = set(data.get('urls', []))
-                logger.info(f"Loaded {len(self.phishing_cache)} URLs into memory cache.")
-            else:
+            if not os.path.exists(self.cache_path):
                 logger.info("No local PhishTank cache found. Waiting for ingestion.")
+                return
+            logger.info(f"Loading PhishTank local cache from {self.cache_path}...")
+            with open(self.cache_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            urls = data.get("urls", []) if isinstance(data, dict) else []
+            self.phishing_cache = set(urls)
+            logger.info(f"Loaded {len(self.phishing_cache)} URLs into memory cache.")
+        except (json.JSONDecodeError, FileNotFoundError) as e:
+            logger.warning(f"PhishTank cache invalid or missing: {e}. Using empty cache and repairing file.")
+            self.phishing_cache = set()
+            try:
+                os.makedirs(os.path.dirname(self.cache_path) or ".", exist_ok=True)
+                with open(self.cache_path, "w", encoding="utf-8") as f:
+                    json.dump({"urls": []}, f, indent=2)
+                logger.info(f"Repaired {self.cache_path} with empty list.")
+            except Exception as write_err:
+                logger.warning(f"Could not rewrite cache file: {write_err}")
         except Exception as e:
             logger.error(f"Failed to load local cache: {e}")
+            self.phishing_cache = set()
 
     def check_known_phish(self, url: str) -> Dict[str, Any]:
         """

@@ -24,6 +24,7 @@ SQLAlchemy Async with MySQL, PostgreSQL, SQLite support
 import logging
 from typing import AsyncGenerator
 
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.pool import NullPool, QueuePool
@@ -102,6 +103,9 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with AsyncSessionLocal() as session:
         try:
             yield session
+        except HTTPException:
+            await session.rollback()
+            raise
         except Exception as e:
             logger.error(f"Database session error: {e}")
             await session.rollback()
