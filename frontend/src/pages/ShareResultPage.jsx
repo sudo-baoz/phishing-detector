@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { fetchShareResult } from '../services/api';
 import AnalysisReport from '../components/AnalysisReport';
-import { MODEL_VERSION } from '../constants/modelVersion';
+import { VERSION_BADGE } from '../constants/appInfo';
 
 export default function ShareResultPage() {
   const { scanId } = useParams();
@@ -36,7 +36,7 @@ export default function ShareResultPage() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
-        <div className="text-red-400 font-mono">{error || 'Not found'}</div>
+        <div className="text-red-400 font-mono">{error || 'Scan not found'}</div>
       </div>
     );
   }
@@ -46,7 +46,7 @@ export default function ShareResultPage() {
       <div className="max-w-4xl mx-auto px-4 py-6">
         <p className="text-slate-500 text-sm mb-4">Shared scan result (read-only)</p>
         <AnalysisReport data={data} readOnly />
-        <p className="mt-6 text-slate-500 text-xs">{MODEL_VERSION}</p>
+        <p className="mt-6 text-slate-500 text-xs">{VERSION_BADGE}</p>
       </div>
     </div>
   );

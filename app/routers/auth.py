@@ -88,7 +88,7 @@ async def create_default_admin():
             )
             db.add(admin)
             await db.commit()
-            logger.info("[Auth] Default admin created: admin@cybersentinel.com")
+            logger.info("[INFO] Default Admin Created")
         except Exception as e:
             logger.warning(f"[Auth] Could not create default admin: {e}")
             await db.rollback()

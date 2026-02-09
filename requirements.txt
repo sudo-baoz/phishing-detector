@@ -5,7 +5,7 @@ annotated-types
 anyio
 asyncpg
 backoff
-bcrypt
+bcrypt==4.0.1
 beautifulsoup4
 certifi
 cffi
@@ -57,7 +57,7 @@ numpy
 packaging
 pandas
 passlib
-posthog
+posthog>=2.4.0,<6.0.0
 proto-plus
 protobuf
 pyasn1

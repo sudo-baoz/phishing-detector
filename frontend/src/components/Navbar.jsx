@@ -26,7 +26,7 @@ export default function Navbar({ language = 'en' }) {
   const t = getTranslations(language).nav;
 
   const isDark = theme === 'dark';
-  const navBg = isDark ? 'bg-black/70 border-white/10' : 'bg-white/70 border-gray-200 text-gray-900';
+  const navBg = isDark ? 'bg-black/80 border-white/10' : 'bg-white/90 border-gray-200 text-gray-900';
   const navLinkBase = isDark ? 'text-gray-200 hover:text-blue-400 hover:bg-white/10' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-200/60';
   const navLinkActive = isDark ? 'text-blue-400 bg-white/10' : 'text-blue-600 bg-gray-200/80';
 
@@ -100,7 +100,7 @@ export default function Navbar({ language = 'en' }) {
 
   return (
     <>
-      <nav className={`sticky top-0 z-[50] backdrop-blur-md border-b ${navBg}`}>
+      <nav className={`backdrop-blur-md border-b ${navBg}`}>
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex items-center justify-between h-14 sm:h-16">
             <NavLink to="/" className="flex items-center gap-2 shrink-0" onClick={() => setMobileOpen(false)}>
