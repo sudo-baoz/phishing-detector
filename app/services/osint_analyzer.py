@@ -62,6 +62,8 @@ class DeepAnalyst:
             "creation_date": "Unknown",
             "ssl_issuer": "Unknown",
             "ssl_info_note": None,
+            "ssl_trust_level": None,
+            "ssl_note": None,
             "risk_factors": [],
         }
 
@@ -117,6 +119,19 @@ class DeepAnalyst:
                 organization = issuer.get("organizationName", "Unknown")
 
                 result["ssl_issuer"] = f"{organization} ({common_name})"
+                issuer_str = f"{organization} {common_name}".lower()
+
+                TRUSTED_ISSUERS = [
+                    "digicert", "globalsign", "sectigo", "entrust",
+                    "google trust services", "gts ca", "wr2", "wr3",
+                    "microsoft", "apple", "amazon", "let's encrypt",
+                ]
+                if any(t in issuer_str for t in TRUSTED_ISSUERS):
+                    result["ssl_trust_level"] = "HIGH"
+                    result["ssl_note"] = "Issuer is a known Authority."
+                else:
+                    result["ssl_trust_level"] = "LOW"
+                    result["ssl_note"] = "Unusual/Self-signed Certificate."
 
                 if "Let's Encrypt" in (common_name or "") or "Cloudflare" in (common_name or ""):
                     result["ssl_info_note"] = (
@@ -129,9 +144,13 @@ class DeepAnalyst:
         except ssl.SSLError as e:
             logger.debug("SSL error for %s: %s", domain, e)
             result["risk_factors"].append("SSL connection failed or invalid certificate.")
+            result["ssl_trust_level"] = "LOW"
+            result["ssl_note"] = "Unusual/Self-signed Certificate."
         except (socket.timeout, socket.gaierror, OSError) as e:
             logger.debug("Socket/connection error for %s: %s", domain, e)
             result["risk_factors"].append("SSL connection failed or no SSL.")
+            result["ssl_trust_level"] = "LOW"
+            result["ssl_note"] = "Unusual/Self-signed Certificate."
 
         return result
 

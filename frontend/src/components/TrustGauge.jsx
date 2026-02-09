@@ -3,8 +3,8 @@
  * Copyright (c) 2026 BaoZ
  *
  * Risk Meter Gauge – Semi-circle (donut) showing risk score.
- * 0–30: SAFE (green), 31–79: SUSPICIOUS (orange), 80–100: CRITICAL (red).
- * High score = high risk. Pure SVG, no chart libraries.
+ * Score = risk score: 0–10 SAFE, 11–79 SUSPICIOUS, 80–100 CRITICAL.
+ * Arc color and label always match (no "100 SAFE").
  */
 
 const R = 72;
@@ -14,7 +14,7 @@ const STROKE = 12;
 const SEMI_CIRCLE_LENGTH = Math.PI * R;
 
 function getRiskStyle(score) {
-  if (score <= 30) return { stroke: '#22c55e', glow: 'rgba(34, 197, 94, 0.5)', label: 'SAFE' };
+  if (score <= 10) return { stroke: '#22c55e', glow: 'rgba(34, 197, 94, 0.5)', label: 'SAFE' };
   if (score <= 79) return { stroke: '#f59e0b', glow: 'rgba(245, 158, 11, 0.5)', label: 'SUSPICIOUS' };
   return { stroke: '#ef4444', glow: 'rgba(239, 68, 68, 0.5)', label: 'CRITICAL' };
 }

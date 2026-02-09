@@ -13,9 +13,10 @@ from urllib.parse import urlparse
 logger = logging.getLogger(__name__)
 
 
-# Official root domains (SLD+TLD) per brand. Subdomains are implied (e.g. mail.google.com -> google.com).
+# Database of Truth: official root domains per brand. Subdomains implied (e.g. mail.google.com -> google.com).
+# Used for Absolute Immunity: if URL matches, verdict is FORCIBLY SAFE, score 0, evasion cleared.
 OFFICIAL_BRANDS: Dict[str, List[str]] = {
-    "Google": ["google.com", "google.co.vn", "google.com.vn", "youtube.com", "accounts.google.com", "mail.google.com", "drive.google.com", "docs.google.com"],
+    "Google": ["google.com", "google.co.vn", "google.com.vn", "youtube.com", "accounts.google.com", "mail.google.com", "drive.google.com", "docs.google.com", "gstatic.com"],
     "Facebook": ["facebook.com", "fb.com", "fb.me", "messenger.com", "meta.com", "instagram.com", "whatsapp.com"],
     "Microsoft": ["microsoft.com", "live.com", "office.com", "azure.com", "outlook.com", "hotmail.com", "skype.com", "linkedin.com", "github.com"],
     "Netflix": ["netflix.com", "netflix.net"],
@@ -66,6 +67,33 @@ def _extract_root_domain(url: str) -> str:
         return hostname
     except Exception:
         return ""
+
+
+def check_immunity(url: str, detected_brand: Optional[str]) -> bool:
+    """
+    Absolute Immunity: True if the URL is an official domain for the given brand.
+    When True, caller must return SAFE, score 0, and clear evasion/impersonation.
+    """
+    return LegitimacyChecker.is_authorized(url, detected_brand)
+
+
+def get_whitelist_brand(url: str) -> Optional[str]:
+    """
+    If the URL's root domain is in any OFFICIAL_BRANDS whitelist, return that brand name.
+    Use for early immunity: run before evasion/YARA so whitelisted sites are never boosted.
+    """
+    root = _extract_root_domain(url)
+    if not root:
+        return None
+    root_lower = root.lower()
+    for brand_name, domains in OFFICIAL_BRANDS.items():
+        if not domains:
+            continue
+        for d in domains:
+            d_lower = d.lower()
+            if root_lower == d_lower or root_lower.endswith("." + d_lower):
+                return brand_name
+    return None
 
 
 class LegitimacyChecker:

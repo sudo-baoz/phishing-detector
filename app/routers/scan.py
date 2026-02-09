@@ -42,7 +42,7 @@ from app.services.osint import collect_osint_data, get_osint_summary
 from app.services.knowledge_base import knowledge_base
 from app.services.response_builder import response_builder
 from app.security.turnstile import verify_turnstile  # Cloudflare Turnstile
-from app.services.logic_analyzer import LegitimacyChecker  # Official domain whitelist (avoid false positives)
+from app.services.logic_analyzer import LegitimacyChecker, get_whitelist_brand  # Absolute immunity (whitelist)
 from app.services.deep_scan import deep_scanner
 from app.services.cert_monitor import check_realtime_threat  # Zero-Day Detection
 from app.services.chat_agent import analyze_url_god_mode, is_god_mode_available, is_quota_exceeded  # God Mode AI
@@ -324,7 +324,14 @@ async def _perform_scan(
         confidence_score = 0.0
         threat_type = None
         similar_threats = None
-        typo_result = {'risk': False} # Default safe
+        typo_result = {'risk': False}  # Default safe
+
+        # STEP 0: Absolute Immunity - if URL is in official whitelist, do not run evasion/risk overrides later
+        immune_brand = get_whitelist_brand(final_url)
+        immunity_granted = immune_brand is not None
+        if immunity_granted:
+            await _log(f"[+] Whitelisted: {immune_brand} (immunity granted).")
+            logger.info(f"[Immunity] {final_url} is official domain for {immune_brand}")
         
         await _log("[*] Checking PhishTank / RAG database...")
         # [NEW] 1.5.1 PhishTank Local Exact Match (Fail Fast)
@@ -488,28 +495,31 @@ async def _perform_scan(
         if osint_dict:
             logger.debug(f"[OK] OSINT data collected")
         
-        # Process Vision results
+        # Process Vision results (skip evasion boost when immunity granted)
         if vision_result:
             evasion = vision_result.get('evasion') or {}
             connections = vision_result.get('connections') or {}
-            
             logger.debug(f"[VisionScan] Evasion detected: {evasion.get('evasion_detected', False)}")
             logger.debug(f"[VisionScan] External domains: {len(connections.get('external_domains', []))}")
-            
-            # Boost confidence if evasion techniques detected
-            if evasion.get('evasion_detected'):
-                if not is_phishing:
-                    logger.warning("[VISION OVERRIDE] Evasion techniques detected")
-                    is_phishing = True
-                    confidence_score = max(confidence_score, 80)
-                    threat_type = "evasion_detected"
-                else:
-                    confidence_score = min(confidence_score + 10, 100)
-            
-            # Flag suspicious IP connections
-            if connections.get('suspicious_ips'):
-                logger.warning(f"[VisionScan] Suspicious IP connections detected")
-                confidence_score = min(confidence_score + 15, 100)
+            if immunity_granted:
+                # Clear evasion for response so UI does not show "Evasion Detected" for whitelisted sites
+                if isinstance(vision_result.get('evasion'), dict):
+                    vision_result = dict(vision_result)
+                    vision_result['evasion'] = dict(vision_result['evasion'])
+                    vision_result['evasion']['evasion_detected'] = False
+            else:
+                # Boost confidence if evasion techniques detected
+                if evasion.get('evasion_detected'):
+                    if not is_phishing:
+                        logger.warning("[VISION OVERRIDE] Evasion techniques detected")
+                        is_phishing = True
+                        confidence_score = max(confidence_score, 80)
+                        threat_type = "evasion_detected"
+                    else:
+                        confidence_score = min(confidence_score + 10, 100)
+                if connections.get('suspicious_ips'):
+                    logger.warning(f"[VisionScan] Suspicious IP connections detected")
+                    confidence_score = min(confidence_score + 15, 100)
         
         # ============================================================
         # PHISHING KIT FINGERPRINTING (HTML + URL path signatures)
@@ -523,7 +533,7 @@ async def _perform_scan(
                     deep_scan_results['raw_html'],
                     final_url,
                 )
-                if kit_result and kit_result.get('detected'):
+                if kit_result and kit_result.get('detected') and not immunity_granted:
                     await _log(f"[!] Phishing kit detected: {kit_result.get('kit_name')}.")
                     logger.warning(f"[KitDetector] Phishing kit: {kit_result.get('kit_name')} ({kit_result.get('confidence')})")
                     if not is_phishing:
@@ -583,28 +593,44 @@ async def _perform_scan(
                 god_mode_result = None
         
         # ============================================================
-        # LEGITIMACY CHECK: If AI detected a brand, verify URL is official (avoid false positives)
+        # LEGITIMACY / ABSOLUTE IMMUNITY: Whitelisted URL -> SAFE, score 0, clear evasion
         # ============================================================
         official_site_override = None
-        detected_brand = None
-        if god_mode_result:
-            detected_brand = god_mode_result.get("impersonation_target") or god_mode_result.get("brand_impersonated")
-        if detected_brand and (str(detected_brand).strip() or "").lower() not in ("none", ""):
-            if LegitimacyChecker.is_authorized(final_url, detected_brand):
-                logger.info(f"[LegitimacyChecker] Overriding verdict: {final_url} is official {detected_brand}")
-                is_phishing = False
-                confidence_score = 0.0
-                threat_type = None
-                official_site_override = {
-                    "brand": detected_brand,
-                    "summary": f"Verified official website of {detected_brand}.",
-                }
-                if god_mode_result:
-                    god_mode_result = dict(god_mode_result)
-                    god_mode_result["verdict"] = "SAFE"
-                    god_mode_result["risk_score"] = 0
-                    god_mode_result["impersonation_target"] = None
-                    god_mode_result["summary"] = official_site_override["summary"]
+        if immunity_granted and immune_brand:
+            is_phishing = False
+            confidence_score = 0.0
+            threat_type = None
+            official_site_override = {
+                "brand": immune_brand,
+                "summary": f"Verified official website of {immune_brand}. (Authorized domain)",
+            }
+            if god_mode_result:
+                god_mode_result = dict(god_mode_result)
+                god_mode_result["verdict"] = "SAFE"
+                god_mode_result["risk_score"] = 0
+                god_mode_result["impersonation_target"] = None
+                god_mode_result["summary"] = official_site_override["summary"]
+            logger.info(f"[Immunity] Forcing SAFE for whitelisted {immune_brand}")
+        else:
+            detected_brand = None
+            if god_mode_result:
+                detected_brand = god_mode_result.get("impersonation_target") or god_mode_result.get("brand_impersonated")
+            if detected_brand and (str(detected_brand).strip() or "").lower() not in ("none", ""):
+                if LegitimacyChecker.is_authorized(final_url, detected_brand):
+                    logger.info(f"[LegitimacyChecker] Overriding verdict: {final_url} is official {detected_brand}")
+                    is_phishing = False
+                    confidence_score = 0.0
+                    threat_type = None
+                    official_site_override = {
+                        "brand": detected_brand,
+                        "summary": f"Verified official website of {detected_brand}.",
+                    }
+                    if god_mode_result:
+                        god_mode_result = dict(god_mode_result)
+                        god_mode_result["verdict"] = "SAFE"
+                        god_mode_result["risk_score"] = 0
+                        god_mode_result["impersonation_target"] = None
+                        god_mode_result["summary"] = official_site_override["summary"]
         
         # ============================================================
         # STEP 3.9: SOC PLATFORM FEATURES
