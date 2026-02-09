@@ -20,6 +20,7 @@ dnspython
 duckdb
 ecdsa
 fastapi
+feedparser
 filelock
 fsspec
 google-ai-generativelanguage

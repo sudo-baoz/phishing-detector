@@ -16,15 +16,24 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Scanner from './components/Scanner';
 import LanguageSwitcher from './components/LanguageSwitcher';
+import AppNav from './components/AppNav';
+import ToolsPage from './pages/ToolsPage';
 
 function App() {
   return (
-    <div className="min-h-screen bg-black">
-      <LanguageSwitcher />
-      <Scanner />
-    </div>
+    <BrowserRouter>
+      <div className="min-h-screen bg-black">
+        <LanguageSwitcher />
+        <AppNav />
+        <Routes>
+          <Route path="/" element={<Scanner />} />
+          <Route path="/tools" element={<ToolsPage />} />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
 }
 
