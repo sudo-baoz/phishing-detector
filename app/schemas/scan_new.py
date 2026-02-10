@@ -119,6 +119,11 @@ class ScanResponse(BaseModel):
     abuse_report: Optional[dict] = Field(None, description="Auto-generated takedown report (recipient, subject, body)")
     phishing_kit: Optional[dict] = Field(None, description="Phishing kit fingerprint (detected, kit_name, confidence, matched_signatures)")
     
+    # Enterprise: Conformal uncertainty, STIX export, cloaking detection
+    uncertainty_interval: Optional[List[float]] = Field(None, description="Credibility interval [low, high] when model abstains")
+    stix_json: Optional[dict] = Field(None, description="STIX 2.1 bundle for threat intel export (MISP/TIP)")
+    cloaking_result: Optional[dict] = Field(None, description="Multi-vantage cloaking detection (bot vs user content)")
+    
     model_config = {
         "json_schema_extra": {
             "example": {

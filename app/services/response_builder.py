@@ -742,6 +742,10 @@ class ResponseBuilder:
         abuse_report: Optional[Dict[str, Any]] = None,
         kit_result: Optional[Dict[str, Any]] = None,
         official_site_override: Optional[Dict[str, Any]] = None,
+        uncertainty_abstain: bool = False,
+        credibility_interval: Optional[List[float]] = None,
+        stix_bundle: Optional[Dict[str, Any]] = None,
+        cloaking_result: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Build complete scan response with deep analysis
@@ -834,7 +838,13 @@ class ResponseBuilder:
         else:
             verdict = ResponseBuilder.build_verdict(is_phishing, final_score, threat_type, url, deep_scan_results, rag_results, language)
         
-        return {
+        # Enterprise: Conformal abstain -> UNCERTAIN verdict
+        if uncertainty_abstain and credibility_interval is not None:
+            verdict = dict(verdict)
+            verdict["level"] = "UNCERTAIN"
+            verdict["ai_conclusion"] = (verdict.get("ai_conclusion") or "") + " Model abstained: low confidence — human review recommended."
+        
+        out = {
             "id": scan_id,
             "url": url,
             "scanned_at": scanned_at,
@@ -854,6 +864,13 @@ class ResponseBuilder:
             "abuse_report": abuse_report,  # Auto-generated takedown report
             "phishing_kit": kit_result,  # Phishing Kit Fingerprinting (kit name, confidence, matched signatures)
         }
+        if credibility_interval is not None:
+            out["uncertainty_interval"] = credibility_interval
+        if stix_bundle is not None:
+            out["stix_json"] = stix_bundle
+        if cloaking_result is not None:
+            out["cloaking_result"] = cloaking_result
+        return out
 
 
 # Global instance

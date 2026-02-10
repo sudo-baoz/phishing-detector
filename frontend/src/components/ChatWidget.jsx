@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { MessageCircle, X, Send, Bot, User as UserIcon } from 'lucide-react';
+import { getApiUrl } from '../constants/api';
 
 const ChatWidget = ({ scanResult = null }) => {
   const { t, i18n } = useTranslation();
@@ -92,11 +93,8 @@ const ChatWidget = ({ scanResult = null }) => {
         };
       }
 
-      // Get API URL from environment variable (supports production HTTPS)
-      const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
       // Call Sentinel AI API with language parameter
-      const response = await fetch(`${API_URL}/chat/sentinel`, {
+      const response = await fetch(getApiUrl('chat/sentinel'), {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

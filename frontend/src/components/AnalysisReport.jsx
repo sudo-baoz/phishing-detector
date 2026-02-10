@@ -10,7 +10,7 @@ import {
   Terminal, BarChart3, AlertTriangle, CheckCircle, XCircle,
   Lock, Unlock, ExternalLink, ChevronRight, Activity, Zap,
   FileCode, Shuffle, Eye, Code, Server, AlertOctagon, Target,
-  ChevronDown, ChevronUp, Radiation, GitBranch, ShieldX
+  ChevronDown, ChevronUp, Radiation, GitBranch, ShieldX, Download
 } from 'lucide-react';
 import ThreatGraphModal from './ThreatGraphModal';
 import TrustGauge from './TrustGauge';
@@ -50,7 +50,8 @@ const AnalysisReport = ({ data, loading }) => {
   const { 
     verdict, network, forensics, content, advanced, intelligence, 
     technical_details, rag_matches, god_mode_analysis, vision_analysis,
-    threat_graph, yara_analysis, abuse_report, phishing_kit
+    threat_graph, yara_analysis, abuse_report, phishing_kit,
+    uncertainty_interval, stix_json, cloaking_result
   } = data;
   
   // Check for zero-day threat (from CertStream real-time detection)
@@ -58,7 +59,8 @@ const AnalysisReport = ({ data, loading }) => {
   
   const score = verdict?.score || 0;
   const level = verdict?.level || 'LOW';
-  const isPhishing = score >= 50;
+  const isUncertain = level === 'UNCERTAIN';
+  const isPhishing = !isUncertain && score >= 50;
   const riskFactors = verdict?.risk_factors || [];
 
   // Toggle accordion sections
@@ -70,6 +72,7 @@ const AnalysisReport = ({ data, loading }) => {
   };
 
   const getRiskColor = () => {
+    if (level === 'UNCERTAIN') return 'text-slate-400 border-slate-500';
     if (level === 'CRITICAL') return 'text-red-500 border-red-500';
     if (level === 'HIGH') return 'text-orange-500 border-orange-500';
     if (level === 'MEDIUM') return 'text-yellow-500 border-yellow-500';
@@ -77,10 +80,21 @@ const AnalysisReport = ({ data, loading }) => {
   };
 
   const getRiskBg = () => {
+    if (level === 'UNCERTAIN') return 'bg-slate-500/10';
     if (level === 'CRITICAL') return 'bg-red-500/10';
     if (level === 'HIGH') return 'bg-orange-500/10';
     if (level === 'MEDIUM') return 'bg-yellow-500/10';
     return 'bg-green-500/10';
+  };
+
+  const handleExportStix = () => {
+    if (!stix_json) return;
+    const blob = new Blob([JSON.stringify(stix_json, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `cybersentinel-stix-${data.id || 'scan'}.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   return (
@@ -153,6 +167,39 @@ const AnalysisReport = ({ data, loading }) => {
         </div>
       )}
 
+      {/* Enterprise: Cloaking detection – evasion warning */}
+      {cloaking_result?.cloaking_detected && (
+        <div className="bg-red-950/80 border-2 border-red-500 rounded-lg p-4 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+          <div className="flex items-center gap-3 mb-3">
+            <AlertOctagon className="w-8 h-8 text-red-400 shrink-0" />
+            <h2 className="text-red-400 font-bold uppercase tracking-wider">
+              ⚠️ Evasion Technique Detected: Site is hiding content from scanners.
+            </h2>
+          </div>
+          <p className="text-red-200/90 text-sm mb-4">
+            The page content seen by a bot/scanner differs from what a real browser sees (similarity: {(cloaking_result.similarity_ratio * 100).toFixed(1)}%). This may indicate cloaking used to evade automated detection.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-lg border border-slate-600 bg-slate-900/80 p-3">
+              <div className="text-cyan-400 text-xs font-bold uppercase mb-2 flex items-center gap-1">
+                <Code className="w-4 h-4" /> Bot view (scanner)
+              </div>
+              <pre className="text-slate-400 text-xs overflow-auto max-h-48 whitespace-pre-wrap break-all font-mono">
+                {cloaking_result.bot_html_preview || '(empty)'}
+              </pre>
+            </div>
+            <div className="rounded-lg border border-slate-600 bg-slate-900/80 p-3">
+              <div className="text-green-400 text-xs font-bold uppercase mb-2 flex items-center gap-1">
+                <Eye className="w-4 h-4" /> User view (browser)
+              </div>
+              <pre className="text-slate-400 text-xs overflow-auto max-h-48 whitespace-pre-wrap break-all font-mono">
+                {cloaking_result.user_html_preview || '(empty)'}
+              </pre>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Section 1: THE VERDICT - Hero Section */}
       <div className={`bg-slate-900 rounded-lg border-2 ${getRiskColor()} p-4 sm:p-6 md:p-8 shadow-2xl ${getRiskBg()} transition-all duration-500`}>
         {/* Result Header: Scan ID, Time, Download Report */}
@@ -165,23 +212,50 @@ const AnalysisReport = ({ data, loading }) => {
               </span>
             )}
           </div>
-          <DownloadReportBtn scanId={data.id} className="shrink-0" />
+          <div className="flex items-center gap-2 shrink-0">
+            {stix_json && (
+              <button
+                onClick={handleExportStix}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/50 bg-cyan-500/10 text-cyan-400 text-sm font-medium hover:bg-cyan-500/20 transition-colors"
+                title="Export Threat Intel (STIX 2.1)"
+              >
+                <Download className="w-4 h-4" />
+                Export Threat Intel (STIX)
+              </button>
+            )}
+            <DownloadReportBtn scanId={data.id} className="shrink-0" />
+          </div>
         </div>
         <div className="flex flex-col lg:flex-row items-center justify-between mb-6 gap-6">
           <div className="flex items-center gap-6">
-            {isPhishing ? (
+            {isUncertain ? (
+              <Shield className="w-16 h-16 md:w-20 md:h-20 text-slate-400" />
+            ) : isPhishing ? (
               <ShieldAlert className="w-16 h-16 md:w-20 md:h-20 text-red-500 animate-pulse" />
             ) : (
               <Shield className="w-16 h-16 md:w-20 md:h-20 text-green-500 drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
             )}
             <div>
-              <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight drop-shadow-md ${isPhishing ? 'text-red-500' : 'text-green-500'}`}>
-                {isPhishing ? t('verdict.phishing') : t('verdict.safe')}
+              <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight drop-shadow-md ${
+                isUncertain ? 'text-slate-400' : isPhishing ? 'text-red-500' : 'text-green-500'
+              }`}>
+                {isUncertain ? '⚠️ Model Abstained: Low Confidence' : isPhishing ? t('verdict.phishing') : t('verdict.safe')}
               </h2>
               <div className="flex flex-wrap items-center gap-3 mt-2">
-                <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border ${getRiskColor()} bg-opacity-20`}>
-                  {level} RISK
-                </span>
+                {isUncertain ? (
+                  <span className="px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border border-slate-500 bg-slate-500/20 text-slate-400">
+                    Abstain
+                  </span>
+                ) : (
+                  <span className={`px-3 py-1 rounded text-xs font-bold uppercase tracking-widest border ${getRiskColor()} bg-opacity-20`}>
+                    {level} RISK
+                  </span>
+                )}
+                {uncertainty_interval && (uncertainty_interval[0] != null || uncertainty_interval[1] != null) && (
+                  <span className="text-slate-400 text-xs font-mono">
+                    Credibility interval: [{uncertainty_interval[0]?.toFixed(1)}, {uncertainty_interval[1]?.toFixed(1)}]
+                  </span>
+                )}
                 {verdict?.threat_type && (
                   <span className="text-slate-400 text-sm font-semibold uppercase">
                     TYPE: <span className="text-white">{verdict.threat_type.replace(/_/g, ' ')}</span>

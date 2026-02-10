@@ -4,9 +4,9 @@
 
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { getApiUrl } from '../constants/api';
 
 const STORAGE_KEY = 'cybersentinel-token';
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 const AuthContext = createContext({
   user: null,
@@ -32,7 +32,7 @@ export function AuthProvider({ children }) {
       }
       setToken(t);
       axios
-        .get(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${t}` } })
+        .get(getApiUrl('auth/me'), { headers: { Authorization: `Bearer ${t}` } })
         .then((r) => {
           setUser(r.data);
           setLoading(false);
@@ -61,7 +61,7 @@ export function AuthProvider({ children }) {
     body.append('username', email);
     body.append('password', password);
 
-    const res = await fetch(`${API_URL}/auth/token`, {
+    const res = await fetch(getApiUrl('auth/token'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: body.toString(),

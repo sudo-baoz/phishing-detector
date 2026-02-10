@@ -23,13 +23,10 @@
  */
 
 import axios from 'axios';
-
-// Create axios instance with default configuration
-// Use environment variable for API URL (supports HTTPS in production)
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { API_BASE_URL, getApiUrl } from '../constants/api';
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: API_BASE_URL,
   timeout: 90000, // 90 seconds - must be > backend timeout (60s)
   headers: {
     'Content-Type': 'application/json',
@@ -100,7 +97,7 @@ export const scanUrl = async (url, deepAnalysis = true, turnstileToken = null, l
         success: false,
         error: isTimeout 
           ? 'Scan is taking longer than expected. The site may be slow or unresponsive. Please try again.'
-          : `Cannot reach server at ${API_URL}. Please check your connection.`,
+          : `Cannot reach server at ${API_BASE_URL}. Please check your connection.`,
         code: isTimeout ? 'TIMEOUT_ERROR' : 'NETWORK_ERROR'
       };
     } else {
@@ -131,8 +128,7 @@ export const scanUrlStream = async (url, deepAnalysis = true, turnstileToken = n
   if (turnstileToken) {
     headers['cf-turnstile-response'] = turnstileToken;
   }
-  const baseURL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-  const res = await fetch(`${baseURL}/scan/stream`, {
+  const res = await fetch(getApiUrl('scan/stream'), {
     method: 'POST',
     headers,
     body: JSON.stringify({
@@ -226,11 +222,9 @@ export const submitFeedback = async (payload) => {
   return response.data;
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-
 /** Fetch shared scan result by scan_id (from ScanLog). PUBLIC endpoint, no auth. */
 export const fetchShareResult = async (scanId) => {
-  const res = await fetch(`${API_BASE}/share/${scanId}`);
+  const res = await fetch(getApiUrl(`share/${scanId}`));
   if (!res.ok) {
     const message = res.status === 404 ? 'Scan not found' : res.status >= 500 ? 'Server error' : 'Failed to load';
     const err = new Error(message);
@@ -244,7 +238,7 @@ export const fetchShareResult = async (scanId) => {
 export const scanOneUrl = async (url, turnstileToken = null) => {
   const headers = { 'Content-Type': 'application/json' };
   if (turnstileToken) headers['cf-turnstile-response'] = turnstileToken;
-  const r = await fetch(`${API_BASE}/scan`, {
+  const r = await fetch(getApiUrl('scan'), {
     method: 'POST',
     headers,
     body: JSON.stringify({ url, include_osint: true, deep_analysis: false, language: 'en' }),

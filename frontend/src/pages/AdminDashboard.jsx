@@ -8,8 +8,7 @@ import axios from 'axios';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Shield, AlertTriangle, Users, Copy, Check } from 'lucide-react';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { getApiUrl } from '../constants/api';
 const DUMMY_API_KEY = 'sk-live-59' + 'a1b2c3d4e5f6';
 
 export default function AdminDashboard() {
@@ -22,7 +21,7 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!token) return;
     axios
-      .get(`${API_URL}/admin/stats`, { headers: { Authorization: `Bearer ${token}` } })
+      .get(getApiUrl('admin/stats'), { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => setStats(r.data))
       .catch(() => setStats({ total_scans: 0, phishing_detected: 0, safe_count: 0, scans_per_day: [], active_users: 0 }));
   }, [token]);

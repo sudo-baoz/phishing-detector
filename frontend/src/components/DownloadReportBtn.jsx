@@ -7,8 +7,7 @@
 
 import { useState } from 'react';
 import { FileDown, Loader2 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { getApiUrl } from '../constants/api';
 
 export default function DownloadReportBtn({ scanId, className = '' }) {
   const [loading, setLoading] = useState(false);
@@ -19,7 +18,7 @@ export default function DownloadReportBtn({ scanId, className = '' }) {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/report/${scanId}/download`, {
+      const res = await fetch(getApiUrl(`report/${scanId}/download`), {
         method: 'GET',
         credentials: 'include',
       });

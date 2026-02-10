@@ -6,7 +6,7 @@
   "scripts": {
     "version:generate": "node scripts/generate-version.js",
     "dev": "node scripts/generate-version.js && vite",
-    "build": "node scripts/generate-version.js && vite build",
+    "build": "node scripts/generate-version.js && vite build --mode production",
     "preview": "vite preview"
   },
   "dependencies": {

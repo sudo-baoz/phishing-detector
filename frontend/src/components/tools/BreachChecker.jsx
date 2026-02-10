@@ -5,8 +5,7 @@
 
 import { useState } from 'react';
 import { Shield, ShieldAlert, Loader2 } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { getApiUrl } from '../../constants/api';
 
 export default function BreachChecker() {
   const [email, setEmail] = useState('');
@@ -21,7 +20,7 @@ export default function BreachChecker() {
     setResult(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/tools/breach-check`, {
+      const res = await fetch(getApiUrl('tools/breach-check'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: trimmed }),

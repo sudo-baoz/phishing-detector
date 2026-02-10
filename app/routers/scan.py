@@ -53,6 +53,9 @@ from app.services.yara_scanner import scan_content_with_yara  # SOC: YARA Scanne
 from app.services.report_generator import generate_abuse_report  # SOC: Takedown Report
 from app.services.kit_detector import KitDetector  # Phishing Kit Fingerprinting
 from app.services.geoip_locator import get_geolocation
+from app.services.uncertainty import apply_uncertainty_to_verdict  # Enterprise: Conformal abstain
+from app.utils.stix import generate_stix_bundle  # Enterprise: STIX 2.1 export
+from app.services.cloaking_detector import detect_cloaking  # Enterprise: Multi-vantage cloaking
 from app.routers.websocket import live_map_manager
 from fastapi.concurrency import run_in_threadpool
 
@@ -753,6 +756,21 @@ async def _perform_scan(
                 logger.error(f"Abuse Report generation failed: {e}")
         
         # ============================================================
+        # ENTERPRISE: Conformal uncertainty, STIX export, cloaking
+        # ============================================================
+        abstain, suggested_level, credibility_interval, _ = apply_uncertainty_to_verdict(is_phishing, confidence_score)
+        stix_bundle = generate_stix_bundle(url_str, suggested_level, confidence_score, threat_type)
+        cloaking_result = None
+        if scan_request.deep_analysis:
+            try:
+                await _log("[*] Checking for cloaking (bot vs user content)...")
+                cloaking_result = await run_in_threadpool(detect_cloaking, final_url)
+                if cloaking_result.get("cloaking_detected"):
+                    await _log("[!] Cloaking detected.")
+            except Exception as e:
+                logger.warning(f"Cloaking check failed: {e}")
+        
+        # ============================================================
         # STEP 4: SAVE TO DATABASE & BUILD RESPONSE
         # ============================================================
         await _log("[*] Saving result and building response...")
@@ -793,6 +811,10 @@ async def _perform_scan(
             abuse_report=abuse_report,  # SOC: Takedown Report
             kit_result=kit_result,  # Phishing Kit Fingerprinting
             official_site_override=official_site_override,  # LegitimacyChecker: verified official domain
+            uncertainty_abstain=abstain,
+            credibility_interval=credibility_interval,
+            stix_bundle=stix_bundle,
+            cloaking_result=cloaking_result,
         )
         
         # Live Map: broadcast scan event (source -> target) to WebSocket clients

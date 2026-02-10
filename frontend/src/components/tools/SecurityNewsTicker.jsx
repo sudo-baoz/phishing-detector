@@ -2,8 +2,7 @@
  * Security News Ticker. Strict h-10 (40px) for layout – do not change.
  */
 import { useState, useEffect } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { getApiUrl } from '../../constants/api';
 
 export default function SecurityNewsTicker() {
   const [items, setItems] = useState([]);
@@ -12,7 +11,7 @@ export default function SecurityNewsTicker() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${API_BASE}/tools/news`)
+    fetch(getApiUrl('tools/news'))
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error('Failed to load news'))))
       .then((data) => {
         if (!cancelled) setItems(Array.isArray(data) ? data : []);

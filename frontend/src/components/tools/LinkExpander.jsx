@@ -5,8 +5,7 @@
 
 import { useState } from 'react';
 import { Link2, AlertTriangle } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { getApiUrl } from '../../constants/api';
 
 const SUSPICIOUS_PATTERNS = [
   /bit\.ly/i, /tinyurl\.com/i, /t\.co/i, /goo\.gl/i,
@@ -36,7 +35,7 @@ export default function LinkExpander() {
     setResult(null);
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/tools/unshorten`, {
+      const res = await fetch(getApiUrl('tools/unshorten'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: trimmed }),

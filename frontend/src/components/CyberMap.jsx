@@ -10,14 +10,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ComposableMap, Geographies, Geography, ZoomableGroup } from 'react-simple-maps';
 import { geoMercator } from 'd3-geo';
+import { API_BASE_URL } from '../constants/api';
 
 const MAP_WIDTH = 800;
 const MAP_HEIGHT = 500;
 const GEO_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json';
 
 function getWsUrl() {
-  const api = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-  const base = api.replace(/^http/, 'ws').replace(/\/+$/, '');
+  const base = API_BASE_URL.replace(/^http/, 'ws').replace(/\/+$/, '');
   return `${base}/live-map`;
 }
 
