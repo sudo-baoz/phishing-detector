@@ -5,6 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.1] - 2026-02-06
+
+### 🎨 Layout, Theme & Footer Polish
+
+This release unifies layout and theme: Fixed Header Wrapper pattern, global dark/light base colors, seamless footer, centered Tools grid, and consistent card styling across Tools and About pages.
+
+#### Fixed
+
+- **Header/Ticker overlap**: Implemented a single **Fixed Header Wrapper** in [MainLayout.jsx](frontend/src/layouts/MainLayout.jsx). Ticker (`h-10`) and Navbar (`h-16`) live inside one fixed `<header>`; main content uses `pt-[104px]` so nothing slides underneath.
+- **Navbar vs Theme/Language overlap**: Right-side actions (Theme, Language Switcher, Login) use **pure flexbox** (`flex items-center gap-3`). Removed `absolute` positioning so they no longer stack on the logo or center links.
+- **LanguageSwitcher in Navbar**: Embedded mode uses `relative inline-flex shrink-0`; trigger sits in layout flow. Dropdown only is `absolute` with `z-50` so it floats above content without breaking the bar.
+- **Footer disconnect**: New [Footer.jsx](frontend/src/components/Footer.jsx) with `bg-transparent`, subtle top border (`border-white/5` dark / `border-gray-200/50` light), and muted `text-gray-500` so it blends with the global body background.
+
+#### Added
+
+- **Global theme base** ([frontend/src/index.css](frontend/src/index.css)):
+  - `html.dark body`: `bg-gray-950 text-gray-100`.
+  - `html.light body`: `bg-gray-50 text-gray-900`.
+  - `body` has `transition-colors duration-300` for smooth theme switch.
+- **Seamless Footer** ([frontend/src/components/Footer.jsx](frontend/src/components/Footer.jsx)): Renders VersionBadge; theme-aware border; used by MainLayout.
+- **MainLayout header glassmorphism**: Dark `bg-gray-950/80 backdrop-blur-md`, light `bg-white/80 backdrop-blur-md`; layout wrapper and main use `bg-transparent` to inherit body.
+
+#### Changed
+
+- **MainLayout** ([frontend/src/layouts/MainLayout.jsx](frontend/src/layouts/MainLayout.jsx)): Footer replaced by `<Footer />`; no hardcoded page background (transparent to body).
+- **ToolsPage** ([frontend/src/pages/ToolsPage.jsx](frontend/src/pages/ToolsPage.jsx)):
+  - Container `max-w-5xl mx-auto px-4`; section uses `grid grid-cols-1 md:grid-cols-2 gap-6` for a centered 2-column grid (ready for 4 tools).
+  - Page header `text-center`; tool cards use shared card style (dark: `bg-gray-900/60 border-white/10`; light: `bg-white border-gray-200 shadow-sm`).
+- **AboutPage** ([frontend/src/pages/AboutPage.jsx](frontend/src/pages/AboutPage.jsx)): Main container `bg-transparent`; Mission and Contact blocks use the same card style as ToolsPage for consistency.
+- **Navbar** ([frontend/src/components/Navbar.jsx](frontend/src/components/Navbar.jsx)): Single row with flex Left/Center/Right; center uses `flex-1 justify-center` (no absolute). Mobile menu overlay starts at `top: 104px` so it sits below the fixed header.
+
+#### Files Touched
+
+- **Frontend:** frontend/src/index.css, frontend/src/layouts/MainLayout.jsx, frontend/src/components/Footer.jsx (new), frontend/src/components/Navbar.jsx, frontend/src/components/LanguageSwitcher.jsx, frontend/src/pages/ToolsPage.jsx, frontend/src/pages/AboutPage.jsx
+
+---
+
 ## [1.7.0] - 2026-02-06
 
 ### 🌐 i18n Sync, Navbar & Toolbox Redesign, Backend Fix

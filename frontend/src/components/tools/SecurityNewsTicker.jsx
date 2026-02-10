@@ -1,6 +1,5 @@
 /**
- * SOC-style Security News Ticker. Fixed height required for MainLayout (40px).
- * Root MUST be h-10 overflow-hidden – do not allow dynamic height or layout breaks.
+ * Security News Ticker. Strict h-10 (40px) for layout – do not change.
  */
 import { useState, useEffect } from 'react';
 
@@ -41,7 +40,7 @@ export default function SecurityNewsTicker() {
         href={item.link || '#'}
         target="_blank"
         rel="noopener noreferrer"
-        className="text-slate-400 hover:text-cyan-400 transition-colors px-4"
+        className="text-slate-300 hover:text-cyan-400 transition-colors px-4"
       >
         {item.title || 'No title'}
       </a>
@@ -49,20 +48,20 @@ export default function SecurityNewsTicker() {
 
   return (
     <div
-      className="h-10 overflow-hidden flex items-center border-b border-gray-800 bg-black/80 shrink-0"
+      className="h-10 w-full flex items-center overflow-hidden bg-slate-900 border-b border-slate-700 shrink-0"
       style={{ fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, monospace' }}
     >
-      <div className="shrink-0 flex items-center gap-2 h-full px-3 sm:px-4 bg-gray-900/80 border-r border-gray-800">
+      <div className="shrink-0 flex items-center gap-2 h-full px-3 sm:px-4 bg-slate-800/90 border-r border-slate-700">
         <span className="text-red-500 text-xs" aria-hidden>🔴</span>
         <span className="text-xs font-semibold text-slate-300 uppercase tracking-wider">
           Threat Intel:
         </span>
       </div>
-      <div className="flex-1 min-w-0 py-1.5 overflow-hidden">
+      <div className="flex-1 min-w-0 overflow-hidden">
         {staticLabel ? (
           <span className="pl-4 text-xs sm:text-sm text-slate-500">{staticLabel}</span>
         ) : (
-          <div className="flex animate-ticker gap-8 whitespace-nowrap text-xs sm:text-sm">
+          <div className="flex animate-ticker gap-8 whitespace-nowrap text-xs sm:text-sm text-slate-300">
             {linkFragment('a')}
             {linkFragment('b')}
           </div>

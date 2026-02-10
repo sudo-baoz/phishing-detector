@@ -1,104 +1,135 @@
 /**
- * Phishing Detector - AI-Powered Threat Intelligence System
- * Copyright (c) 2026 BaoZ
- * 
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ * Language switcher. In embedded mode: trigger is in layout flow (relative);
+ * dropdown is absolute and floats above content (z-50).
  */
-
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const LanguageSwitcher = (props = {}) => {
-    const { i18n } = useTranslation();
-    const [isOpen, setIsOpen] = useState(false);
+export default function LanguageSwitcher(props = {}) {
+  const { i18n } = useTranslation();
+  const [isOpen, setIsOpen] = useState(false);
 
-    const languages = [
-        { code: 'en', label: 'English', flag: '🇺🇸' },
-        { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' }
-    ];
+  const languages = [
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'vi', label: 'Tiếng Việt', flag: '🇻🇳' },
+  ];
 
-    const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
+  const currentLanguage = languages.find((lang) => lang.code === i18n.language) || languages[0];
+  const isEmbedded = !!props.embedded;
+  const theme = props.theme || 'dark';
+  const isDark = theme === 'dark';
 
-    const changeLanguage = (lng) => {
-        i18n.changeLanguage(lng);
-        setIsOpen(false);
-    };
+  const changeLanguage = (lng) => {
+    i18n.changeLanguage(lng);
+    setIsOpen(false);
+  };
 
-    const isEmbedded = !!props.embedded;
-    const theme = props.theme || 'dark';
-    const isDark = theme === 'dark';
+  // Trigger: static/relative, takes physical space in flex (no min-h that breaks h-16)
+  const triggerClass = isEmbedded
+    ? isDark
+      ? 'flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-cyan-500/30 hover:border-cyan-500/60 hover:bg-white/10 text-gray-200 h-10'
+      : 'flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-300 hover:border-blue-400 hover:bg-gray-100 text-gray-700 h-10'
+    : 'flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/30 hover:bg-gray-800/90 text-gray-200';
 
-    const btnClass = isEmbedded && !isDark
-        ? 'flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 bg-white/80 border border-gray-300 rounded-lg hover:border-blue-400 hover:bg-gray-50 text-gray-700 min-h-[44px]'
-        : 'flex items-center gap-1.5 sm:gap-2 px-3 py-2 sm:px-4 bg-gray-900/80 backdrop-blur-md border border-cyan-500/30 rounded-lg hover:border-cyan-500/60 hover:bg-gray-800/90 text-gray-200 min-h-[44px]';
-    const iconClass = isEmbedded && !isDark ? 'text-blue-600' : 'text-cyan-400';
-    const labelClass = isEmbedded && !isDark ? 'text-gray-700' : 'text-white';
-    const codeClass = isEmbedded && !isDark ? 'text-blue-600 text-xs sm:text-sm font-semibold' : 'text-cyan-400 text-xs sm:text-sm font-semibold';
-    const dropdownClass = isEmbedded && !isDark
-        ? 'absolute top-full right-0 mt-2 w-48 z-[60] bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden'
-        : 'absolute top-full right-0 mt-2 w-48 z-[60] bg-gray-900/95 backdrop-blur-md border border-cyan-500/30 rounded-lg shadow-xl overflow-hidden';
-    const itemClass = isEmbedded && !isDark
-        ? 'w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 text-gray-700'
-        : 'w-full px-4 py-3 flex items-center gap-3 hover:bg-cyan-500/10 text-white';
+  const iconClass = isDark ? 'text-cyan-400' : 'text-blue-600';
+  const codeClass = isDark ? 'text-cyan-400 text-xs font-semibold' : 'text-blue-600 text-xs font-semibold';
 
+  // Dropdown: absolute, z-50 (floats over content)
+  const dropdownClass = isDark
+    ? 'absolute top-full right-0 mt-2 w-48 z-50 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden'
+    : 'absolute top-full right-0 mt-2 w-48 z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden';
+
+  const itemClass = isDark
+    ? 'w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 text-gray-200'
+    : 'w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 text-gray-700';
+
+  if (!isEmbedded) {
     return (
-        <div className={isEmbedded ? 'relative flex items-center' : 'fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex items-center'}>
-            <motion.button
-                onClick={() => setIsOpen(!isOpen)}
-                className={btnClass}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+      <div className="fixed top-3 right-3 sm:top-6 sm:right-6 z-40 hidden sm:flex items-center">
+        <button type="button" onClick={() => setIsOpen(!isOpen)} className={triggerClass}>
+          <Globe className={`w-4 h-4 ${iconClass}`} />
+          <span className={codeClass}>{currentLanguage.code.toUpperCase()}</span>
+        </button>
+        <AnimatePresence>
+          {isOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className={dropdownClass}
             >
-                <Globe className={`w-4 h-4 sm:w-5 sm:h-5 ${iconClass}`} />
-                <span className={`font-medium ${labelClass}`}>{currentLanguage.flag}</span>
-                <span className={codeClass}>
-                    {currentLanguage.code.toUpperCase()}
-                </span>
-            </motion.button>
-
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
-                        className={dropdownClass}
-                    >
-                        {languages.map((language) => (
-                            <button
-                                key={language.code}
-                                onClick={() => changeLanguage(language.code)}
-                                className={`${itemClass} transition-colors duration-200 ${i18n.language === language.code ? (isDark ? 'bg-cyan-500/20' : 'bg-blue-50') : ''}`}
-                            >
-                                <span className="text-2xl">{language.flag}</span>
-                                <div className="text-left flex-1">
-                                    <div className="font-medium">{language.label}</div>
-                                    <div className={`text-xs ${isDark ? 'text-cyan-400' : 'text-blue-600'}`}>{language.code.toUpperCase()}</div>
-                                </div>
-                                {i18n.language === language.code && (
-                                    <div className="w-2 h-2 bg-cyan-500 rounded-full animate-pulse" />
-                                )}
-                            </button>
-                        ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`${itemClass} ${i18n.language === lang.code ? (isDark ? 'bg-cyan-500/20' : 'bg-blue-50') : ''}`}
+                >
+                  <span className="text-xl">{lang.flag}</span>
+                  <div className="text-left flex-1">
+                    <div className="font-medium text-sm">{lang.label}</div>
+                    <div className={`text-xs ${codeClass}`}>{lang.code.toUpperCase()}</div>
+                  </div>
+                  {i18n.language === lang.code && <div className="w-2 h-2 bg-cyan-500 rounded-full shrink-0" />}
+                </button>
+              ))}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     );
-};
+  }
 
-export default LanguageSwitcher;
+  // Embedded: wrapper is relative + inline-flex so it only takes trigger space in navbar flex
+  return (
+    <div className="relative inline-flex items-center shrink-0">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={triggerClass}
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        aria-label="Select language"
+      >
+        <Globe className={`w-4 h-4 shrink-0 ${iconClass}`} />
+        <span className={`shrink-0 ${codeClass}`}>{currentLanguage.code.toUpperCase()}</span>
+      </button>
+      <AnimatePresence>
+        {isOpen && (
+          <>
+            <div className="fixed inset-0 z-[49]" onClick={() => setIsOpen(false)} aria-hidden />
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2 }}
+              className={dropdownClass}
+              role="listbox"
+            >
+              {languages.map((lang) => (
+                <button
+                  key={lang.code}
+                  type="button"
+                  role="option"
+                  aria-selected={i18n.language === lang.code}
+                  onClick={() => changeLanguage(lang.code)}
+                  className={`${itemClass} ${i18n.language === lang.code ? (isDark ? 'bg-cyan-500/20' : 'bg-blue-50') : ''}`}
+                >
+                  <span className="text-xl shrink-0">{lang.flag}</span>
+                  <div className="text-left flex-1 min-w-0">
+                    <div className="font-medium text-sm truncate">{lang.label}</div>
+                    <div className={`text-xs ${codeClass}`}>{lang.code.toUpperCase()}</div>
+                  </div>
+                  {i18n.language === lang.code && <div className="w-2 h-2 bg-cyan-500 rounded-full shrink-0" />}
+                </button>
+              ))}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}

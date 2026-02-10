@@ -10,14 +10,23 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
-  margin: 0;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  background-color: #000;
-  color: #4ade80;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  overflow-x: hidden;
+@layer base {
+  body {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    @apply transition-colors duration-300;
+  }
+  /* Dark mode: deep professional dark */
+  html.dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+  /* Light mode: soft gray/white */
+  html.light body {
+    @apply bg-gray-50 text-gray-900;
+  }
 }
 
 /* Safe area support for notched devices */
@@ -30,7 +39,6 @@ body {
 
 /* Prevent zoom on input focus for iOS */
 @media screen and (max-width: 640px) {
-
   input,
   select,
   textarea {
@@ -59,42 +67,36 @@ body {
       -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
       0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
   }
-
   14% {
     text-shadow:
       0.05em 0 0 rgba(255, 0, 0, 0.75),
       -0.025em -0.05em 0 rgba(0, 255, 0, 0.75),
       0.025em 0.05em 0 rgba(0, 0, 255, 0.75);
   }
-
   15% {
     text-shadow:
       -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
       0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+      -0.05em -0.05em 0 rgba(0, 255, 0, 0.75);
   }
-
   49% {
     text-shadow:
       -0.05em -0.025em 0 rgba(255, 0, 0, 0.75),
       0.025em 0.025em 0 rgba(0, 255, 0, 0.75),
-      -0.05em -0.05em 0 rgba(0, 0, 255, 0.75);
+      -0.05em -0.05em 0 rgba(0, 255, 0, 0.75);
   }
-
   50% {
     text-shadow:
       0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
       0.05em 0 0 rgba(0, 255, 0, 0.75),
       0 -0.05em 0 rgba(0, 0, 255, 0.75);
   }
-
   99% {
     text-shadow:
       0.025em 0.05em 0 rgba(255, 0, 0, 0.75),
       0.05em 0 0 rgba(0, 255, 0, 0.75),
       0 -0.05em 0 rgba(0, 0, 255, 0.75);
   }
-
   100% {
     text-shadow:
       -0.025em 0 0 rgba(255, 0, 0, 0.75),
@@ -103,21 +105,17 @@ body {
   }
 }
 
-/* Matrix Rain Animation */
 @keyframes matrix-fall {
   0% {
     transform: translateY(-100vh);
     opacity: 0;
   }
-
   5% {
     opacity: 1;
   }
-
   95% {
     opacity: 1;
   }
-
   100% {
     transform: translateY(100vh);
     opacity: 0;
@@ -128,13 +126,11 @@ body {
   animation: matrix-fall 15s linear infinite;
 }
 
-/* Slide Up Animation for Chat Widget */
 @keyframes slideUp {
   0% {
     opacity: 0;
     transform: translateY(20px) scale(0.95);
   }
-
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -145,13 +141,11 @@ body {
   animation: slideUp 0.3s ease-out forwards;
 }
 
-/* Fade In Animation */
 @keyframes fadeIn {
   0% {
     opacity: 0;
     transform: translateY(10px);
   }
-
   100% {
     opacity: 1;
     transform: translateY(0);
