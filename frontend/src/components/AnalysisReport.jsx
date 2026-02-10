@@ -3,7 +3,7 @@
  * Copyright (c) 2026 BaoZ
  */
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
@@ -12,6 +12,7 @@ import {
   FileCode, Shuffle, Eye, Code, Server, AlertOctagon, Target,
   ChevronDown, ChevronUp, Radiation, GitBranch, ShieldX, Download
 } from 'lucide-react';
+import Accordion from './ui/Accordion';
 import ThreatGraphModal from './ThreatGraphModal';
 import TrustGauge from './TrustGauge';
 import ForensicBadge from './ForensicBadge';
@@ -24,10 +25,6 @@ const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
   const [showJson, setShowJson] = useState(false);
   const [showGraphModal, setShowGraphModal] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({
-    techFacts: false,
-    rawData: false,
-  });
 
   if (loading) {
     return (
@@ -63,13 +60,27 @@ const AnalysisReport = ({ data, loading }) => {
   const isPhishing = !isUncertain && score >= 50;
   const riskFactors = verdict?.risk_factors || [];
 
-  // Toggle accordion sections
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+  // Pre-formatted raw JSON (useMemo avoids re-stringifying on every render/click → no lag when opening accordion)
+  const formattedRawJson = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          technical_details,
+          god_mode_analysis,
+          yara_analysis,
+          vision_analysis,
+          threat_graph: threat_graph
+            ? {
+                nodes_count: threat_graph.nodes?.length,
+                edges_count: threat_graph.edges?.length,
+              }
+            : null,
+        },
+        null,
+        2
+      ),
+    [technical_details, god_mode_analysis, yara_analysis, vision_analysis, threat_graph]
+  );
 
   const getRiskColor = () => {
     if (level === 'UNCERTAIN') return 'text-slate-400 border-slate-500';
@@ -614,129 +625,63 @@ const AnalysisReport = ({ data, loading }) => {
           TASK 3: DEEP FORENSICS ACCORDION SECTIONS
           ═══════════════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
-        {/* Section A: Technical & Network Facts */}
-        <div className="bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-          <button
-            onClick={() => toggleSection('techFacts')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Server className="w-5 h-5 text-cyan-400" />
-              <span className="font-bold text-slate-200 uppercase text-sm tracking-wider">
-                Technical & Network Facts
+        {/* Section A: Technical & Network Facts – smooth accordion */}
+        <Accordion title="Technical & Network Facts" icon={Server}>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-slate-500 text-xs uppercase font-bold block mb-1">SSL Certificate Age</span>
+              <span className={`text-lg font-bold ${
+                (technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-400' :
+                (technical_details?.ssl_age_hours || 0) < 168 ? 'text-yellow-400' : 'text-green-400'
+              }`}>
+                {technical_details?.ssl_age_hours ? `${technical_details.ssl_age_hours.toFixed(1)} hours` : 'N/A'}
               </span>
-            </div>
-            {expandedSections.techFacts ? (
-              <ChevronUp className="w-5 h-5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-400" />
-            )}
-          </button>
-          
-          {expandedSections.techFacts && (
-            <div className="p-4 pt-0 border-t border-slate-800">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-                {/* SSL Age */}
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
-                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">SSL Certificate Age</span>
-                  <span className={`text-lg font-bold ${
-                    (technical_details?.ssl_age_hours || 0) < 24 ? 'text-red-400' : 
-                    (technical_details?.ssl_age_hours || 0) < 168 ? 'text-yellow-400' : 'text-green-400'
-                  }`}>
-                    {technical_details?.ssl_age_hours ? `${technical_details.ssl_age_hours.toFixed(1)} hours` : 'N/A'}
-                  </span>
-                  {(technical_details?.ssl_age_hours || 0) < 24 && (
-                    <span className="text-red-400 text-xs block mt-1">⚠️ Very new certificate!</span>
-                  )}
-                </div>
-                
-                {/* Domain Age */}
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
-                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Domain Age</span>
-                  <span className={`text-lg font-bold ${
-                    network?.domain_age?.includes('day') ? 'text-red-400' : 
-                    network?.domain_age?.includes('week') ? 'text-yellow-400' : 'text-green-400'
-                  }`}>
-                    {network?.domain_age || 'Unknown'}
-                  </span>
-                </div>
-                
-                {/* ISP */}
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
-                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Hosting Provider</span>
-                  <span className="text-white text-sm font-mono truncate block">
-                    {network?.isp || 'Unknown'}
-                  </span>
-                </div>
-                
-                {/* IP */}
-                <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
-                  <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Server IP</span>
-                  <span className="text-cyan-400 text-sm font-mono">
-                    {network?.ip || 'Unknown'}
-                  </span>
-                </div>
-              </div>
-              
-              {/* Security Gaps (Missing Headers) */}
-              {vision_analysis?.security_headers && (
-                <div className="mt-4 p-3 bg-red-500/5 rounded-lg border border-red-500/20">
-                  <span className="text-red-400 text-xs uppercase font-bold block mb-2">
-                    🔓 Security Gaps (Missing Headers)
-                  </span>
-                  <div className="flex flex-wrap gap-2">
-                    {Object.entries(vision_analysis.security_headers || {})
-                      .filter(([_, present]) => !present)
-                      .map(([header]) => (
-                        <span key={header} className="px-2 py-1 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-xs font-mono">
-                          {header}
-                        </span>
-                      ))}
-                  </div>
-                </div>
+              {(technical_details?.ssl_age_hours || 0) < 24 && (
+                <span className="text-red-400 text-xs block mt-1">⚠️ Very new certificate!</span>
               )}
             </div>
-          )}
-        </div>
-
-        {/* Section B: Raw Analysis Data (For Experts) */}
-        <div className="bg-slate-900 rounded-lg border border-slate-700 overflow-hidden">
-          <button
-            onClick={() => toggleSection('rawData')}
-            className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors"
-          >
-            <div className="flex items-center gap-3">
-              <Terminal className="w-5 h-5 text-green-400" />
-              <span className="font-bold text-slate-200 uppercase text-sm tracking-wider">
-                Raw Analysis Data (For Experts)
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Domain Age</span>
+              <span className={`text-lg font-bold ${
+                network?.domain_age?.includes('day') ? 'text-red-400' :
+                network?.domain_age?.includes('week') ? 'text-yellow-400' : 'text-green-400'
+              }`}>
+                {network?.domain_age || 'Unknown'}
               </span>
             </div>
-            {expandedSections.rawData ? (
-              <ChevronUp className="w-5 h-5 text-slate-400" />
-            ) : (
-              <ChevronDown className="w-5 h-5 text-slate-400" />
-            )}
-          </button>
-          
-          {expandedSections.rawData && (
-            <div className="p-4 pt-0 border-t border-slate-800">
-              <div className="mt-4 bg-black rounded-lg p-4 overflow-auto max-h-96">
-                <pre className="text-xs text-green-400 font-mono whitespace-pre-wrap">
-                  {JSON.stringify({
-                    technical_details,
-                    god_mode_analysis,
-                    yara_analysis,
-                    vision_analysis,
-                    threat_graph: threat_graph ? {
-                      nodes_count: threat_graph.nodes?.length,
-                      edges_count: threat_graph.edges?.length
-                    } : null
-                  }, null, 2)}
-                </pre>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Hosting Provider</span>
+              <span className="text-white text-sm font-mono truncate block">{network?.isp || 'Unknown'}</span>
+            </div>
+            <div className="p-3 bg-slate-950 rounded-lg border border-slate-800">
+              <span className="text-slate-500 text-xs uppercase font-bold block mb-1">Server IP</span>
+              <span className="text-cyan-400 text-sm font-mono">{network?.ip || 'Unknown'}</span>
+            </div>
+          </div>
+          {vision_analysis?.security_headers && (
+            <div className="mt-4 p-3 bg-red-500/5 rounded-lg border border-red-500/20">
+              <span className="text-red-400 text-xs uppercase font-bold block mb-2">🔓 Security Gaps (Missing Headers)</span>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(vision_analysis.security_headers || {})
+                  .filter(([_, present]) => !present)
+                  .map(([header]) => (
+                    <span key={header} className="px-2 py-1 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-xs font-mono">
+                      {header}
+                    </span>
+                  ))}
               </div>
             </div>
           )}
-        </div>
+        </Accordion>
+
+        {/* Section B: Raw Analysis Data (For Experts) – useMemo avoids lag when opening */}
+        <Accordion title="Raw Analysis Data (For Experts)" icon={Terminal} className="mt-4">
+          <div className="relative">
+            <pre className="text-xs font-mono text-green-400 overflow-x-auto p-4 bg-black rounded-lg border border-slate-700 max-h-[500px] overflow-y-auto whitespace-pre-wrap">
+              {formattedRawJson}
+            </pre>
+          </div>
+        </Accordion>
 
         {/* Community Feedback: Report false positive / false negative */}
         <FeedbackWidget

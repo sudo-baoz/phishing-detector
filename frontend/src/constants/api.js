@@ -1,6 +1,7 @@
 /**
  * Centralized API configuration – single source of truth.
  * Priority: 1. Environment Variable → 2. Hardcoded Production Fallback
+ * MUST be https:// in production (CSP connect-src blocks http://).
  */
 export const API_BASE_URL =
   import.meta.env.VITE_API_URL || "https://api.baodarius.me";
