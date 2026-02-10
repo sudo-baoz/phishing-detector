@@ -5,6 +5,39 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2026-02-06
+
+### 🔢 Versioning Fallback & Custom Error Pages
+
+This release fixes server-side version display (no more "0.0.0"), removes hardcoded version text in Share/Footer, and adds themed 404/403/500 error pages inside MainLayout.
+
+#### Fixed
+
+- **Version shows "0.0.0" on server** ([frontend/scripts/generate-version.js](frontend/scripts/generate-version.js)):
+  - **Version fallback order:** (1) `git describe --tags --abbrev=0`, (2) `git rev-parse --short HEAD` (use commit as version), (3) **timestamp version** `vYYYY.MM.DD` (e.g. `v2026.02.10`) when no `.git` or git fails.
+  - Writes to `.env`, `.env.local`, and `.env.production.local` so Vite always picks up `VITE_APP_VERSION`, `VITE_COMMIT_HASH`, `VITE_BUILD_TIME` in dev and production build.
+- **Hardcoded "Model v1.2.0" in Share/Footer:** [ShareResultPage.jsx](frontend/src/pages/ShareResultPage.jsx) and [Footer.jsx](frontend/src/components/Footer.jsx) now use [VersionBadge](frontend/src/components/VersionBadge.jsx), which reads `import.meta.env.VITE_APP_VERSION` and `VITE_COMMIT_HASH`. Display format: **Ver: {version} ({hash})**.
+
+#### Added
+
+- **Custom error pages** (Cyberpunk/Security theme, inside MainLayout):
+  - [ErrorCard.jsx](frontend/src/components/ErrorCard.jsx): Reusable card with `code`, `title`, `description`, `icon`, optional `action`. Glassmorphism, subtle border glow, dark/light support.
+  - [NotFoundPage.jsx](frontend/src/pages/errors/NotFoundPage.jsx) (404): "Target Not Found", `SearchX` icon, cyan. Message: "The URL you are looking for has vanished into the digital void."
+  - [ForbiddenPage.jsx](frontend/src/pages/errors/ForbiddenPage.jsx) (403): "Access Denied", `ShieldAlert` icon, red. Message: "You do not have clearance to access this classified sector."
+  - [ServerErrorPage.jsx](frontend/src/pages/errors/ServerErrorPage.jsx) (500): "System Malfunction", `ServerCrash` icon, amber. "Reload System" + "Go Home" buttons.
+- **Routes:** Wildcard `path="*"` → `NotFoundPage` (last inside MainLayout). `path="/403"` and `path="/500"` for redirects or error boundary use.
+
+#### Changed
+
+- **ShareResultPage** ([frontend/src/pages/ShareResultPage.jsx](frontend/src/pages/ShareResultPage.jsx)): Theme-aware (`useTheme()`, `bg-transparent`), uses `<VersionBadge />`; loading/error states match app background.
+- **VersionBadge** ([frontend/src/components/VersionBadge.jsx](frontend/src/components/VersionBadge.jsx)): Label changed to **Ver: {version} ({hash})**; still uses env and tooltip for build time.
+
+#### Files Touched
+
+- **Frontend:** frontend/scripts/generate-version.js, frontend/src/components/ErrorCard.jsx (new), frontend/src/components/VersionBadge.jsx, frontend/src/components/Footer.jsx, frontend/src/pages/ShareResultPage.jsx, frontend/src/pages/errors/NotFoundPage.jsx (new), frontend/src/pages/errors/ForbiddenPage.jsx (new), frontend/src/pages/errors/ServerErrorPage.jsx (new), frontend/src/App.jsx
+
+---
+
 ## [1.7.1] - 2026-02-06
 
 ### 🎨 Layout, Theme & Footer Polish

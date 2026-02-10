@@ -1,5 +1,6 @@
 /**
- * Seamless footer: transparent, subtle border, muted text. Blends with body background.
+ * Seamless footer: transparent, subtle border, muted text.
+ * Version from build-time env (VersionBadge uses VITE_APP_VERSION, VITE_COMMIT_HASH, VITE_BUILD_TIME).
  */
 import { useTheme } from '../context/ThemeContext';
 import VersionBadge from './VersionBadge';

@@ -25,6 +25,9 @@ import AboutPage from './pages/AboutPage';
 import BatchScanPage from './pages/BatchScanPage';
 import ShareResultPage from './pages/ShareResultPage';
 import AdminDashboard from './pages/AdminDashboard';
+import NotFoundPage from './pages/errors/NotFoundPage';
+import ForbiddenPage from './pages/errors/ForbiddenPage';
+import ServerErrorPage from './pages/errors/ServerErrorPage';
 
 function App() {
   const { i18n } = useTranslation();
@@ -40,6 +43,11 @@ function App() {
           <Route path="/about" element={<AboutPage language={language} />} />
           <Route path="/share/:scanId" element={<ShareResultPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
+          {/* 403/500: use navigate('/403') or navigate('/500') from guards / error boundary */}
+          <Route path="/403" element={<ForbiddenPage />} />
+          <Route path="/500" element={<ServerErrorPage />} />
+          {/* Wildcard: must be last so unmatched paths show 404 inside MainLayout */}
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,7 +1,7 @@
 /**
- * Generate build-time version env file from Git.
- * Writes VITE_APP_VERSION, VITE_COMMIT_HASH, VITE_BUILD_TIME to .env.local and .env.production.local.
- * Run from frontend directory (npm run dev / npm run build).
+ * Generate build-time version env for Vite.
+ * Writes VITE_APP_VERSION, VITE_COMMIT_HASH, VITE_BUILD_TIME.
+ * Robust fallback: tag -> commit hash as version -> timestamp version (vYYYY.MM.DD) when no .git.
  */
 import { execSync } from 'child_process';
 import { writeFileSync, mkdirSync } from 'fs';
@@ -9,9 +9,7 @@ import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-/** Frontend dir (where .env.local is written). */
 const frontendRoot = join(__dirname, '..');
-/** Git repo root (parent of frontend, so tags/commits are available). */
 const gitRoot = join(frontendRoot, '..');
 
 function runGit(cmd, defaultValue) {
@@ -26,14 +24,25 @@ function runGit(cmd, defaultValue) {
   }
 }
 
+/** Timestamp version when no git (e.g. v2026.02.10). Better than 0.0.0 for debugging. */
+function getTimestampVersion() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `v${y}.${m}.${day}`;
+}
+
 function getVersion() {
   const tag = runGit('git describe --tags --abbrev=0', null);
   if (tag && tag.length) return tag;
-  return '0.0.0';
+  const hash = runGit('git rev-parse --short HEAD', null);
+  if (hash && hash.length) return hash;
+  return getTimestampVersion();
 }
 
 function getCommitHash() {
-  return runGit('git rev-parse --short HEAD', 'dev');
+  return runGit('git rev-parse --short HEAD', 'n/a');
 }
 
 function getBuildTime() {
@@ -51,7 +60,7 @@ const content = [
   `VITE_BUILD_TIME=${VITE_BUILD_TIME}`,
 ].join('\n') + '\n';
 
-const files = ['.env.local', '.env.production.local'];
+const files = ['.env', '.env.local', '.env.production.local'];
 for (const file of files) {
   const filePath = join(frontendRoot, file);
   try {

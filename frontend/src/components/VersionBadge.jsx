@@ -20,7 +20,7 @@ export default function VersionBadge() {
       className={`inline-flex items-center text-xs px-2 py-1 rounded font-mono ${badgeClass}`}
       title={buildTime ? `Built at: ${buildTime}` : undefined}
     >
-      Model {version} ({commit})
+      Ver: {version} ({commit})
     </span>
   );
 }
