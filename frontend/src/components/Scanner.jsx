@@ -119,8 +119,8 @@ const Scanner = () => {
 
     // Get Turnstile site key from environment
     const TURNSTILE_SITE_KEY = import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA';
-    // Dev mode: placeholder/test key → don't load Turnstile (avoids 404 / PAT console noise)
-    const isTurnstileDevMode = !TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY === '1x00000000000000000000AA';
+    // Only skip verification in dev when using placeholder key (use import.meta.env.PROD, not NODE_ENV)
+    const isTurnstileDevMode = !import.meta.env.PROD && (!TURNSTILE_SITE_KEY || TURNSTILE_SITE_KEY === '1x00000000000000000000AA');
 
     const sanitizeUrl = (inputUrl) => {
         let sanitized = inputUrl.trim();

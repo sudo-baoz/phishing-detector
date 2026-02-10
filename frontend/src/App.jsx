@@ -34,7 +34,12 @@ function App() {
   const language = i18n.language && String(i18n.language).toLowerCase().startsWith('vi') ? 'vi' : 'en';
 
   return (
-    <BrowserRouter>
+    <BrowserRouter
+      future={{
+        v7_startTransition: true,
+        v7_relativeSplatPath: true,
+      }}
+    >
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<Scanner />} />
