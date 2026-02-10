@@ -8,6 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../constants/api';
 import { FileDown, Loader2, AlertCircle } from 'lucide-react';
+import TurnstileWidget from '../components/TurnstileWidget';
 
 const DELAY_MS = 1000;
 
@@ -21,6 +22,7 @@ export default function BatchScanPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [progress, setProgress] = useState({ current: 0, total: 0 });
+  const [captchaToken, setCaptchaToken] = useState(null);
   const { theme } = useTheme();
   const { token } = useAuth();
   const isDark = theme === 'dark';
@@ -44,6 +46,10 @@ export default function BatchScanPage() {
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
+    }
+    // Add Turnstile token for human verification
+    if (captchaToken) {
+      headers['cf-turnstile-response'] = captchaToken;
     }
 
     for (let i = 0; i < lines.length; i++) {
@@ -95,6 +101,8 @@ export default function BatchScanPage() {
 
     setLoading(false);
     setProgress({ current: 0, total: 0 });
+    // Reset captcha token after scan completion to require re-verification
+    setCaptchaToken(null);
   };
 
   const exportCsv = () => {
@@ -125,19 +133,35 @@ export default function BatchScanPage() {
         <h1 className="text-2xl font-bold mb-2">Batch Scan</h1>
         <p className={isDark ? 'text-slate-400 mb-6' : 'text-gray-500 mb-6'}>
           Enter one URL per line. Scans run one at a time with a 1s delay to
-          avoid rate limits (403). Use an account and log in to send an auth
-          token.
+          avoid rate limits (403).
         </p>
+
+        {/* Turnstile Human Verification Widget */}
+        <div className="mb-6">
+          <TurnstileWidget
+            onVerify={(token) => {
+              setCaptchaToken(token);
+              setError(''); // Clear any previous errors
+            }}
+            onExpire={() => {
+              setCaptchaToken(null);
+              setError('Verification expired. Please complete the challenge again.');
+            }}
+            onError={(err) => {
+              setCaptchaToken(null);
+              setError('Verification failed. Please try again.');
+            }}
+          />
+        </div>
         <textarea
           value={urlsText}
           onChange={(e) => setUrlsText(e.target.value)}
           placeholder="https://example.com&#10;https://another.com"
           rows={6}
-          className={`w-full rounded-xl border p-4 font-mono text-sm ${
-            isDark
+          className={`w-full rounded-xl border p-4 font-mono text-sm ${isDark
               ? 'bg-gray-900 border-gray-700 text-white'
               : 'bg-white border-gray-200'
-          }`}
+            }`}
         />
         {error && (
           <p className="text-red-400 text-sm mt-2 flex items-center gap-1">
@@ -149,8 +173,9 @@ export default function BatchScanPage() {
           <button
             type="button"
             onClick={runBatch}
-            disabled={loading}
-            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium disabled:opacity-50 flex items-center gap-2"
+            disabled={loading || !captchaToken}
+            className="px-4 py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            title={!captchaToken && !loading ? 'Please complete the verification challenge first' : ''}
           >
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin shrink-0" />
