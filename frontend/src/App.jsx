@@ -24,6 +24,7 @@ import ToolsPage from './pages/ToolsPage';
 import AboutPage from './pages/AboutPage';
 import BatchScanPage from './pages/BatchScanPage';
 import ShareResultPage from './pages/ShareResultPage';
+import HistoryPage from './pages/HistoryPage';
 import AdminDashboard from './pages/AdminDashboard';
 import NotFoundPage from './pages/errors/NotFoundPage';
 import ForbiddenPage from './pages/errors/ForbiddenPage';
@@ -45,6 +46,7 @@ function App() {
           <Route path="/" element={<Scanner />} />
           <Route path="/tools" element={<ToolsPage language={language} />} />
           <Route path="/batch" element={<BatchScanPage />} />
+          <Route path="/history" element={<HistoryPage />} />
           <Route path="/about" element={<AboutPage language={language} />} />
           <Route path="/share/:scanId" element={<ShareResultPage />} />
           <Route path="/admin" element={<AdminDashboard />} />

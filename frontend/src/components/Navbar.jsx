@@ -4,9 +4,10 @@
  */
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { Shield, Wrench, Menu, X, Github, Scale, Sun, Moon, LogIn, LayoutDashboard, User, LogOut } from 'lucide-react';
+import { Shield, Wrench, History, Menu, X, Github, Scale, Sun, Moon, LogIn, LayoutDashboard, User, LogOut } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import EthicsModal from './EthicsModal';
+import LoginModal from './LoginModal';
 import { getTranslations } from '../constants/translations';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +19,6 @@ export default function Navbar({ language = 'en' }) {
   const [ethicsOpen, setEthicsOpen] = useState(false);
   const [loginOpen, setLoginOpen] = useState(false);
   const [avatarOpen, setAvatarOpen] = useState(false);
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const { theme, setTheme } = useTheme();
   const { user, login, logout } = useAuth();
@@ -32,18 +31,14 @@ export default function Navbar({ language = 'en' }) {
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? navLinkActive : navLinkBase}`;
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLoginOpen = () => {
     setLoginError('');
-    try {
-      await login(loginEmail, loginPassword);
-      setLoginOpen(false);
-      setLoginEmail('');
-      setLoginPassword('');
-    } catch (err) {
-      const msg = err.response?.data?.detail ?? err.message ?? 'Login failed';
-      setLoginError(Array.isArray(msg) ? msg.map((x) => x?.msg ?? x).join(', ') : msg);
-    }
+    setLoginOpen(true);
+  };
+
+  const handleLoginClose = () => {
+    setLoginOpen(false);
+    setLoginError('');
   };
 
   return (
@@ -73,6 +68,10 @@ export default function Navbar({ language = 'en' }) {
               <NavLink to="/batch" className={linkClass}>
                 Batch
               </NavLink>
+              <NavLink to="/history" className={linkClass}>
+                <History className="w-4 h-4 shrink-0" />
+                History
+              </NavLink>
               <NavLink to="/about" className={linkClass}>
                 {t.about}
               </NavLink>
@@ -98,7 +97,7 @@ export default function Navbar({ language = 'en' }) {
               {t.ethics}
             </button>
             {!user ? (
-              <button type="button" onClick={() => setLoginOpen(true)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
+              <button type="button" onClick={handleLoginOpen} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
                 <LogIn className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Login</span>
               </button>
@@ -170,6 +169,10 @@ export default function Navbar({ language = 'en' }) {
               <NavLink to="/batch" className={linkClass} onClick={() => setMobileOpen(false)}>
                 Batch
               </NavLink>
+              <NavLink to="/history" className={linkClass} onClick={() => setMobileOpen(false)}>
+                <History className="w-4 h-4 shrink-0" />
+                History
+              </NavLink>
               <NavLink to="/about" className={linkClass} onClick={() => setMobileOpen(false)}>
                 {t.about}
               </NavLink>
@@ -178,22 +181,12 @@ export default function Navbar({ language = 'en' }) {
         </div>
       )}
 
-      {loginOpen && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setLoginOpen(false)} aria-modal="true" role="dialog">
-          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700 z-10" onClick={(e) => e.stopPropagation()}>
-            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">Login</h3>
-            <form onSubmit={handleLogin} className="space-y-4 relative">
-              <input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full px-4 py-2 rounded-lg border bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 relative z-10" />
-              <input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="w-full px-4 py-2 rounded-lg border bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 relative z-10" />
-              {loginError && <p className="text-sm text-red-400">{loginError}</p>}
-              <button type="submit" className="w-full py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium">
-                Sign in
-              </button>
-            </form>
-            <p className="mt-3 text-xs text-gray-500 dark:text-slate-500">Demo: admin@cybersentinel.com / password123</p>
-          </div>
-        </div>
-      )}
+      <LoginModal
+        open={loginOpen}
+        onClose={handleLoginClose}
+        onLogin={login}
+        error={loginError}
+      />
 
       <EthicsModal open={ethicsOpen} onClose={() => setEthicsOpen(false)} hideTrigger language={language} />
     </>

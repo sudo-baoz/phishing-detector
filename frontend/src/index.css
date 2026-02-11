@@ -19,14 +19,15 @@ html {
     overflow-x: hidden;
     @apply transition-colors duration-300;
   }
-  /* Dark mode: deep professional dark */
-  html.dark body {
-    @apply bg-gray-950 text-gray-100;
-  }
-  /* Light mode: soft gray/white */
+  /* Light mode: off-white background, dark text. Cards use bg-white + border-gray-200 + shadow-sm */
   html.light body {
     @apply bg-gray-50 text-gray-900;
   }
+  /* Dark mode: deep gray/black background, light text. Cards use bg-gray-900 + border-white/10 */
+  html.dark body {
+    @apply bg-gray-950 text-gray-100;
+  }
+  /* Card palette: Light = bg-white shadow-sm border-gray-200; Dark = bg-gray-900 border-white/10 */
 }
 
 /* Safe area support for notched devices */
@@ -154,4 +155,20 @@ html {
 
 .animate-fadeIn {
   animation: fadeIn 0.5s ease-in forwards;
+}
+
+/* Login modal entry: scale 95% → 100% with fade */
+@keyframes login-modal-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-login-modal-in {
+  animation: login-modal-in 0.2s ease-out forwards;
 }
