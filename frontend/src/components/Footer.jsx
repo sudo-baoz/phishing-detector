@@ -1,20 +1,11 @@
 /**
- * Seamless footer: transparent, subtle border, muted text.
- * Version from build-time env (VersionBadge uses VITE_APP_VERSION, VITE_COMMIT_HASH, VITE_BUILD_TIME).
+ * Seamless footer: spacing only (no dividers). Version from build-time env.
  */
-import { useTheme } from '../context/ThemeContext';
 import VersionBadge from './VersionBadge';
 
 export default function Footer() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
-  const borderClass = isDark ? 'border-t border-white/5' : 'border-t border-gray-200/50';
-
   return (
-    <footer
-      className={`py-4 text-center text-xs bg-transparent text-gray-500 ${borderClass}`}
-    >
+    <footer className="mt-16 pt-8 pb-4 text-center text-xs bg-transparent text-gray-500">
       <VersionBadge />
     </footer>
   );

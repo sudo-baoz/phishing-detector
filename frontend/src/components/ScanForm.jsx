@@ -59,11 +59,9 @@ export default function ScanForm({
   const labelColor = isDark ? 'text-cyan-400' : 'text-gray-900';
   const hintColor = isDark ? 'text-gray-400' : 'text-gray-600';
 
-  const heroBg = 'border-b border-gray-200/50 dark:border-white/5';
-
   return (
     <div
-      className={`w-screen relative left-[50%] right-[50%] -ml-[50vw] py-16 px-4 bg-transparent ${heroBg}`}
+      className="w-screen relative left-[50%] right-[50%] -ml-[50vw] py-16 px-4 bg-transparent"
       data-scan-hero-full-bleed
     >
       <div className="relative max-w-4xl mx-auto text-center">

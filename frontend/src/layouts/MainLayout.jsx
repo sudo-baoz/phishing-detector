@@ -17,8 +17,8 @@ export default function MainLayout() {
 
   const headerBg =
     theme === 'dark'
-      ? 'bg-gray-950/70 backdrop-blur-xl border-b border-white/10'
-      : 'bg-white/60 backdrop-blur-xl border-b border-gray-200/80';
+      ? 'bg-gray-950/70 backdrop-blur-xl'
+      : 'bg-white/60 backdrop-blur-xl';
 
   return (
     <div className="min-h-screen flex flex-col bg-transparent">
