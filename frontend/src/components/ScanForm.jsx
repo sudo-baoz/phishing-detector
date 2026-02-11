@@ -1,6 +1,6 @@
 /**
  * URL Scanner – Full-width Hero Section (edge-to-edge).
- * Background spans 100vw; content centered in max-w-4xl. Gradient + optional grid pattern.
+ * Background spans 100vw; content centered in max-w-4xl. Transparent so ambient glow shows through.
  */
 
 import { useTranslation } from 'react-i18next';
@@ -59,27 +59,13 @@ export default function ScanForm({
   const labelColor = isDark ? 'text-cyan-400' : 'text-gray-900';
   const hintColor = isDark ? 'text-gray-400' : 'text-gray-600';
 
-  const heroBgLight = 'bg-gradient-to-br from-blue-50 via-indigo-50 to-slate-50 border-b border-gray-200';
-  const heroBgDark = 'bg-gray-900/50 backdrop-blur-sm border-b border-white/5';
+  const heroBg = 'border-b border-gray-200/50 dark:border-white/5';
 
   return (
     <div
-      className={`w-screen relative left-[50%] right-[50%] -ml-[50vw] py-16 px-4 ${isDark ? heroBgDark : heroBgLight}`}
+      className={`w-screen relative left-[50%] right-[50%] -ml-[50vw] py-16 px-4 bg-transparent ${heroBg}`}
       data-scan-hero-full-bleed
     >
-      {/* Optional: subtle grid pattern overlay (cyber security look) */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03] dark:opacity-[0.06]"
-        style={{
-          backgroundImage: `
-            linear-gradient(to right, currentColor 1px, transparent 1px),
-            linear-gradient(to bottom, currentColor 1px, transparent 1px)
-          `,
-          backgroundSize: '24px 24px',
-        }}
-        aria-hidden
-      />
-
       <div className="relative max-w-4xl mx-auto text-center">
         <motion.h2
           initial={{ opacity: 0, y: 12 }}

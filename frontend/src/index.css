@@ -11,7 +11,8 @@ html {
 }
 
 /* ==========================================================================
-   STRICT HIGH-CONTRAST PALETTE – Clean & Sharp (no gray-on-gray, no blur on text)
+   UNIFIED GLOBAL BACKGROUND – Solid base, no grid/dot/pattern images
+   Ambient glow is handled by AmbientBackground.jsx (orbs only).
    ========================================================================== */
 
 @layer base {
@@ -21,27 +22,18 @@ html {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     overflow-x: hidden;
-    @apply transition-colors duration-300;
+    @apply transition-colors duration-500;
   }
 
-  /* LIGHT MODE – Professional enterprise: soft blue-grey base (never pure white) */
+  /* LIGHT MODE – Single solid base (soft, clean) */
   html.light body {
-    @apply bg-slate-50 text-gray-900;
+    @apply bg-gray-50 text-gray-900;
   }
-  /* Cards/panels: bg-white shadow-sm border border-gray-200 for contrast against body */
-  /* Primary text: text-gray-900. Secondary: text-gray-600 */
-  /* Inputs: bg-white border-gray-300 text-gray-900 */
 
-  /* DARK MODE – Deep blue-black base, gray-900 cards, almost-white text */
+  /* DARK MODE – Single solid base (deep, clean) */
   html.dark body {
     @apply bg-gray-950 text-gray-50;
   }
-  /* Cards/containers: bg-gray-900 border border-gray-800 */
-  /* Primary text: text-gray-50 */
-  /* Secondary text: text-gray-400 */
-  /* Inputs: bg-gray-950 border-gray-700 text-white */
-
-  /* ANTI-BLUR: Do not use backdrop-blur on text containers. Text must sit on solid backgrounds for readability. Exception: fixed Navbar/header only. */
 }
 
 /* Safe area support for notched devices */
