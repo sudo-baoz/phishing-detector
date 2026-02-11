@@ -276,27 +276,9 @@ const Scanner = () => {
         <div className="min-h-screen bg-transparent text-gray-900 dark:text-gray-50">
             {isDark && <MatrixRain />}
 
-            <div className="relative z-10 min-h-screen flex flex-col container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
-                {/* Hero: centered vertically and horizontally when only content */}
-                <section className="flex-1 flex flex-col items-center justify-center py-8">
-                    <motion.div
-                        initial={{ opacity: 0, y: -16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                        className="text-center mb-6 sm:mb-8"
-                    >
-                        <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black mb-2 sm:mb-3 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 bg-clip-text text-transparent px-2">
-                            {t('app_title')}
-                        </h1>
-                        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium px-4">
-                            {t('app_subtitle')}
-                        </p>
-                        <div className="mt-4 flex items-center justify-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                            <span className="text-sm text-green-600 dark:text-green-400 font-mono">{t('chat.status_online')}</span>
-                        </div>
-                    </motion.div>
-
+            <div className="relative z-10 min-h-screen flex flex-col container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl overflow-x-visible">
+                {/* Hero: full-bleed ScanForm (break-out) – no restrictive wrapper */}
+                <section className="flex-1 w-full">
                     <ScanForm
                         url={url}
                         setUrl={setUrl}

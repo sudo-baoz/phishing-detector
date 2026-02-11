@@ -1,6 +1,6 @@
 /**
- * Home Page – Simplified dashboard: only the URL Scanner hero, centered.
- * Recent Scans section removed; history is available at /history.
+ * Home Page – URL Scanner hero (full-width) + results.
+ * No restrictive container: Scanner/ScanForm use full-bleed break-out for the hero section.
  */
 
 import Scanner from '../components/Scanner';
