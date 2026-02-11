@@ -24,13 +24,12 @@ html {
     @apply transition-colors duration-300;
   }
 
-  /* LIGHT MODE – Off-white base, pure white cards, almost-black text */
+  /* LIGHT MODE – Professional enterprise: soft blue-grey base (never pure white) */
   html.light body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-slate-50 text-gray-900;
   }
-  /* Cards/containers: bg-white border border-gray-200 shadow-sm */
-  /* Primary text: text-gray-900 (never text-gray-500 for main content) */
-  /* Secondary text: text-gray-600 */
+  /* Cards/panels: bg-white shadow-sm border border-gray-200 for contrast against body */
+  /* Primary text: text-gray-900. Secondary: text-gray-600 */
   /* Inputs: bg-white border-gray-300 text-gray-900 */
 
   /* DARK MODE – Deep blue-black base, gray-900 cards, almost-white text */

@@ -19,7 +19,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { scanUrlStream } from '../services/api';
-import AnalysisReport from './AnalysisReport';
+import ScanResult from './ScanResult';
 import ChatWidget from './ChatWidget';
 import ScanTerminal from './ScanTerminal';
 import EthicsModal from './EthicsModal';
@@ -349,9 +349,9 @@ const Scanner = () => {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="mb-8 w-full max-w-4xl mx-auto"
+                        className="mb-8"
                     >
-                        <AnalysisReport data={result} loading={false} />
+                        <ScanResult data={result} loading={false} />
                     </motion.div>
                 )}
 

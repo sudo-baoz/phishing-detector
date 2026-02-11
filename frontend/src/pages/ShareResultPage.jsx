@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { fetchShareResult } from '../services/api';
-import AnalysisReport from '../components/AnalysisReport';
+import ScanResult from '../components/ScanResult';
 import VersionBadge from '../components/VersionBadge';
 
 export default function ShareResultPage() {
@@ -70,10 +70,12 @@ export default function ShareResultPage() {
 
   return (
     <div className={`min-h-[60vh] ${bg} ${textPrimary}`}>
-      <div className="max-w-4xl mx-auto px-4 py-6">
+      <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
         <p className={`${textMuted} text-sm mb-4`}>Shared scan result (read-only)</p>
-        <AnalysisReport data={data} readOnly />
-        <p className={`mt-6 ${textMuted} text-xs`}>
+      </div>
+      <ScanResult data={data} loading={false} readOnly />
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        <p className={`${textMuted} text-xs`}>
           <VersionBadge />
         </p>
       </div>
