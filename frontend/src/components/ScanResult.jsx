@@ -21,15 +21,15 @@ function getCardWrapperClasses(data, loading, isDark) {
   }
   if (isPhishing) {
     return [
-      'rounded-xl border-2 border-red-500/50',
-      'shadow-[0_0_30px_-5px_rgba(239,68,68,0.3)]',
-      isDark ? 'bg-red-950/30' : 'bg-red-50/50',
+      'rounded-xl border border-red-500/50',
+      'bg-red-950/20',
+      'shadow-[0_0_40px_-10px_rgba(239,68,68,0.4)]',
     ].join(' ');
   }
   return [
-    'rounded-xl border-2 border-emerald-500/50',
-    'shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]',
+    'rounded-xl border border-emerald-500/50',
     isDark ? 'bg-emerald-950/30' : 'bg-emerald-50/50',
+    'shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]',
   ].join(' ');
 }
 

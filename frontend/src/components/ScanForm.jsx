@@ -5,7 +5,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { Search, Shield, AlertTriangle } from 'lucide-react';
+import { Search, Shield, AlertTriangle, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
@@ -162,12 +162,21 @@ export default function ScanForm({
               type="submit"
               disabled={loading || (!isTurnstileDevMode && !turnstileToken)}
               className={`w-full font-bold py-3.5 sm:py-4 px-4 sm:px-6 rounded-xl sm:rounded-2xl uppercase tracking-wider transition-all text-sm sm:text-base min-h-[52px] shadow-lg ${
-                loading || (!isTurnstileDevMode && !turnstileToken)
-                  ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
-                  : 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                loading
+                  ? 'bg-blue-600/80 text-white cursor-wait'
+                  : !isTurnstileDevMode && !turnstileToken
+                    ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+                    : 'bg-cyan-600 hover:bg-cyan-500 text-white'
               }`}
             >
-              {loading ? t('scanner.scanning') : t('scanner.scan_button')}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+                  <span className="animate-pulse">{t('scanner.scanning')}</span>
+                </span>
+              ) : (
+                t('scanner.scan_button')
+              )}
             </button>
           </form>
         </motion.div>

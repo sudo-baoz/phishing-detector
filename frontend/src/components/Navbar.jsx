@@ -25,11 +25,11 @@ export default function Navbar({ language = 'en' }) {
   const t = getTranslations(language).nav;
 
   const isDark = theme === 'dark';
-  const navLinkBase = isDark ? 'text-gray-200 hover:text-blue-400 hover:bg-white/10' : 'text-gray-700 hover:text-blue-600 hover:bg-gray-200/60';
-  const navLinkActive = isDark ? 'text-blue-400 bg-white/10' : 'text-blue-600 bg-gray-200/80';
+  const navLinkBase = 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full px-4 py-2.5 text-sm font-medium transition-all';
+  const navLinkActive = 'bg-blue-600 text-white shadow-md shadow-blue-500/20 rounded-full px-4 py-2.5 text-sm font-medium';
 
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${isActive ? navLinkActive : navLinkBase}`;
+    `flex items-center gap-2 ${isActive ? navLinkActive : navLinkBase}`;
 
   const handleLoginOpen = () => {
     setLoginError('');
@@ -103,9 +103,9 @@ export default function Navbar({ language = 'en' }) {
               </button>
             ) : (
               <div className="relative shrink-0">
-                <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg transition-all ${isDark ? 'text-slate-300 hover:bg-white/10' : 'text-gray-700 hover:bg-gray-200/60'}`}>
+                <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center gap-2 px-3 py-2.5 rounded-full transition-all ${isDark ? 'text-slate-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`} title={user.email || user.username}>
                   <User className="w-4 h-4 shrink-0" />
-                  <span className="hidden sm:inline text-sm truncate max-w-[90px]">{user.email || user.username}</span>
+                  <span className="hidden sm:inline text-sm truncate max-w-[120px]" title={user.email || user.username}>{user.email || user.username}</span>
                 </button>
                 {avatarOpen && (
                   <>

@@ -3,6 +3,7 @@
 * {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+  @apply border-gray-200 dark:border-gray-800;
 }
 
 html {
@@ -11,8 +12,8 @@ html {
 }
 
 /* ==========================================================================
-   UNIFIED GLOBAL BACKGROUND – Solid base, no grid/dot/pattern images
-   Ambient glow is handled by AmbientBackground.jsx (orbs only).
+   GLOBAL THEME – Solid backgrounds only (no grid/dots/background-image).
+   Ambient glow: AmbientBackground.jsx. No default divide-y on layouts.
    ========================================================================== */
 
 @layer base {
@@ -25,15 +26,29 @@ html {
     @apply transition-colors duration-500;
   }
 
-  /* LIGHT MODE – Single solid base (soft, clean) */
   html.light body {
-    @apply bg-gray-50 text-gray-900;
+    @apply bg-slate-50 text-gray-900;
   }
 
-  /* DARK MODE – Single solid base (deep, clean) */
   html.dark body {
     @apply bg-gray-950 text-gray-50;
   }
+}
+
+/* Custom scrollbar for terminals / log panels */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  @apply bg-gray-900/50 rounded;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  @apply bg-gray-600 rounded hover:bg-gray-500;
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(75 85 99) rgb(17 24 39);
 }
 
 /* Safe area support for notched devices */
