@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
-import { History, Trash2, Shield } from 'lucide-react';
+import { History, Trash2, Shield, Share2 } from 'lucide-react';
 
 const STORAGE_KEY = 'cybersentinel-scan-history';
 const MAX = 100;
@@ -71,6 +71,7 @@ function VerdictBadge({ verdict }) {
 
 export default function HistoryPage() {
   const [items, setItems] = useState(loadHistory());
+  const [toast, setToast] = useState('');
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -78,20 +79,39 @@ export default function HistoryPage() {
     setItems(loadHistory());
   }, []);
 
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(''), 2000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const clear = () => {
     localStorage.removeItem(STORAGE_KEY);
     setItems([]);
   };
 
-  const cardClass = 'bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-white/10 overflow-hidden';
-  const theadClass = 'uppercase text-xs font-semibold text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/50';
-  const rowClass = 'transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 border-t border-gray-100 dark:border-white/5';
+  const copyShareLink = (scanId) => {
+    const link = `${window.location.origin}/share/${scanId}`;
+    navigator.clipboard.writeText(link).then(
+      () => setToast('Link copied!'),
+      () => setToast('Failed to copy')
+    );
+  };
+
+  const cardClass = 'bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden';
+  const theadClass = 'uppercase text-xs font-semibold text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800/80';
+  const rowClass = 'transition-colors hover:bg-gray-50 dark:hover:bg-gray-800/50 border-t border-gray-100 dark:border-gray-800';
 
   return (
     <div className="min-h-screen bg-transparent">
+      {toast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[9999] px-4 py-2 rounded-lg bg-gray-900 dark:bg-gray-800 text-white text-sm font-medium shadow-lg border border-gray-700 animate-slideUp">
+          {toast}
+        </div>
+      )}
       <div className="max-w-4xl mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50 flex items-center gap-2">
             <History className="w-7 h-7 text-cyan-500" />
             Scan History
           </h1>
@@ -113,8 +133,8 @@ export default function HistoryPage() {
               <div className="w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
                 <History className="w-8 h-8 text-gray-400 dark:text-gray-500" />
               </div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">No scan history yet</h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-50 mb-1">No scan history yet</h2>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-6 max-w-sm">
                 Your recent scans will appear here. Run a URL scan to get started.
               </p>
               <Link
@@ -133,29 +153,39 @@ export default function HistoryPage() {
                     <th className={`text-left py-3 px-4 ${theadClass}`}>URL</th>
                     <th className={`text-left py-3 px-4 ${theadClass}`}>Status</th>
                     <th className={`text-left py-3 px-4 ${theadClass}`}>Date</th>
-                    <th className={`text-right py-3 px-4 ${theadClass}`}>Action</th>
+                    <th className={`text-right py-3 px-4 ${theadClass}`}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((item, i) => (
                     <tr key={`${item.id}-${i}`} className={rowClass}>
-                      <td className="py-3 px-4 max-w-xs truncate text-gray-900 dark:text-gray-100" title={item.url}>
+                      <td className="py-3 px-4 max-w-xs truncate text-gray-900 dark:text-gray-50" title={item.url}>
                         {item.url}
                       </td>
                       <td className="py-3 px-4">
                         <VerdictBadge verdict={item.verdict} />
                       </td>
-                      <td className="py-3 px-4 text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      <td className="py-3 px-4 text-gray-600 dark:text-gray-400 whitespace-nowrap">
                         {formatDate(item.date)}
                       </td>
                       <td className="py-3 px-4 text-right">
                         {item.id != null && (
-                          <Link
-                            to={`/share/${item.id}`}
-                            className="text-cyan-600 dark:text-cyan-400 hover:underline font-medium"
-                          >
-                            View
-                          </Link>
+                          <div className="flex items-center justify-end gap-2">
+                            <Link
+                              to={`/share/${item.id}`}
+                              className="text-cyan-600 dark:text-cyan-400 hover:underline font-medium"
+                            >
+                              View
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => copyShareLink(item.id)}
+                              className="p-2 rounded-lg text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-900/30 transition-colors"
+                              title="Copy share link"
+                            >
+                              <Share2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         )}
                       </td>
                     </tr>

@@ -10,6 +10,10 @@ html {
   scroll-behavior: smooth;
 }
 
+/* ==========================================================================
+   STRICT HIGH-CONTRAST PALETTE – Clean & Sharp (no gray-on-gray, no blur on text)
+   ========================================================================== */
+
 @layer base {
   body {
     margin: 0;
@@ -19,15 +23,26 @@ html {
     overflow-x: hidden;
     @apply transition-colors duration-300;
   }
-  /* Light mode: off-white background, dark text. Cards use bg-white + border-gray-200 + shadow-sm */
+
+  /* LIGHT MODE – Off-white base, pure white cards, almost-black text */
   html.light body {
     @apply bg-gray-50 text-gray-900;
   }
-  /* Dark mode: deep gray/black background, light text. Cards use bg-gray-900 + border-white/10 */
+  /* Cards/containers: bg-white border border-gray-200 shadow-sm */
+  /* Primary text: text-gray-900 (never text-gray-500 for main content) */
+  /* Secondary text: text-gray-600 */
+  /* Inputs: bg-white border-gray-300 text-gray-900 */
+
+  /* DARK MODE – Deep blue-black base, gray-900 cards, almost-white text */
   html.dark body {
-    @apply bg-gray-950 text-gray-100;
+    @apply bg-gray-950 text-gray-50;
   }
-  /* Card palette: Light = bg-white shadow-sm border-gray-200; Dark = bg-gray-900 border-white/10 */
+  /* Cards/containers: bg-gray-900 border border-gray-800 */
+  /* Primary text: text-gray-50 */
+  /* Secondary text: text-gray-400 */
+  /* Inputs: bg-gray-950 border-gray-700 text-white */
+
+  /* ANTI-BLUR: Do not use backdrop-blur on text containers. Text must sit on solid backgrounds for readability. Exception: fixed Navbar/header only. */
 }
 
 /* Safe area support for notched devices */

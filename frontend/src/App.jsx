@@ -19,7 +19,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import MainLayout from './layouts/MainLayout';
-import Scanner from './components/Scanner';
+import HomePage from './pages/HomePage';
 import ToolsPage from './pages/ToolsPage';
 import AboutPage from './pages/AboutPage';
 import BatchScanPage from './pages/BatchScanPage';
@@ -43,7 +43,7 @@ function App() {
     >
       <Routes>
         <Route element={<MainLayout />}>
-          <Route path="/" element={<Scanner />} />
+          <Route path="/" element={<HomePage />} />
           <Route path="/tools" element={<ToolsPage language={language} />} />
           <Route path="/batch" element={<BatchScanPage />} />
           <Route path="/history" element={<HistoryPage />} />

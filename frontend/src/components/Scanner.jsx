@@ -18,14 +18,14 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Turnstile } from '@marsidev/react-turnstile';
 import { scanUrlStream } from '../services/api';
 import AnalysisReport from './AnalysisReport';
 import ChatWidget from './ChatWidget';
 import ScanTerminal from './ScanTerminal';
 import EthicsModal from './EthicsModal';
-import ScanHistory, { addToScanHistory } from './ScanHistory';
-import { Shield, AlertTriangle, Search, RefreshCw } from 'lucide-react';
+import ScanForm from './ScanForm';
+import { addToScanHistory } from './ScanHistory';
+import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '../context/ThemeContext';
 
@@ -273,195 +273,90 @@ const Scanner = () => {
 
     const isDark = theme === 'dark';
     return (
-        <div className="min-h-screen bg-transparent text-gray-900 dark:text-gray-100">
+        <div className="min-h-screen bg-transparent text-gray-900 dark:text-gray-50">
             {isDark && <MatrixRain />}
 
-            <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className="text-center mb-6 sm:mb-8 md:mb-12"
-                >
-                    <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black mb-2 sm:mb-3 bg-linear-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent px-2">
-                        {t('app_title')}
-                    </h1>
-                    <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium px-4">
-                        {t('app_subtitle')}
-                    </p>
-                    <div className="mt-4 flex items-center justify-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-sm text-green-600 dark:text-green-400 font-mono">{t('chat.status_online')}</span>
-                    </div>
-                </motion.div>
+            <div className="relative z-10 min-h-screen flex flex-col container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+                {/* Hero: centered vertically and horizontally when only content */}
+                <section className="flex-1 flex flex-col items-center justify-center py-8">
+                    <motion.div
+                        initial={{ opacity: 0, y: -16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4 }}
+                        className="text-center mb-6 sm:mb-8"
+                    >
+                        <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black mb-2 sm:mb-3 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-600 bg-clip-text text-transparent px-2">
+                            {t('app_title')}
+                        </h1>
+                        <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium px-4">
+                            {t('app_subtitle')}
+                        </p>
+                        <div className="mt-4 flex items-center justify-center gap-2">
+                            <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                            <span className="text-sm text-green-600 dark:text-green-400 font-mono">{t('chat.status_online')}</span>
+                        </div>
+                    </motion.div>
 
-                {/* Scanner Card - Glassmorphism */}
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="mb-8"
-                >
-                    <div className="relative bg-gray-900/40 backdrop-blur-xl border border-cyan-500/30 rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 shadow-2xl shadow-cyan-500/10">
-                        {/* Neon glow effect */}
-                        <div className="absolute inset-0 bg-linear-to-r from-cyan-500/5 to-purple-500/5 rounded-2xl blur-xl" />
+                    <ScanForm
+                        url={url}
+                        setUrl={setUrl}
+                        loading={loading}
+                        onSubmit={handleSubmit}
+                        turnstileToken={turnstileToken}
+                        setTurnstileToken={setTurnstileToken}
+                        turnstileError={turnstileError}
+                        setTurnstileError={setTurnstileError}
+                        widgetKey={widgetKey}
+                        setWidgetKey={setWidgetKey}
+                        turnstileRef={turnstileRef}
+                        isTurnstileDevMode={isTurnstileDevMode}
+                        TURNSTILE_SITE_KEY={TURNSTILE_SITE_KEY}
+                    />
+                </section>
 
-                        <form onSubmit={handleSubmit} className="relative space-y-6">
-                            <div>
-                                <label className="block text-xs sm:text-sm font-bold mb-2 sm:mb-3 text-cyan-400 uppercase tracking-wider">
-                                    {t('scanner.title')}
-                                </label>
-                                <div className="relative">
-                                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-cyan-500 w-5 h-5" />
-                                    <input
-                                        type="text"
-                                        value={url}
-                                        onChange={(e) => setUrl(e.target.value)}
-                                        placeholder={t('scanner.placeholder')}
-                                        required
-                                        className="w-full bg-gray-950/50 backdrop-blur-sm border-2 border-cyan-500/30 
-                      rounded-lg sm:rounded-xl pl-10 sm:pl-12 pr-3 sm:pr-4 py-3 sm:py-4 text-sm sm:text-base text-white placeholder-gray-500
-                      focus:outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20
-                      transition-all duration-300
-                      shadow-lg shadow-cyan-500/10"
-                                        style={{
-                                            boxShadow: '0 0 20px rgba(6, 182, 212, 0.1), inset 0 0 20px rgba(6, 182, 212, 0.02)'
-                                        }}
-                                    />
-                                </div>
-                                <p className="mt-2 text-xs text-gray-500">{t('scanner.example')}</p>
-                            </div>
-
-                            {/* Cloudflare Turnstile Widget (hidden in dev mode to avoid 404/PAT console errors) */}
-                            <div className="flex flex-col items-center gap-2 sm:gap-3">
-                                {isTurnstileDevMode ? (
-                                    <div className="flex items-center justify-center p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 border-amber-500/40 bg-amber-950/20 w-full max-w-[320px] min-h-[65px]">
-                                        <span className="text-amber-400/90 text-sm">Dev mode — verification skipped</span>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <div className={`flex items-center justify-center p-2 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-300 w-full max-w-[320px] min-h-[65px] ${turnstileError
-                                            ? 'border-red-500/50 bg-red-950/20'
-                                            : turnstileToken
-                                                ? 'border-green-500/50 bg-green-950/20'
-                                                : 'border-cyan-500/30 bg-gray-950/30 backdrop-blur-sm'
-                                            }`}>
-                                            <Turnstile
-                                                key={widgetKey}
-                                                ref={turnstileRef}
-                                                siteKey={TURNSTILE_SITE_KEY}
-                                                onSuccess={handleTurnstileSuccess}
-                                                onError={handleTurnstileError}
-                                                onExpire={handleTurnstileExpire}
-                                                options={{
-                                                    theme: 'dark',
-                                                    size: 'normal',
-                                                }}
-                                                scriptOptions={{
-                                                    defer: true,
-                                                    async: true,
-                                                    appendTo: 'body',
-                                                    loadAsync: 'true',
-                                                }}
-                                            />
-                                        </div>
-                                        {turnstileToken && (
-                                            <motion.div
-                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="flex items-center gap-2 text-green-400 text-sm font-medium"
-                                            >
-                                                <Shield className="w-4 h-4" />
-                                                <span>✓ Security verification complete</span>
-                                            </motion.div>
-                                        )}
-                                        {turnstileError && (
-                                            <motion.div
-                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="flex items-center gap-2 text-red-400 text-sm font-medium"
-                                            >
-                                                <AlertTriangle className="w-4 h-4" />
-                                                <span>Please complete verification</span>
-                                            </motion.div>
-                                        )}
-                                    </>
-                                )}
-                            </div>
-
-                            <button
-                                type="submit"
-                                disabled={loading || (!isTurnstileDevMode && !turnstileToken)}
-                                className={`w-full font-bold py-3 sm:py-4 px-4 sm:px-6 rounded-lg sm:rounded-xl uppercase tracking-wider transition-all duration-300 transform shadow-lg text-sm sm:text-base min-h-[48px]
-                  ${loading || (!isTurnstileDevMode && !turnstileToken)
-                                        ? 'bg-linear-to-r from-gray-700 to-gray-600 opacity-50 cursor-not-allowed'
-                                        : 'bg-linear-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 sm:hover:scale-105 active:scale-95 shadow-cyan-500/30 hover:shadow-cyan-500/50'
-                                    }`}
-                            >
-                                {loading ? (
-                                    <span className="flex items-center justify-center gap-2">
-                                        {t('scanner.scanning')}
-                                    </span>
-                                ) : (
-                                    t('scanner.scan_button')
-                                )}
-                            </button>
-                        </form>
-                    </div>
-                </motion.div>
-
-                {/* Error Display */}
+                {/* Error Display – solid background for readability */}
                 <AnimatePresence>
                     {error && (
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="mb-8 bg-red-950/50 backdrop-blur-md border border-red-500/50 rounded-xl p-6"
+                            className="mx-auto w-full max-w-xl mb-6 rounded-xl p-4 sm:p-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800"
                         >
                             <div className="flex items-center gap-4">
-                                <AlertTriangle className="w-6 h-6 text-red-400 shrink-0" />
+                                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0" />
                                 <div>
-                                    <h3 className="text-lg font-bold text-red-400">Error</h3>
-                                    <p className="text-red-200">{error}</p>
+                                    <h3 className="text-lg font-bold text-red-900 dark:text-red-100">Error</h3>
+                                    <p className="text-red-700 dark:text-red-300">{error}</p>
                                 </div>
                             </div>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
-                {/* Live Terminal Loader – shows as soon as user clicks Scan */}
                 {loading && (
                     <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="mb-8"
+                        className="mb-8 w-full max-w-4xl mx-auto"
                     >
                         <ScanTerminal logs={logs} />
                     </motion.div>
                 )}
 
-                {/* Results Display */}
                 {result && !loading && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
-                        className="mb-8"
+                        className="mb-8 w-full max-w-4xl mx-auto"
                     >
                         <AnalysisReport data={result} loading={false} />
                     </motion.div>
                 )}
 
-                <div className="mb-8 max-w-xl">
-                    <ScanHistory />
-                </div>
-
-                {/* AI Chat Widget - Always visible */}
                 <ChatWidget scanResult={result} />
 
-                {/* Footer: Ethics & Safety Policy */}
                 <footer className="mt-12 sm:mt-16 pb-8 flex flex-col items-center gap-4">
                     <EthicsModal />
                 </footer>
