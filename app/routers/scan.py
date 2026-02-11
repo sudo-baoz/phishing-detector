@@ -33,9 +33,11 @@ from sqlalchemy import select, desc
 from app.database import get_db
 from app.models import ScanHistory, ScanLog, User
 from app.routers.auth import get_current_user_optional
+from pydantic import BaseModel, Field
+
 from app.schemas.scan_new import (
     ScanRequest, ScanResponse, ScanHistoryResponse,
-    VerdictData, NetworkData, ForensicsData, 
+    VerdictData, NetworkData, ForensicsData,
     ContentData, AdvancedData, IntelligenceData
 )
 from app.services.ai_engine import phishing_predictor
@@ -99,6 +101,27 @@ async def _broadcast_scan_event(
         logger.debug("[LiveMap] Broadcast skipped or failed: %s", e)
 
 router = APIRouter()
+
+# Batch process: one captcha token, multiple URLs processed on the server
+BATCH_MAX_URLS = 50
+
+
+class BatchProcessRequest(BaseModel):
+    """Payload for POST /scan/batch_process. Captcha token via header cf-turnstile-response."""
+    urls: list[str] = Field(..., min_length=1, max_length=BATCH_MAX_URLS, description="List of URLs to scan")
+
+
+class BatchResultItem(BaseModel):
+    """Single result in batch_process response."""
+    url: str
+    status: str  # "safe" | "phishing" | "error"
+    score: float = 0.0
+    error: Optional[str] = None
+
+
+class BatchProcessResponse(BaseModel):
+    """Response for POST /scan/batch_process."""
+    results: list[BatchResultItem]
 
 
 def determine_threat_type(is_phishing: bool, confidence: float, url: str) -> Optional[str]:
@@ -186,6 +209,73 @@ async def scan_url(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Scan failed due to internal error"
         )
+
+
+@router.post("/batch_process", response_model=BatchProcessResponse, status_code=status.HTTP_200_OK)
+async def batch_process(
+    batch_request: BatchProcessRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: Optional["User"] = Depends(get_current_user_optional),
+):
+    """
+    Batch URL scan: verify Turnstile ONCE, then loop through URLs on the server.
+    Prevents captcha token consumption on first request and 403 on the rest.
+    """
+    # Verify captcha once (token from header cf-turnstile-response)
+    try:
+        await verify_turnstile(request)
+    except HTTPException:
+        raise
+
+    semaphore = request.app.state.scan_semaphore
+    timeout = request.app.state.scan_timeout
+    user_id = current_user.id if current_user else None
+    results: list[BatchResultItem] = []
+
+    for raw_url in batch_request.urls:
+        url_str = raw_url.strip()
+        if not url_str:
+            continue
+        # Validate URL
+        try:
+            scan_req = ScanRequest(
+                url=url_str,
+                include_osint=True,
+                deep_analysis=False,
+                language="en",
+            )
+        except Exception:
+            results.append(BatchResultItem(url=url_str, status="error", score=0.0, error="Invalid URL"))
+            continue
+
+        if semaphore.locked():
+            results.append(BatchResultItem(url=url_str, status="error", score=0.0, error="Server busy, try again later"))
+            continue
+
+
+        try:
+            async with semaphore:
+                scan_result = await asyncio.wait_for(
+                    _perform_scan(scan_req, request, db, user_id=user_id),
+                    timeout=timeout,
+                )
+            verdict_level = (scan_result.verdict.level if scan_result.verdict else None) or (
+                "PHISHING" if getattr(scan_result, "is_phishing", False) else "SAFE"
+            )
+            score = float(scan_result.verdict.score if scan_result.verdict else 0)
+            status_val = "phishing" if verdict_level in ("PHISHING", "HIGH", "CRITICAL") else "safe"
+            results.append(BatchResultItem(url=url_str, status=status_val, score=score, error=None))
+        except asyncio.TimeoutError:
+            results.append(BatchResultItem(url=url_str, status="error", score=0.0, error="Scan timed out"))
+        except HTTPException as e:
+            msg = e.detail if isinstance(e.detail, str) else (e.detail.get("message", str(e.detail)) if isinstance(e.detail, dict) else str(e.detail))
+            results.append(BatchResultItem(url=url_str, status="error", score=0.0, error=msg))
+        except Exception as e:
+            logger.exception("Batch scan item failed: %s", e)
+            results.append(BatchResultItem(url=url_str, status="error", score=0.0, error="Scan failed"))
+
+    return BatchProcessResponse(results=results)
 
 
 @router.post("/stream")

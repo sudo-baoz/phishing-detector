@@ -179,18 +179,18 @@ export default function Navbar({ language = 'en' }) {
       )}
 
       {loginOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setLoginOpen(false)}>
-          <div className={`w-full max-w-sm rounded-xl shadow-2xl p-6 ${isDark ? 'bg-gray-900 border border-white/10' : 'bg-white border border-gray-200'}`} onClick={(e) => e.stopPropagation()}>
-            <h3 className={`text-lg font-bold mb-4 ${isDark ? 'text-white' : 'text-gray-900'}`}>Login</h3>
-            <form onSubmit={handleLogin} className="space-y-4">
-              <input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className={`w-full px-4 py-2 rounded-lg border ${isDark ? 'bg-gray-800 border-white/20 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`} />
-              <input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className={`w-full px-4 py-2 rounded-lg border ${isDark ? 'bg-gray-800 border-white/20 text-white' : 'bg-gray-50 border-gray-200 text-gray-900'}`} />
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={() => setLoginOpen(false)} aria-modal="true" role="dialog">
+          <div className="relative bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md p-6 border border-gray-200 dark:border-gray-700 z-10" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-gray-100">Login</h3>
+            <form onSubmit={handleLogin} className="space-y-4 relative">
+              <input type="email" placeholder="Email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required className="w-full px-4 py-2 rounded-lg border bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 relative z-10" />
+              <input type="password" placeholder="Password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} required className="w-full px-4 py-2 rounded-lg border bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 relative z-10" />
               {loginError && <p className="text-sm text-red-400">{loginError}</p>}
               <button type="submit" className="w-full py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-medium">
                 Sign in
               </button>
             </form>
-            <p className={`mt-3 text-xs ${isDark ? 'text-slate-500' : 'text-gray-500'}`}>Demo: admin@cybersentinel.com / password123</p>
+            <p className="mt-3 text-xs text-gray-500 dark:text-slate-500">Demo: admin@cybersentinel.com / password123</p>
           </div>
         </div>
       )}

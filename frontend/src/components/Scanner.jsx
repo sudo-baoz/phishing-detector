@@ -27,6 +27,7 @@ import EthicsModal from './EthicsModal';
 import ScanHistory, { addToScanHistory } from './ScanHistory';
 import { Shield, AlertTriangle, Search, RefreshCw } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTheme } from '../context/ThemeContext';
 
 const MatrixRain = () => {
     return (
@@ -105,6 +106,7 @@ const CircularGauge = ({ value, max = 100, isPhishing }) => {
 
 const Scanner = () => {
     const { t, i18n } = useTranslation();
+    const { theme } = useTheme();
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -269,9 +271,10 @@ const Scanner = () => {
         return 'low';
     };
 
+    const isDark = theme === 'dark';
     return (
-        <div className="min-h-screen bg-linear-to-br from-gray-950 via-gray-900 to-black text-white">
-            <MatrixRain />
+        <div className="min-h-screen bg-transparent text-gray-900 dark:text-gray-100">
+            {isDark && <MatrixRain />}
 
             <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
                 {/* Header */}
@@ -284,12 +287,12 @@ const Scanner = () => {
                     <h1 className="text-2xl sm:text-3xl md:text-5xl lg:text-6xl font-black mb-2 sm:mb-3 bg-linear-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text text-transparent px-2">
                         {t('app_title')}
                     </h1>
-                    <p className="text-sm sm:text-base md:text-lg text-gray-400 font-medium px-4">
+                    <p className="text-sm sm:text-base md:text-lg text-gray-600 dark:text-gray-400 font-medium px-4">
                         {t('app_subtitle')}
                     </p>
                     <div className="mt-4 flex items-center justify-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                        <span className="text-sm text-green-400 font-mono">{t('chat.status_online')}</span>
+                        <span className="text-sm text-green-600 dark:text-green-400 font-mono">{t('chat.status_online')}</span>
                     </div>
                 </motion.div>
 

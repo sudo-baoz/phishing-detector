@@ -1,6 +1,6 @@
 /**
- * Batch Scan: textarea URLs, process sequentially with delay to avoid 403/WAF.
- * Uses JWT when available; throttles one request at a time with 1s delay.
+ * Batch Scan: one POST to /scan/batch_process with all URLs and one captcha token.
+ * Backend verifies captcha once and loops through URLs server-side (no 403 on subsequent URLs).
  */
 
 import { useState } from 'react';
@@ -9,12 +9,6 @@ import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../constants/api';
 import { FileDown, Loader2, AlertCircle } from 'lucide-react';
 import TurnstileWidget from '../components/TurnstileWidget';
-
-const DELAY_MS = 1000;
-
-function delay(ms) {
-  return new Promise((r) => setTimeout(r, ms));
-}
 
 export default function BatchScanPage() {
   const [urlsText, setUrlsText] = useState('');
@@ -47,62 +41,49 @@ export default function BatchScanPage() {
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
-    // Add Turnstile token for human verification
     if (captchaToken) {
       headers['cf-turnstile-response'] = captchaToken;
     }
 
-    for (let i = 0; i < lines.length; i++) {
-      const url = lines[i];
-      setProgress((p) => ({ ...p, current: i + 1 }));
+    try {
+      const res = await fetch(getApiUrl('scan/batch_process'), {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ urls: lines }),
+      });
 
-      try {
-        await delay(DELAY_MS);
-        const res = await fetch(getApiUrl('scan'), {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({
-            url,
-            include_osint: true,
-            deep_analysis: false,
-            language: 'en',
-          }),
-        });
-
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}));
-          const msg =
-            (typeof body.detail === 'string' ? body.detail : body.detail?.message) ||
-            (res.status === 403 ? 'Forbidden (403) – rate limit or auth' : `Error ${res.status}`);
-          setResults((prev) => [
-            ...prev,
-            { url, verdict: 'ERROR', score: 0, error: msg },
-          ]);
-          continue;
-        }
-
-        const data = await res.json();
-        const verdict =
-          data.verdict?.level || (data.is_phishing ? 'PHISHING' : 'SAFE');
-        const score =
-          data.verdict?.score ?? data.confidence_score ?? 0;
-        setResults((prev) => [
-          ...prev,
-          { url, verdict, score: Number(score), error: null },
-        ]);
-      } catch (err) {
-        const message = err?.message || 'Request failed';
-        setResults((prev) => [
-          ...prev,
-          { url, verdict: 'ERROR', score: 0, error: message },
-        ]);
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg =
+          (typeof body.detail === 'string' ? body.detail : body.detail?.message) ||
+          (res.status === 403 ? 'Forbidden (403) – verification or auth' : `Error ${res.status}`);
+        setError(msg);
+        setResults([]);
+        setLoading(false);
+        setProgress({ current: 0, total: 0 });
+        setCaptchaToken(null);
+        return;
       }
-    }
 
-    setLoading(false);
-    setProgress({ current: 0, total: 0 });
-    // Reset captcha token after scan completion to require re-verification
-    setCaptchaToken(null);
+      const data = await res.json();
+      const rawResults = data.results || [];
+      // Map backend status (safe/phishing/error) to display verdict (SAFE/PHISHING/ERROR)
+      const mapped = rawResults.map((r) => ({
+        url: r.url,
+        verdict: (r.status === 'safe' ? 'SAFE' : r.status === 'phishing' ? 'PHISHING' : 'ERROR').toUpperCase(),
+        score: Number(r.score ?? 0),
+        error: r.error || null,
+      }));
+      setResults(mapped);
+    } catch (err) {
+      const message = err?.message || 'Request failed';
+      setError(message);
+      setResults([]);
+    } finally {
+      setLoading(false);
+      setProgress({ current: 0, total: 0 });
+      setCaptchaToken(null);
+    }
   };
 
   const exportCsv = () => {
@@ -132,8 +113,8 @@ export default function BatchScanPage() {
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-2">Batch Scan</h1>
         <p className={isDark ? 'text-slate-400 mb-6' : 'text-gray-500 mb-6'}>
-          Enter one URL per line. Scans run one at a time with a 1s delay to
-          avoid rate limits (403).
+          Enter one URL per line. One request sends all URLs to the server;
+          captcha is verified once for the whole batch.
         </p>
 
         {/* Turnstile Human Verification Widget */}
@@ -180,9 +161,7 @@ export default function BatchScanPage() {
             {loading ? (
               <Loader2 className="w-5 h-5 animate-spin shrink-0" />
             ) : null}
-            {loading
-              ? `Scanning ${progress.current} / ${progress.total}…`
-              : 'Start Batch'}
+            {loading ? 'Scanning…' : 'Start Batch'}
           </button>
           {results.length > 0 && (
             <button
