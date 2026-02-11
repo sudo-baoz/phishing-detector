@@ -43,13 +43,19 @@ export default function ScanForm({
     setWidgetKey((k) => k + 1);
   };
 
+  /* Input: slightly more opaque than glass card for readability and contrast */
   const inputBase =
-    'w-full rounded-xl sm:rounded-2xl pl-10 sm:pl-12 pr-4 sm:pr-5 py-3.5 sm:py-4 text-sm sm:text-base border-2 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-lg';
-  const inputLight = 'bg-white border-gray-200 text-gray-900 placeholder-gray-500';
-  const inputDark = 'dark:bg-gray-950 dark:border-gray-700 dark:text-white dark:placeholder-gray-400';
+    'w-full rounded-xl sm:rounded-2xl pl-10 sm:pl-12 pr-4 sm:pr-5 py-3.5 sm:py-4 text-sm sm:text-base border focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-all shadow-lg';
+  const inputLight = 'bg-white/90 border-gray-200/80 text-gray-900 placeholder-gray-500';
+  const inputDark = 'dark:bg-gray-950/80 dark:border-white/10 dark:text-white dark:placeholder-gray-400';
   const inputClass = `${inputBase} ${inputLight} ${inputDark}`;
 
-  const cardBg = isDark ? 'bg-gray-900/80 border border-gray-700 shadow-2xl' : 'bg-white border border-gray-200 shadow-xl';
+  /* Glassmorphism: translucent pane + backdrop blur + reflective edges + depth shadow */
+  const glassCard =
+    'rounded-2xl sm:rounded-3xl border backdrop-blur-xl shadow-2xl ' +
+    (isDark
+      ? 'bg-gray-900/60 border-white/10 shadow-black/20'
+      : 'bg-white/30 border-white/40 shadow-blue-500/10');
   const labelColor = isDark ? 'text-cyan-400' : 'text-gray-900';
   const hintColor = isDark ? 'text-gray-400' : 'text-gray-600';
 
@@ -96,7 +102,7 @@ export default function ScanForm({
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
-          className={`relative rounded-2xl sm:rounded-3xl p-5 sm:p-6 md:p-8 ${cardBg}`}
+          className={`relative p-5 sm:p-6 md:p-8 ${glassCard}`}
         >
           <form onSubmit={onSubmit} className="relative space-y-6 text-left">
             <div>
