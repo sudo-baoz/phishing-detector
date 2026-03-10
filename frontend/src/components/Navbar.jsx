@@ -57,23 +57,23 @@ export default function Navbar({ language = 'en' }) {
           {/* Center: Nav links (flex item, centered in remaining space) */}
           <div className="hidden md:flex flex-1 justify-center items-center min-w-0">
             <div className="flex items-center gap-2 lg:gap-6">
-              <NavLink to="/" end className={linkClass}>
+              <NavLink to="/" end className={`${linkClass} min-w-[80px] lg:min-w-[90px] justify-center`}>
                 <Shield className="w-4 h-4 shrink-0" />
-                {t.home}
+                <span className="truncate">{t.home}</span>
               </NavLink>
-              <NavLink to="/tools" className={linkClass}>
+              <NavLink to="/tools" className={`${linkClass} min-w-[80px] lg:min-w-[90px] justify-center`}>
                 <Wrench className="w-4 h-4 shrink-0" />
-                {t.tools}
+                <span className="truncate">{t.tools}</span>
               </NavLink>
-              <NavLink to="/batch" className={linkClass}>
+              <NavLink to="/batch" className={`${linkClass} min-w-[60px] lg:min-w-[70px] justify-center`}>
                 Batch
               </NavLink>
-              <NavLink to="/history" className={linkClass}>
+              <NavLink to="/history" className={`${linkClass} min-w-[70px] lg:min-w-[80px] justify-center`}>
                 <History className="w-4 h-4 shrink-0" />
-                History
+                <span className="truncate">History</span>
               </NavLink>
-              <NavLink to="/about" className={linkClass}>
-                {t.about}
+              <NavLink to="/about" className={`${linkClass} min-w-[80px] lg:min-w-[90px] justify-center`}>
+                <span className="truncate">{t.about}</span>
               </NavLink>
             </div>
           </div>
@@ -92,9 +92,9 @@ export default function Navbar({ language = 'en' }) {
             <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
               <Github className="w-5 h-5" />
             </a>
-            <button type="button" onClick={() => setEthicsOpen(true)} className={`hidden sm:flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
+            <button type="button" onClick={() => setEthicsOpen(true)} className={`hidden sm:flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 w-[140px] lg:w-auto ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
               <Scale className="w-4 h-4 shrink-0" />
-              {t.ethics}
+              <span className="truncate">{t.ethics}</span>
             </button>
             {!user ? (
               <button type="button" onClick={handleLoginOpen} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
