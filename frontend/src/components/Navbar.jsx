@@ -25,11 +25,11 @@ export default function Navbar({ language = 'en' }) {
   const t = getTranslations(language).nav;
 
   const isDark = theme === 'dark';
-  const navLinkBase = 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 hover:text-cyan-600 dark:hover:text-cyan-400 rounded-lg px-3 py-2 text-sm font-medium transition-all';
-  const navLinkActive = 'relative bg-cyan-50 dark:bg-cyan-900/40 border-2 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm shadow-cyan-500/20 rounded-lg px-3 py-2 text-sm';
+  const navLinkBase = 'flex items-center justify-center gap-2 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 hover:text-cyan-600 dark:hover:text-cyan-400 rounded-lg px-3 py-2 text-sm font-medium transition-all';
+  const navLinkActive = 'flex items-center justify-center gap-2 relative bg-cyan-50 dark:bg-cyan-900/40 border-2 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm shadow-cyan-500/20 rounded-lg px-3 py-2 text-sm';
 
   const linkClass = ({ isActive }) =>
-    `flex items-center gap-2 ${isActive ? navLinkActive : navLinkBase}`;
+    `${isActive ? navLinkActive : navLinkBase}`;
 
   const handleLoginOpen = () => {
     setLoginError('');
@@ -57,53 +57,53 @@ export default function Navbar({ language = 'en' }) {
           {/* Center: Nav links (flex item, centered in remaining space) */}
           <div className="hidden md:flex flex-1 justify-center items-center min-w-0">
             <div className="flex items-center gap-2 lg:gap-6">
-              <NavLink to="/" end className={`${linkClass} min-w-[80px] lg:min-w-[90px] justify-center`}>
+              <NavLink to="/" end className={`${linkClass} min-w-[80px] lg:min-w-[90px]`}>
                 <Shield className="w-4 h-4 shrink-0" />
                 <span className="truncate">{t.home}</span>
               </NavLink>
-              <NavLink to="/tools" className={`${linkClass} min-w-[80px] lg:min-w-[90px] justify-center`}>
+              <NavLink to="/tools" className={`${linkClass} min-w-[80px] lg:min-w-[90px]`}>
                 <Wrench className="w-4 h-4 shrink-0" />
                 <span className="truncate">{t.tools}</span>
               </NavLink>
-              <NavLink to="/batch" className={`${linkClass} min-w-[60px] lg:min-w-[70px] justify-center`}>
+              <NavLink to="/batch" className={`${linkClass} min-w-[60px] lg:min-w-[70px]`}>
                 Batch
               </NavLink>
-              <NavLink to="/history" className={`${linkClass} min-w-[70px] lg:min-w-[80px] justify-center`}>
+              <NavLink to="/history" className={`${linkClass} min-w-[70px] lg:min-w-[80px]`}>
                 <History className="w-4 h-4 shrink-0" />
                 <span className="truncate">History</span>
               </NavLink>
-              <NavLink to="/about" className={`${linkClass} min-w-[80px] lg:min-w-[90px] justify-center`}>
+              <NavLink to="/about" className={`${linkClass} min-w-[80px] lg:min-w-[90px]`}>
                 <span className="truncate">{t.about}</span>
               </NavLink>
             </div>
           </div>
 
           {/* Right: Actions (flex item, no absolute) */}
-          <div className="flex items-center gap-3 shrink-0 min-w-0">
+          <div className="flex items-center gap-2 lg:gap-3 shrink-0 min-w-0">
             <button
               type="button"
               onClick={() => setTheme(isDark ? 'light' : 'dark')}
-              className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-amber-400 hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`}
+              className={`flex items-center justify-center p-2.5 rounded-lg border transition-all shrink-0 ${isDark ? 'text-slate-400 border-gray-600 hover:text-amber-400 hover:border-amber-400 hover:bg-white/10' : 'text-gray-500 border-gray-300 hover:text-gray-900 hover:border-gray-900 hover:bg-gray-200/60'}`}
               aria-label="Toggle theme"
             >
               {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             <LanguageSwitcher embedded theme={theme} />
-            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`p-2.5 rounded-lg transition-all shrink-0 ${isDark ? 'text-slate-400 hover:text-white hover:bg-white/10' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
+            <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-center p-2.5 rounded-lg border transition-all shrink-0 ${isDark ? 'text-slate-400 border-gray-600 hover:text-white hover:border-white hover:bg-white/10' : 'text-gray-500 border-gray-300 hover:text-gray-900 hover:border-gray-900 hover:bg-gray-200/60'}`} aria-label="GitHub">
               <Github className="w-5 h-5" />
             </a>
-            <button type="button" onClick={() => setEthicsOpen(true)} className={`hidden sm:flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 w-[140px] lg:w-auto ${isDark ? 'text-slate-300 hover:text-white hover:bg-white/10' : 'text-gray-600 hover:text-gray-900 hover:bg-gray-200/60'}`}>
+            <button type="button" onClick={() => setEthicsOpen(true)} className={`hidden sm:flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium shrink-0 border w-[130px] lg:w-auto ${isDark ? 'text-slate-300 border-gray-600 hover:text-white hover:border-white hover:bg-white/10' : 'text-gray-600 border-gray-300 hover:text-gray-900 hover:border-gray-900 hover:bg-gray-200/60'}`}>
               <Scale className="w-4 h-4 shrink-0" />
               <span className="truncate">{t.ethics}</span>
             </button>
             {!user ? (
-              <button type="button" onClick={handleLoginOpen} className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium shrink-0 ${isDark ? 'text-cyan-400 border border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border border-cyan-500/50 hover:bg-cyan-500/10'}`}>
+              <button type="button" onClick={handleLoginOpen} className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium shrink-0 border ${isDark ? 'text-cyan-400 border-cyan-500/50 hover:bg-cyan-500/10' : 'text-cyan-600 border-cyan-500/50 hover:bg-cyan-500/10'}`}>
                 <LogIn className="w-4 h-4 shrink-0" />
                 <span className="hidden sm:inline">Login</span>
               </button>
             ) : (
               <div className="relative shrink-0">
-                <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center gap-2 px-3 py-2.5 rounded-full transition-all ${isDark ? 'text-slate-300 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'}`} title={user.email || user.username}>
+                <button type="button" onClick={() => setAvatarOpen((o) => !o)} className={`flex items-center justify-center gap-2 px-3 py-2 rounded-lg border transition-all ${isDark ? 'text-slate-300 border-gray-600 hover:bg-white/10' : 'text-gray-600 border-gray-300 hover:bg-gray-100'}`} title={user.email || user.username}>
                   <User className="w-4 h-4 shrink-0" />
                   <span className="hidden sm:inline text-sm truncate max-w-[120px]" title={user.email || user.username}>{user.email || user.username}</span>
                 </button>
@@ -130,7 +130,7 @@ export default function Navbar({ language = 'en' }) {
             <button
               type="button"
               onClick={() => setMobileOpen((o) => !o)}
-              className={`md:hidden p-2 rounded-lg shrink-0 ${isDark ? 'text-slate-400 hover:bg-white/10' : 'text-gray-500 hover:bg-gray-200/60'}`}
+              className={`md:hidden flex items-center justify-center p-2 rounded-lg border shrink-0 ${isDark ? 'text-slate-400 border-gray-600 hover:bg-white/10' : 'text-gray-500 border-gray-300 hover:bg-gray-200/60'}`}
               aria-label="Toggle menu"
             >
               {mobileOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}

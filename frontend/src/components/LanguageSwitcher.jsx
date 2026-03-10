@@ -29,8 +29,8 @@ export default function LanguageSwitcher(props = {}) {
   // Trigger: static/relative, takes physical space in flex (no min-h that breaks h-16)
   const triggerClass = isEmbedded
     ? isDark
-      ? 'flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-cyan-500/30 hover:border-cyan-500/60 hover:bg-white/10 text-gray-200 h-10'
-      : 'flex items-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-300 hover:border-blue-400 hover:bg-gray-100 text-gray-700 h-10'
+      ? 'flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-600 hover:border-white hover:bg-white/10 text-gray-200 h-10'
+      : 'flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-300 hover:border-gray-900 hover:bg-gray-100 text-gray-700 h-10'
     : 'flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/30 hover:bg-gray-800/90 text-gray-200';
 
   const iconClass = isDark ? 'text-cyan-400' : 'text-blue-600';
