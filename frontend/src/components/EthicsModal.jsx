@@ -66,7 +66,7 @@ const EthicsModal = ({ open: controlledOpen, onClose, hideTrigger = false, langu
               className="fixed inset-0 z-[60] flex items-center justify-center p-4 pointer-events-none"
             >
               <div
-                className="w-full max-w-4xl max-h-[90vh] overflow-y-auto pointer-events-auto bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl shadow-black/50"
+                className="w-full max-w-4xl max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-700 scrollbar-track-transparent pointer-events-auto bg-gray-950 border border-gray-800 rounded-2xl shadow-2xl shadow-black/50"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="sticky top-0 z-10 flex items-center justify-between p-5 sm:p-6 border-b border-gray-800 bg-gray-950/95 backdrop-blur-md">
@@ -93,10 +93,10 @@ const EthicsModal = ({ open: controlledOpen, onClose, hideTrigger = false, langu
                         initial={{ opacity: 0, y: 12 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.05 * i, duration: 0.3 }}
-                        className="rounded-xl border border-gray-800 bg-gray-900/80 backdrop-blur-sm p-5 flex flex-col"
+                        className="rounded-xl border border-gray-800 bg-gray-900/80 backdrop-blur-sm p-5 flex flex-col h-full"
                       >
                         <div
-                          className={`inline-flex w-12 h-12 items-center justify-center rounded-xl border ${card.iconBg} mb-4`}
+                          className={`inline-flex w-12 h-12 items-center justify-center rounded-xl border ${card.iconBg} mb-4 shrink-0`}
                         >
                           <Icon className={`w-6 h-6 ${card.iconColor}`} />
                         </div>
