@@ -26,7 +26,7 @@ export default function Navbar({ language = 'en' }) {
 
   const isDark = theme === 'dark';
   const navLinkBase = 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 hover:border-cyan-500 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 hover:text-cyan-600 dark:hover:text-cyan-400 rounded-lg px-3 py-2 text-sm font-medium transition-all';
-  const navLinkActive = 'bg-cyan-100 dark:bg-cyan-900/40 border-2 border-cyan-500 text-cyan-700 dark:text-cyan-400 shadow-lg shadow-cyan-500/20 rounded-lg px-3 py-2 text-sm font-medium';
+  const navLinkActive = 'relative bg-cyan-50 dark:bg-cyan-900/40 border-2 border-cyan-500 text-cyan-700 dark:text-cyan-300 font-semibold shadow-sm shadow-cyan-500/20 rounded-lg px-3 py-2 text-sm';
 
   const linkClass = ({ isActive }) =>
     `flex items-center gap-2 ${isActive ? navLinkActive : navLinkBase}`;
