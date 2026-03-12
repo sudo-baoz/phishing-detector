@@ -91,24 +91,39 @@ export default function Navbar({ language = 'en' }) {
   `;
 
   // Center nav link - Horizontal layout with icon left of text
+  // Smooth fade: transition-all duration-300 ease-in-out
+  // Hover: glass background fade in + text color change
+  // Active: glowing underline cyber effect + scale on click
   const navLinkBase = `
-    flex flex-row items-center gap-2
+    relative flex flex-row items-center gap-2
     px-3 py-2
     text-sm font-medium
     rounded-lg
-    transition-all duration-200
+    transition-all duration-300 ease-in-out
     text-slate-400
-    hover:bg-slate-800/50 hover:text-cyan-400
+    hover:bg-cyan-900/10 hover:text-cyan-400
+    active:scale-95
   `;
 
   const navLinkActive = `
-    flex flex-row items-center gap-2
+    relative flex flex-row items-center gap-2
     px-3 py-2
     text-sm font-medium
     rounded-lg
-    transition-all duration-200
+    transition-all duration-300 ease-in-out
     text-cyan-400
-    bg-cyan-900/20
+    hover:bg-cyan-900/20
+    active:scale-95
+    after:content-['']
+    after:absolute
+    after:bottom-0
+    after:left-1/2
+    after:-translate-x-1/2
+    after:w-[80%]
+    after:h-[2px]
+    after:bg-cyan-400
+    after:rounded-full
+    after:shadow-[0_0_8px_rgba(34,211,238,0.8)]
   `;
 
   // Right utility button - Glassmorphism with border
