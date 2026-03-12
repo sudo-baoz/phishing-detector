@@ -5,59 +5,14 @@
 import { User, Mail, Phone, Send, Github, Shield, Brain, Globe, Database, Wifi, Camera, Lock } from 'lucide-react';
 import { getTranslations } from '../constants/translations';
 
-// ============================================
-// Threat Intelligence & Data Sources
-// ============================================
-const THREAT_SOURCES = {
-  ai_ml: {
-    title: 'AI/ML Services',
-    icon: Brain,
-    items: [
-      { name: 'Google Gemini', desc: 'Advanced AI chatbot & Sentinel AI assistant for contextual threat analysis' },
-      { name: 'Google Generative AI', desc: 'Deep content inspection using state-of-the-art LLMs' },
-    ],
-  },
-  threat_intel: {
-    title: 'Global Threat Intelligence',
-    icon: Globe,
-    items: [
-      { name: 'Google Safe Browsing', desc: 'Enterprise-grade URL reputation database updated in real-time by Google\'s security team' },
-      { name: 'PhishTank', desc: 'Community-driven phishing URL blacklist with millions of verified reports' },
-      { name: 'OpenPhish', desc: 'Free phishing threat feed curated by security researchers worldwide' },
-    ],
-  },
-  security: {
-    title: 'Security & Captcha',
-    icon: Lock,
-    items: [
-      { name: 'Cloudflare Turnstile', desc: 'Bot protection & CAPTCHA alternative with privacy-first approach' },
-      { name: '2Captcha / CapSolver', desc: 'Automated CAPTCHA solving for legitimate automated scanning workflows' },
-    ],
-  },
-  network: {
-    title: 'Network Intelligence',
-    icon: Wifi,
-    items: [
-      { name: 'python-whois', desc: 'Domain registration & WHOIS data for age verification & registrar analysis' },
-      { name: 'ipwhois', desc: 'IP geolocation & ASN lookup for threat actor attribution' },
-    ],
-  },
-  screenshot: {
-    title: 'Visual Analysis',
-    icon: Camera,
-    items: [
-      { name: 'Thum.io', desc: 'Automated URL screenshot capture for visual inspection' },
-      { name: 'Playwright', desc: 'Headless browser screenshots (desktop + mobile) for rendered content analysis' },
-    ],
-  },
-  database: {
-    title: 'Data Storage',
-    icon: Database,
-    items: [
-      { name: 'PostgreSQL/MySQL', desc: 'Production-grade relational database for scan history & analytics' },
-      { name: 'SQLite', desc: 'Lightweight local development database' },
-    ],
-  },
+// Icon mapping for threat sources
+const THREAT_ICONS = {
+  ai_ml: Brain,
+  threat_intel: Globe,
+  security: Lock,
+  network: Wifi,
+  screenshot: Camera,
+  database: Database,
 };
 
 const CONTACT = [
@@ -109,14 +64,16 @@ export default function AboutPage({ language = 'en' }) {
         <section className="mb-10">
           <h2 className={`text-xl font-bold mb-6 ${headingClass} flex items-center gap-2`}>
             <Shield className="w-5 h-5 text-cyan-400" />
-            Threat Intelligence & Data Sources
+            {t.threat_intel_title}
           </h2>
           <p className={`${descClass} mb-6`}>
-            Our system leverages multiple enterprise-grade threat intelligence feeds and AI/ML models to deliver real-time phishing detection with minimal false positive rates.
+            {t.threat_intel_desc}
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {Object.entries(THREAT_SOURCES).map(([key, { title, icon: Icon, items }]) => (
+            {Object.entries(t.threat_sources || {}).map(([key, { title, items }]) => {
+              const Icon = THREAT_ICONS[key];
+              return (
               <div key={key} className={`rounded-xl border p-5 ${cardClass}`}>
                 <div className="flex items-center gap-2 mb-3">
                   <div className={`p-2 rounded-lg border ${iconBg}`}>
@@ -133,7 +90,8 @@ export default function AboutPage({ language = 'en' }) {
                   ))}
                 </ul>
               </div>
-            ))}
+              );
+            })}
           </div>
         </section>
 
