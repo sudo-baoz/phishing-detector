@@ -182,22 +182,32 @@ export default function BatchScanPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className={`relative p-5 sm:p-6 md:p-8 ${glassCard}`}
         >
-          {/* Turnstile Human Verification Widget */}
+          {/* Turnstile Human Verification Widget - Wrapped in styled container */}
           <div className="mb-6">
-            <TurnstileWidget
-              onVerify={(token) => {
-                setCaptchaToken(token);
-                setError('');
-              }}
-              onExpire={() => {
-                setCaptchaToken(null);
-                setError('Verification expired. Please complete the challenge again.');
-              }}
-              onError={() => {
-                setCaptchaToken(null);
-                setError('Verification failed. Please try again.');
-              }}
-            />
+            <div className="
+              rounded-xl
+              border border-white/10
+              bg-black/20
+              p-6 sm:p-8
+              flex flex-col items-center justify-center
+              text-center
+              mx-auto max-w-md
+            ">
+              <TurnstileWidget
+                onVerify={(token) => {
+                  setCaptchaToken(token);
+                  setError('');
+                }}
+                onExpire={() => {
+                  setCaptchaToken(null);
+                  setError('Verification expired. Please complete the challenge again.');
+                }}
+                onError={() => {
+                  setCaptchaToken(null);
+                  setError('Verification failed. Please try again.');
+                }}
+              />
+            </div>
           </div>
 
           {/* URL Textarea */}
