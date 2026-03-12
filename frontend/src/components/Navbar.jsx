@@ -82,24 +82,34 @@ export default function Navbar({ language = 'en' }) {
   };
 
   // ============================================
-  // Styles (Tailwind CSS)
+  // Styles - Glassmorphism + Cybersecurity Aesthetic
   // ============================================
 
-  // Logo styles
+  // Logo styles - cyan glow effect
   const logoStyles = `
     text-xl font-bold text-cyan-400
-    hover:text-cyan-300 transition-colors
-    drop-shadow-[0_0_10px_rgba(34,211,238,0.4)]
+    hover:text-cyan-300 transition-all duration-300
+    drop-shadow-[0_0_12px_rgba(34,211,238,0.5)]
+    hover:drop-shadow-[0_0_20px_rgba(34,211,238,0.7)]
   `;
 
-  // Center nav link - icon on top of text, centered
+  // Glassmorphism Navbar Background
+  const navbarGlass = `
+    bg-slate-900/70 backdrop-blur-md
+    border-b border-white/10
+    shadow-lg shadow-black/20
+  `;
+
+  // Center nav link - Glassmorphism style
   const navLinkBase = `
     flex flex-col items-center justify-center
     gap-1 px-4 py-2
     text-sm font-medium
     rounded-lg
-    transition-all duration-200
-    text-slate-400 hover:text-slate-200 hover:bg-gray-800
+    transition-all duration-300 ease-out
+    text-slate-400
+    hover:bg-white/5 hover:text-cyan-300
+    hover:shadow-[0_0_15px_rgba(34,211,238,0.15)]
   `;
 
   const navLinkActive = `
@@ -107,21 +117,24 @@ export default function Navbar({ language = 'en' }) {
     gap-1 px-4 py-2
     text-sm font-semibold
     rounded-lg
-    transition-all duration-200
-    text-cyan-400 bg-gray-800/60 border-b-2 border-cyan-400
+    transition-all duration-300 ease-out
+    text-cyan-400
+    bg-cyan-500/10
+    border-b-2 border-cyan-400
+    shadow-[0_0_20px_rgba(34,211,238,0.2)]
   `;
 
-  // Right utility button - with border as required
+  // Right utility button - Glassmorphism with border
   const utilityButtonBase = `
     flex items-center justify-center
     gap-2 px-3 py-2
     text-sm font-medium
     rounded-md
-    border border-gray-600
+    border border-white/10
     bg-transparent
     text-slate-400
-    hover:bg-gray-800 hover:text-slate-200
-    transition-all duration-200
+    hover:bg-white/10 hover:text-cyan-300 hover:border-cyan-500/30
+    transition-all duration-300 ease-out
     shrink-0
   `;
 
@@ -129,13 +142,31 @@ export default function Navbar({ language = 'en' }) {
     flex items-center justify-center
     p-2.5
     rounded-md
-    border border-gray-600
+    border border-white/10
     bg-transparent
     text-slate-400
-    hover:bg-gray-800 hover:text-slate-200
-    transition-all duration-200
+    hover:bg-white/10 hover:text-cyan-300 hover:border-cyan-500/30
+    transition-all duration-300 ease-out
     shrink-0
   `;
+
+  // Mobile nav link styles
+  const mobileNavLinkBase = `
+    flex items-center gap-3 px-4 py-3
+    text-sm font-medium rounded-lg
+    text-slate-400 hover:bg-white/10 hover:text-cyan-300
+    transition-all duration-300
+  `;
+
+  const mobileNavLinkActive = `
+    flex items-center gap-3 px-4 py-3
+    text-sm font-semibold rounded-lg
+    text-cyan-400 bg-cyan-500/10
+    transition-all duration-300
+  `;
+
+  const getMobileLinkClass = ({ isActive }) =>
+    isActive ? mobileNavLinkActive : mobileNavLinkBase;
 
   // ============================================
   // Render Helpers
@@ -165,7 +196,7 @@ export default function Navbar({ language = 'en' }) {
   // ============================================
   return (
     <>
-      <nav className="h-16 w-full bg-gray-900/95 backdrop-blur-sm border-b border-gray-800 shrink-0 sticky top-0 z-50">
+      <nav className={`h-16 w-full shrink-0 sticky top-0 z-50 ${navbarGlass}`}>
         <div className="h-16 max-w-7xl mx-auto px-4 flex justify-between items-center gap-4">
           {/* ============================================
               LEFT: Logo
@@ -263,11 +294,11 @@ export default function Navbar({ language = 'en' }) {
                       onClick={() => setAvatarOpen(false)}
                       aria-hidden
                     />
-                    <div className="absolute right-0 top-full mt-2 py-2 rounded-lg shadow-xl z-50 min-w-[180px] bg-gray-900 border border-gray-700">
+                    <div className="absolute right-0 top-full mt-2 py-2 rounded-lg shadow-xl z-50 min-w-[180px] bg-slate-900/90 backdrop-blur-md border border-white/10">
                       {user.role === 'admin' && (
                         <NavLink
                           to="/admin"
-                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:bg-gray-800"
+                          className="flex items-center gap-2 px-4 py-2 text-sm text-slate-300 hover:bg-white/10"
                           onClick={() => setAvatarOpen(false)}
                         >
                           <LayoutDashboard className="w-4 h-4" />
@@ -280,7 +311,7 @@ export default function Navbar({ language = 'en' }) {
                           logout();
                           setAvatarOpen(false);
                         }}
-                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-gray-800"
+                        className="flex items-center gap-2 w-full px-4 py-2 text-sm text-red-400 hover:bg-white/10"
                       >
                         <LogOut className="w-4 h-4" />
                         Logout
@@ -322,7 +353,7 @@ export default function Navbar({ language = 'en' }) {
           />
 
           {/* Menu Content */}
-          <div className="absolute left-0 right-0 top-0 bottom-0 overflow-auto p-4 bg-gray-900/98">
+          <div className="absolute left-0 right-0 top-0 bottom-0 overflow-auto p-4 bg-slate-900/95 backdrop-blur-md">
             <div className="flex flex-col gap-2">
               {/* Mobile Ethics */}
               <button
@@ -331,7 +362,7 @@ export default function Navbar({ language = 'en' }) {
                   setEthicsOpen(true);
                   setMobileOpen(false);
                 }}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-300 hover:bg-gray-800"
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-slate-300 hover:bg-white/10 hover:text-cyan-300"
               >
                 <Scale className="w-5 h-5" />
                 {t.ethics}
@@ -347,7 +378,7 @@ export default function Navbar({ language = 'en' }) {
                     key={item.path}
                     to={item.path}
                     end={item.end}
-                    className={getLinkClass}
+                    className={getMobileLinkClass}
                     onClick={() => setMobileOpen(false)}
                   >
                     {Icon && <Icon className="w-5 h-5" />}
