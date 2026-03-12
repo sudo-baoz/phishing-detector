@@ -25,8 +25,8 @@ export default function Navbar({ language = 'en' }) {
   const t = getTranslations(language).nav;
 
   const isDark = theme === 'dark';
-  const navLinkBase = 'flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg border border-transparent text-gray-600 dark:text-gray-400 bg-transparent hover:bg-gray-100 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200';
-  const navLinkActive = 'flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-lg border-2 border-cyan-500 bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 shadow-sm shadow-cyan-500/20 transition-all duration-200';
+  const navLinkBase = `flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg border transition-all duration-200 ${isDark ? 'text-slate-300 border-gray-600 hover:text-white hover:border-white hover:bg-white/10' : 'text-gray-600 border-gray-300 hover:text-gray-900 hover:border-gray-900 hover:bg-gray-200/60'}`;
+  const navLinkActive = `flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border-2 transition-all duration-200 ${isDark ? 'border-cyan-400 bg-cyan-900/40 text-cyan-300' : 'border-cyan-600 bg-cyan-100 text-cyan-700'}`;
 
   const linkClass = ({ isActive }) =>
     `${isActive ? navLinkActive : navLinkBase}`;
