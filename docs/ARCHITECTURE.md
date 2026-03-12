@@ -84,9 +84,8 @@ The system is designed to continue functioning even when external AI services be
 
 *   **Quota Detection**: The `GodModeAnalyzer` class detects rate limit errors from Google Gemini API (429, quota exceeded, resource exhausted).
 *   **Automatic Disable**: When quota is hit, the service sets `_quota_exceeded = True` and stops making API calls.
-*   **Fallback Response**: Returns `QUOTA_EXCEEDED_RESPONSE` with bilingual warning:
-    *   🇻🇳 "Tính năng phân tích AI tạm thời không khả dụng do giới hạn API"
-    *   🇺🇸 "AI analysis feature temporarily unavailable due to API limits"
+*   **Fallback Response**: Returns `QUOTA_EXCEEDED_RESPONSE` with warning:
+    *   "AI analysis feature temporarily unavailable due to API limits"
 *   **ML Continues**: The ML model (`ai_engine.py`) and heuristic analysis continue to work independently.
 *   **Frontend Display**: The God Mode section turns amber/yellow with a clear warning instead of crashing.
 

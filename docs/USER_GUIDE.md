@@ -16,7 +16,7 @@ Navigate to `http://localhost:5173` (or your deployed domain) in your web browse
 ### Changing Language
 Use the **Language Switcher** in the top-right corner to toggle between:
 *   🇬🇧 **English (EN)**
-*   🇻🇳 **Tiếng Việt (VI)**
+*   Vietnamese (VI)
 
 ## 2. Understanding the Report
 
@@ -50,7 +50,7 @@ The **Sentinel AI** assistant is always available in the bottom-right corner.
 
 ### Features
 *   **Context Aware**: It knows the scan results you are looking at.
-*   **Ask "Why?"**: You can ask *"Tại sao trang này bị đánh dấu là lừa đảo?"* and it will explain technical jargon in simple terms.
+*   **Ask "Why?"**: You can ask "Why is this URL marked as dangerous?" and it will explain technical jargon in simple terms.
 *   **Actionable Advice**: It provides steps on what to do if you accidentally clicked the link.
 
 ### Example Interactions

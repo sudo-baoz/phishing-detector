@@ -34,7 +34,7 @@ A comprehensive **Phishing Detection System** designed for Blue Teams and securi
 ### 🤖 Sentinel AI Assistant
 * **Context-Aware Intelligence:** Chat with Sentinel AI to explain *why* a URL is malicious.
 * **Auto-Detection:** Automatically extracts and scans URLs mentioned in the conversation.
-* **Bilingual Support:** Native support for **English** and **Vietnamese** (Tiếng Việt), tailored for regional threat landscapes.
+* **Bilingual Support:** Native support for **English** and **Vietnamese**, tailored for regional threat landscapes.
 
 ### 🛡️ Enterprise-Grade Security
 * **Cloudflare Turnstile Integration:** Protects the scanner itself from bot abuse and DDoS using Smart CAPTCHA.
@@ -80,24 +80,24 @@ cd phishing-detector
 
 ### 2. Backend Setup
 
-**Backend phải chạy trong môi trường ảo (venv).** Nếu không, dependencies có thể conflict với hệ thống.
+**The backend must run in a virtual environment (venv).** Otherwise, dependencies may conflict with the system.
 
 ```bash
-# Tạo môi trường ảo
+# Create virtual environment
 python -m venv .venv
 
-# Kích hoạt venv (bắt buộc trước khi chạy backend)
+# Activate venv (required before running backend)
 # Windows (PowerShell/CMD):
 .venv\Scripts\activate
 # Linux/macOS:
 source .venv/bin/activate
 
-# Cài đặt dependencies (trong venv)
+# Install dependencies (inside venv)
 pip install -r requirements.txt
 ```
 
-**Configuration (.env):**  
-Tạo file `.env` ở thư mục gốc:
+**Configuration (.env):**
+Create `.env` file in the root directory:
 
 ```env
 # Database
@@ -108,19 +108,19 @@ DB_NAME=phishing_detector
 PORT=8000
 DEBUG=false
 
-# CORS (⚠️ Thay bằng domain frontend của bạn)
+# CORS (Replace with your frontend domain)
 CORS_ORIGINS=https://yourfrontend.com,http://localhost:5173
 
 # Security
 CLOUDFLARE_SECRET_KEY=your_secret_key_here
-# Dev: đặt false để bỏ xác minh Turnstile (tránh lỗi 404/CSP trên console)
+# Dev: set false to skip Turnstile verification (avoids 404/CSP errors in console)
 TURNSTILE_ENABLED=true
 
 # AI
 GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-**Chạy server (luôn trong venv đã activate):**
+**Run server (always in activated venv):**
 
 ```bash
 uvicorn app.main:app --reload --port 8000
@@ -142,9 +142,9 @@ cp .env.example .env
 npm run dev
 ```
 
-Truy cập: `http://localhost:5173`
+Access: `http://localhost:5173`
 
-**Lưu ý (dev):** Nếu dùng key Turnstile mặc định (placeholder), frontend sẽ **không tải widget** để tránh lỗi 404 / "Private Access Token" / CSP trên console. Backend cần `TURNSTILE_ENABLED=false` trong `.env` để chấp nhận request không có token.
+**Note (dev):** If using default (placeholder) Turnstile key, frontend will NOT load the widget to avoid 404 / "Private Access Token" / CSP errors in console. Backend needs `TURNSTILE_ENABLED=false` in `.env` to accept requests without token.
 
 ---
 
