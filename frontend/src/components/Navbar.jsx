@@ -21,6 +21,8 @@ import {
   User,
   LogOut,
   ArrowRight,
+  Layers,
+  Info,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import EthicsModal from './EthicsModal';
@@ -36,9 +38,9 @@ const GITHUB_URL = import.meta.env.VITE_GITHUB_REPO || 'https://github.com/sudo-
 const NAV_ITEMS = [
   { path: '/', end: true, labelKey: 'home', icon: Shield },
   { path: '/tools', labelKey: 'tools', icon: Wrench },
-  { path: '/batch', labelKey: null, label: 'Batch', icon: null },
+  { path: '/batch', labelKey: null, label: 'Batch', icon: Layers },
   { path: '/history', labelKey: null, label: 'History', icon: History },
-  { path: '/about', labelKey: 'about', icon: null },
+  { path: '/about', labelKey: 'about', icon: Info },
 ];
 
 // ============================================
@@ -88,28 +90,25 @@ export default function Navbar({ language = 'en' }) {
     shadow-lg shadow-black/20
   `;
 
-  // Center nav link - Glassmorphism style
+  // Center nav link - Horizontal layout with icon left of text
   const navLinkBase = `
-    flex flex-col items-center justify-center
-    gap-1 px-4 py-2
+    flex flex-row items-center gap-2
+    px-3 py-2
     text-sm font-medium
     rounded-lg
-    transition-all duration-300 ease-out
+    transition-all duration-200
     text-slate-400
-    hover:bg-white/5 hover:text-cyan-300
-    hover:shadow-[0_0_15px_rgba(34,211,238,0.15)]
+    hover:bg-slate-800/50 hover:text-cyan-400
   `;
 
   const navLinkActive = `
-    flex flex-col items-center justify-center
-    gap-1 px-4 py-2
-    text-sm font-semibold
+    flex flex-row items-center gap-2
+    px-3 py-2
+    text-sm font-medium
     rounded-lg
-    transition-all duration-300 ease-out
+    transition-all duration-200
     text-cyan-400
-    bg-cyan-500/10
-    border-b-2 border-cyan-400
-    shadow-[0_0_20px_rgba(34,211,238,0.2)]
+    bg-cyan-900/20
   `;
 
   // Right utility button - Glassmorphism with border
@@ -162,7 +161,7 @@ export default function Navbar({ language = 'en' }) {
   const getLinkClass = ({ isActive }) =>
     isActive ? navLinkActive : navLinkBase;
 
-  const renderNavItem = (item, index) => {
+  const renderNavItem = (item) => {
     const Icon = item.icon;
     const label = item.labelKey ? t[item.labelKey] : item.label;
 
@@ -174,7 +173,7 @@ export default function Navbar({ language = 'en' }) {
         className={getLinkClass}
       >
         {Icon && <Icon className="w-5 h-5" />}
-        <span className="text-xs">{label}</span>
+        <span>{label}</span>
       </NavLink>
     );
   };
