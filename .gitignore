@@ -21,6 +21,7 @@ wheels/
 *.egg
 .agent/
 .claude/
+BAO_CAO.md
 
 # Virtual Environment
 .venv/
