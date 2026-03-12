@@ -1,9 +1,64 @@
 /**
- * About page – Hero + Mission + Contact.
+ * About page – Hero + Mission + Threat Intelligence + Contact.
  * Dark Mode Only - No Light Mode
  */
-import { User, Mail, Phone, Send, Github } from 'lucide-react';
+import { User, Mail, Phone, Send, Github, Shield, Brain, Globe, Database, Wifi, Camera, Lock } from 'lucide-react';
 import { getTranslations } from '../constants/translations';
+
+// ============================================
+// Threat Intelligence & Data Sources
+// ============================================
+const THREAT_SOURCES = {
+  ai_ml: {
+    title: 'AI/ML Services',
+    icon: Brain,
+    items: [
+      { name: 'Google Gemini', desc: 'Advanced AI chatbot & Sentinel AI assistant for contextual threat analysis' },
+      { name: 'Google Generative AI', desc: 'Deep content inspection using state-of-the-art LLMs' },
+    ],
+  },
+  threat_intel: {
+    title: 'Global Threat Intelligence',
+    icon: Globe,
+    items: [
+      { name: 'Google Safe Browsing', desc: 'Enterprise-grade URL reputation database updated in real-time by Google\'s security team' },
+      { name: 'PhishTank', desc: 'Community-driven phishing URL blacklist with millions of verified reports' },
+      { name: 'OpenPhish', desc: 'Free phishing threat feed curated by security researchers worldwide' },
+    ],
+  },
+  security: {
+    title: 'Security & Captcha',
+    icon: Lock,
+    items: [
+      { name: 'Cloudflare Turnstile', desc: 'Bot protection & CAPTCHA alternative with privacy-first approach' },
+      { name: '2Captcha / CapSolver', desc: 'Automated CAPTCHA solving for legitimate automated scanning workflows' },
+    ],
+  },
+  network: {
+    title: 'Network Intelligence',
+    icon: Wifi,
+    items: [
+      { name: 'python-whois', desc: 'Domain registration & WHOIS data for age verification & registrar analysis' },
+      { name: 'ipwhois', desc: 'IP geolocation & ASN lookup for threat actor attribution' },
+    ],
+  },
+  screenshot: {
+    title: 'Visual Analysis',
+    icon: Camera,
+    items: [
+      { name: 'Thum.io', desc: 'Automated URL screenshot capture for visual inspection' },
+      { name: 'Playwright', desc: 'Headless browser screenshots (desktop + mobile) for rendered content analysis' },
+    ],
+  },
+  database: {
+    title: 'Data Storage',
+    icon: Database,
+    items: [
+      { name: 'PostgreSQL/MySQL', desc: 'Production-grade relational database for scan history & analytics' },
+      { name: 'SQLite', desc: 'Lightweight local development database' },
+    ],
+  },
+};
 
 const CONTACT = [
   { label: 'Author', value: 'Mai Quoc Bao', icon: User, href: null },
@@ -46,6 +101,40 @@ export default function AboutPage({ language = 'en' }) {
         <section className={`rounded-xl border p-6 sm:p-8 mb-10 ${cardClass}`}>
           <h2 className={`text-xl font-bold mb-3 ${headingClass}`}>{t.mission_title}</h2>
           <p className={`${descClass} leading-relaxed`}>{t.mission_desc}</p>
+        </section>
+
+        {/* ============================================
+            THREAT INTELLIGENCE & DATA SOURCES
+        ============================================ */}
+        <section className="mb-10">
+          <h2 className={`text-xl font-bold mb-6 ${headingClass} flex items-center gap-2`}>
+            <Shield className="w-5 h-5 text-cyan-400" />
+            Threat Intelligence & Data Sources
+          </h2>
+          <p className={`${descClass} mb-6`}>
+            Our system leverages multiple enterprise-grade threat intelligence feeds and AI/ML models to deliver real-time phishing detection with minimal false positive rates.
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(THREAT_SOURCES).map(([key, { title, icon: Icon, items }]) => (
+              <div key={key} className={`rounded-xl border p-5 ${cardClass}`}>
+                <div className="flex items-center gap-2 mb-3">
+                  <div className={`p-2 rounded-lg border ${iconBg}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <h3 className={`text-sm font-semibold ${headingClass}`}>{title}</h3>
+                </div>
+                <ul className="space-y-2.5">
+                  {items.map(({ name, desc }) => (
+                    <li key={name}>
+                      <div className="text-sm font-medium text-cyan-400">{name}</div>
+                      <div className="text-xs text-slate-500 mt-0.5">{desc}</div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section>
