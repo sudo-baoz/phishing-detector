@@ -8,7 +8,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../constants/api';
 import { FileDown, Loader2, AlertCircle, Globe, Shield, Zap } from 'lucide-react';
-import TurnstileWidget from '../components/TurnstileWidget';
+import { Turnstile } from '@marsidev/react-turnstile';
 import { motion } from 'framer-motion';
 
 export default function BatchScanPage() {
@@ -182,19 +182,19 @@ export default function BatchScanPage() {
           transition={{ duration: 0.4, delay: 0.1 }}
           className={`relative p-5 sm:p-6 md:p-8 ${glassCard}`}
         >
-          {/* Turnstile Human Verification Widget - Wrapped in styled container */}
-          <div className="mb-6">
-            <div className="
-              rounded-xl
-              border border-white/10
-              bg-black/20
-              p-6 sm:p-8
-              flex flex-col items-center justify-center
-              text-center
-              mx-auto max-w-md
-            ">
-              <TurnstileWidget
-                onVerify={(token) => {
+          {/* Turnstile Captcha - Minimal style like Home page */}
+          <div className="mb-6 flex justify-center">
+            <div className={`
+              flex items-center justify-center p-2 sm:p-3 rounded-xl
+              border-2 w-full max-w-[340px] min-h-[65px] transition-colors
+              ${captchaToken
+                ? 'border-green-500/50 bg-green-500/10'
+                : isDark ? 'border-slate-700/50 bg-slate-900/30' : 'border-gray-300 bg-gray-50'
+              }
+            `}>
+              <Turnstile
+                siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'}
+                onSuccess={(token) => {
                   setCaptchaToken(token);
                   setError('');
                 }}
@@ -206,6 +206,11 @@ export default function BatchScanPage() {
                   setCaptchaToken(null);
                   setError('Verification failed. Please try again.');
                 }}
+                options={{
+                  theme: isDark ? 'dark' : 'light',
+                  size: 'normal',
+                }}
+                scriptOptions={{ defer: true, async: true, appendTo: 'body', loadAsync: 'true' }}
               />
             </div>
           </div>
