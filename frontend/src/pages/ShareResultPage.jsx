@@ -1,27 +1,23 @@
 /**
  * Share view: GET /share/:scanId, read-only result.
- * Uses MainLayout (theme/background). Version from env (Ver: {version} ({hash})).
+ * Dark Mode Only - No Light Mode
  */
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 import { fetchShareResult } from '../services/api';
 import ScanResult from '../components/ScanResult';
 import VersionBadge from '../components/VersionBadge';
 
 export default function ShareResultPage() {
   const { scanId } = useParams();
-  const { theme } = useTheme();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [errorStatus, setErrorStatus] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const isDark = theme === 'dark';
-  const bg = 'bg-transparent';
-  const textMuted = isDark ? 'text-slate-400' : 'text-gray-500';
-  const textPrimary = isDark ? 'text-slate-200' : 'text-gray-900';
-  const textAccent = isDark ? 'text-cyan-400' : 'text-blue-600';
+  const textMuted = 'text-slate-400';
+  const textPrimary = 'text-slate-200';
+  const textAccent = 'text-cyan-400';
   const textError = 'text-red-400';
 
   useEffect(() => {
@@ -44,7 +40,7 @@ export default function ShareResultPage() {
 
   if (loading) {
     return (
-      <div className={`min-h-[60vh] ${bg} flex items-center justify-center`}>
+      <div className="min-h-[60vh] bg-transparent flex items-center justify-center">
         <div className={`font-mono ${textAccent}`}>Loading shared result…</div>
       </div>
     );
@@ -59,7 +55,7 @@ export default function ShareResultPage() {
         ? 'Something went wrong on our side. Please try again later.'
         : error || 'Scan not found';
     return (
-      <div className={`min-h-[60vh] ${bg} flex items-center justify-center px-4`}>
+      <div className="min-h-[60vh] bg-transparent flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <p className={`font-mono font-semibold text-lg ${textError}`}>{title}</p>
           <p className={`font-mono text-sm mt-2 ${textMuted}`}>{message}</p>
@@ -69,13 +65,13 @@ export default function ShareResultPage() {
   }
 
   return (
-    <div className={`min-h-[60vh] ${bg} ${textPrimary}`}>
+    <div className="min-h-[60vh] bg-transparent text-slate-200">
       <div className="max-w-7xl mx-auto px-4 pt-6 pb-2">
-        <p className={`${textMuted} text-sm mb-4`}>Shared scan result (read-only)</p>
+        <p className="text-slate-400 text-sm mb-4">Shared scan result (read-only)</p>
       </div>
       <ScanResult data={data} loading={false} readOnly />
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <p className={`${textMuted} text-xs`}>
+        <p className="text-slate-400 text-xs">
           <VersionBadge />
         </p>
       </div>

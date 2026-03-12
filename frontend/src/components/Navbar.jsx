@@ -1,11 +1,11 @@
 /**
  * CyberSentinel Navbar
- * Professional Frontend Developer Implementation
+ * Dark Mode Only - No Light Mode
  *
  * Structure:
  * - Left: Logo (CyberSentinel)
  * - Center: Main Navigation (Home, Toolbox, Batch, History, About)
- * - Right: Utility Actions (Theme, Language, GitHub, Ethics, Login)
+ * - Right: Utility Actions (Language, GitHub, Ethics, Login)
  */
 import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
@@ -17,20 +17,15 @@ import {
   X,
   Github,
   Scale,
-  Sun,
-  Moon,
-  LogIn,
   LayoutDashboard,
   User,
   LogOut,
-  Globe,
   ArrowRight,
 } from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import EthicsModal from './EthicsModal';
 import LoginModal from './LoginModal';
 import { getTranslations } from '../constants/translations';
-import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 
 const GITHUB_URL = import.meta.env.VITE_GITHUB_REPO || 'https://github.com/sudo-baoz/phishing-detector';
@@ -58,11 +53,8 @@ export default function Navbar({ language = 'en' }) {
   const [loginError, setLoginError] = useState('');
 
   // Context hooks
-  const { theme, setTheme } = useTheme();
   const { user, login, logout } = useAuth();
   const t = getTranslations(language).nav;
-
-  const isDark = theme === 'dark';
 
   // ============================================
   // Event Handlers
@@ -77,12 +69,8 @@ export default function Navbar({ language = 'en' }) {
     setLoginError('');
   };
 
-  const toggleTheme = () => {
-    setTheme(isDark ? 'light' : 'dark');
-  };
-
   // ============================================
-  // Styles - Glassmorphism + Cybersecurity Aesthetic
+  // Styles - Dark Mode Only
   // ============================================
 
   // Logo styles - cyan glow effect
@@ -228,18 +216,8 @@ export default function Navbar({ language = 'en' }) {
               (All buttons have border, rounded-md)
           ============================================ */}
           <div className="flex items-center gap-3 shrink-0">
-            {/* Theme Toggle */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              className={iconButtonStyles}
-              aria-label="Toggle theme"
-            >
-              {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-
-            {/* Language Switcher */}
-            <LanguageSwitcher embedded theme={theme} />
+            {/* Language Switcher - Dark mode only */}
+            <LanguageSwitcher embedded />
 
             {/* GitHub */}
             <a
@@ -277,7 +255,7 @@ export default function Navbar({ language = 'en' }) {
                 <button
                   type="button"
                   onClick={() => setAvatarOpen((prev) => !prev)}
-                  className={utilityButtonStyles}
+                  className={iconButtonStyles}
                   title={user.email || user.username}
                 >
                   <User className="w-4 h-4" />

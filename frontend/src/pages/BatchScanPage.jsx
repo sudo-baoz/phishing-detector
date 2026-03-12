@@ -1,10 +1,10 @@
 /**
  * Batch Scan: one POST to /scan/batch_process with all URLs and one captcha token.
  * Backend verifies captcha once and loops through URLs server-side (no 403 on subsequent URLs).
+ * Dark Mode Only - No Light Mode
  */
 
 import { useState } from 'react';
-import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getApiUrl } from '../constants/api';
 import { FileDown, Loader2, AlertCircle, Globe, Shield, Zap } from 'lucide-react';
@@ -18,9 +18,7 @@ export default function BatchScanPage() {
   const [error, setError] = useState('');
   const [progress, setProgress] = useState({ current: 0, total: 0 });
   const [captchaToken, setCaptchaToken] = useState(null);
-  const { theme } = useTheme();
   const { token } = useAuth();
-  const isDark = theme === 'dark';
 
   const runBatch = async () => {
     const lines = urlsText
@@ -104,32 +102,30 @@ export default function BatchScanPage() {
   };
 
   // ============================================
-  // Glassmorphism Styles - Match HomePage (ScanForm)
+  // Dark Mode Only Styles
   // ============================================
 
   // Page background
-  const pageContainer = isDark
-    ? 'min-h-screen bg-transparent text-gray-50'
-    : 'min-h-screen bg-transparent text-gray-900';
+  const pageContainer = 'min-h-screen bg-[#0b1120] text-slate-200';
 
-  // Glass card - same as ScanForm
+  // Glass card - dark mode only
   const glassCard = `
     rounded-2xl sm:rounded-3xl
     border backdrop-blur-xl shadow-2xl
-    ${isDark ? 'bg-gray-900/60 border-white/10 shadow-black/20' : 'bg-white/30 border-white/40 shadow-blue-500/10'}
+    bg-gray-900/60 border-white/10 shadow-black/20
   `;
 
-  // Textarea - similar to input in ScanForm
+  // Textarea - dark mode only
   const textareaClass = `
     w-full rounded-xl sm:rounded-2xl
     pl-4 pr-4 py-4
     text-sm sm:text-base
     border focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500
     transition-all shadow-lg
-    ${isDark ? 'bg-gray-950/80 border-white/10 text-white placeholder-gray-400' : 'bg-white/90 border-gray-200/80 text-gray-900 placeholder-gray-500'}
+    bg-gray-950/80 border-white/10 text-white placeholder-gray-400
   `;
 
-  // Primary button - same as ScanForm
+  // Primary button - dark mode only
   const primaryButton = `
     w-full font-bold py-3.5 sm:py-4 px-4 sm:px-6
     rounded-xl sm:rounded-2xl
@@ -138,7 +134,7 @@ export default function BatchScanPage() {
     ${loading
       ? 'bg-blue-600/80 text-white cursor-wait'
       : !captchaToken
-        ? 'bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
+        ? 'bg-gray-700 text-gray-400 cursor-not-allowed'
         : 'bg-cyan-600 hover:bg-cyan-500 text-white'
     }
   `;
@@ -165,31 +161,31 @@ export default function BatchScanPage() {
             <div className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/20">
               <Zap className="w-6 h-6 text-cyan-400" />
             </div>
-            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 dark:text-gray-50">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-200">
               Batch Scan
             </h1>
           </div>
-          <p className="text-sm sm:text-base text-gray-500 dark:text-gray-400 max-w-xl mx-auto">
+          <p className="text-sm sm:text-base text-gray-400 max-w-xl mx-auto">
             Enter one URL per line. One request sends all URLs to the server;
             captcha is verified once for the whole batch.
           </p>
         </motion.div>
 
-        {/* Glassmorphism Form Container - Match ScanForm */}
+        {/* Glassmorphism Form Container */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, delay: 0.1 }}
           className={`relative p-5 sm:p-6 md:p-8 ${glassCard}`}
         >
-          {/* Turnstile Captcha - Minimal style like Home page */}
+          {/* Turnstile Captcha - Dark mode */}
           <div className="mb-6 flex justify-center">
             <div className={`
               flex items-center justify-center p-2 sm:p-3 rounded-xl
               border-2 w-full max-w-[340px] min-h-[65px] transition-colors
               ${captchaToken
                 ? 'border-green-500/50 bg-green-500/10'
-                : isDark ? 'border-slate-700/50 bg-slate-900/30' : 'border-gray-300 bg-gray-50'
+                : 'border-slate-700/50 bg-slate-900/30'
               }
             `}>
               <Turnstile
@@ -207,7 +203,7 @@ export default function BatchScanPage() {
                   setError('Verification failed. Please try again.');
                 }}
                 options={{
-                  theme: isDark ? 'dark' : 'light',
+                  theme: 'dark',
                   size: 'normal',
                 }}
                 scriptOptions={{ defer: true, async: true, appendTo: 'body', loadAsync: 'true' }}
@@ -273,10 +269,10 @@ export default function BatchScanPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="mt-8 overflow-hidden rounded-2xl border border-white/10 shadow-xl"
+            className="mt-8 overflow-hidden rounded-2xl border border-white/10 shadow-xl bg-gray-900/40"
           >
             <div className="bg-gray-900/60 backdrop-blur-xl border-b border-white/5 px-6 py-4">
-              <h2 className="text-lg font-semibold text-gray-100 flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
                 <Globe className="w-5 h-5 text-cyan-400" />
                 Scan Results ({results.length} URLs)
               </h2>

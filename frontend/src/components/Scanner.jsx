@@ -27,7 +27,7 @@ import ScanForm from './ScanForm';
 import { addToScanHistory } from './ScanHistory';
 import { AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useTheme } from '../context/ThemeContext';
+// Theme context removed - Dark Mode Only
 
 const MatrixRain = () => {
     return (
@@ -106,7 +106,6 @@ const CircularGauge = ({ value, max = 100, isPhishing }) => {
 
 const Scanner = () => {
     const { t, i18n } = useTranslation();
-    const { theme } = useTheme();
     const [url, setUrl] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState(null);
@@ -271,10 +270,9 @@ const Scanner = () => {
         return 'low';
     };
 
-    const isDark = theme === 'dark';
     return (
-        <div className="min-h-screen bg-transparent text-gray-900 dark:text-gray-50">
-            {isDark && <MatrixRain />}
+        <div className="min-h-screen bg-[#0b1120] text-slate-200">
+            <MatrixRain />
 
             <div className="relative z-10 min-h-screen flex flex-col container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8 max-w-7xl overflow-x-visible">
                 {/* Hero: full-bleed ScanForm (break-out) – no restrictive wrapper */}
@@ -303,13 +301,13 @@ const Scanner = () => {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: -20 }}
-                            className="mx-auto w-full max-w-xl mb-6 rounded-xl p-4 sm:p-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800"
+                            className="mx-auto w-full max-w-xl mb-6 rounded-xl p-4 sm:p-6 bg-red-900/30 border border-red-800"
                         >
                             <div className="flex items-center gap-4">
-                                <AlertTriangle className="w-6 h-6 text-red-600 dark:text-red-400 shrink-0" />
+                                <AlertTriangle className="w-6 h-6 text-red-400 shrink-0" />
                                 <div>
-                                    <h3 className="text-lg font-bold text-red-900 dark:text-red-100">Error</h3>
-                                    <p className="text-red-700 dark:text-red-300">{error}</p>
+                                    <h3 className="text-lg font-bold text-red-100">Error</h3>
+                                    <p className="text-red-300">{error}</p>
                                 </div>
                             </div>
                         </motion.div>

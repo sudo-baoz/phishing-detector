@@ -5,7 +5,6 @@
 
 import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useTheme } from '../context/ThemeContext';
 import {
   Shield, ShieldAlert, Globe, Network, Search, FileText,
   Terminal, BarChart3, AlertTriangle, CheckCircle, XCircle,
@@ -24,8 +23,6 @@ import { VERSION_BADGE } from '../constants/appInfo';
 
 const AnalysisReport = ({ data, loading }) => {
   const { t } = useTranslation();
-  const { theme } = useTheme();
-  const isLight = theme === 'light';
   const [showJson, setShowJson] = useState(false);
   const [showGraphModal, setShowGraphModal] = useState(false);
 
@@ -101,13 +98,8 @@ const AnalysisReport = ({ data, loading }) => {
     return 'bg-green-500/10';
   };
 
-  // Light mode: professional enterprise verdict panel (high contrast)
+  // Dark mode only - simplified verdict panel
   const getVerdictPanelClasses = () => {
-    if (isLight) {
-      if (isUncertain) return { card: 'rounded-lg bg-gray-100 border-2 border-gray-300 shadow-sm', heading: 'text-gray-700', meta: 'text-gray-600' };
-      if (isPhishing) return { card: 'rounded-lg bg-red-50 border-2 border-red-200 shadow-sm', heading: 'text-red-700', meta: 'text-red-800' };
-      return { card: 'rounded-lg bg-emerald-50 border-2 border-emerald-200 shadow-sm', heading: 'text-emerald-700', meta: 'text-emerald-800' };
-    }
     return { card: `rounded-lg bg-slate-900 border-2 ${getRiskColor()} ${getRiskBg()} shadow-2xl`, heading: isUncertain ? 'text-slate-400' : isPhishing ? 'text-red-500' : 'text-green-500', meta: 'text-slate-400' };
   };
   const verdictPanel = getVerdictPanelClasses();
@@ -228,7 +220,7 @@ const AnalysisReport = ({ data, loading }) => {
       {/* Section 1: THE VERDICT - Hero Section (full-bleed background from ScanResult wrapper) */}
       <div className={`rounded-lg p-4 sm:p-6 md:p-8 transition-all duration-500 ${verdictPanel.card}`}>
         {/* Result Header: Scan ID, Time, Download Report */}
-        <div className={`flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b ${isLight ? 'border-gray-200' : 'border-slate-700/50'}`}>
+        <div className={`flex flex-wrap items-center justify-between gap-3 mb-6 pb-4 border-b border-slate-700/50`}>
           <div className={`text-sm font-mono ${verdictPanel.meta}`}>
             <span>Scan ID: {data.id}</span>
             {data.scanned_at && (
@@ -261,7 +253,7 @@ const AnalysisReport = ({ data, loading }) => {
               <Shield className="w-16 h-16 md:w-20 md:h-20 text-green-500 drop-shadow-[0_0_15px_rgba(34,197,94,0.5)]" />
             )}
             <div>
-              <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight ${isLight ? '' : 'drop-shadow-md'} ${verdictPanel.heading}`}>
+              <h2 className={`text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold tracking-tight drop-shadow-md ${verdictPanel.heading}`}>
                 {isUncertain ? '⚠️ Model Abstained: Low Confidence' : isPhishing ? t('verdict.phishing') : t('verdict.safe')}
               </h2>
               <div className="flex flex-wrap items-center gap-3 mt-2">
@@ -280,8 +272,8 @@ const AnalysisReport = ({ data, loading }) => {
                   </span>
                 )}
                 {verdict?.threat_type && (
-                  <span className={`text-sm font-semibold uppercase ${isLight ? 'text-gray-600' : 'text-slate-400'}`}>
-                    TYPE: <span className={isLight ? 'text-gray-900' : 'text-white'}>{verdict.threat_type.replace(/_/g, ' ')}</span>
+                  <span className="text-sm font-semibold uppercase text-slate-400">
+                    TYPE: <span className="text-white">{verdict.threat_type.replace(/_/g, ' ')}</span>
                   </span>
                 )}
                 {/* TASK 2: Impersonation Badge from God Mode */}

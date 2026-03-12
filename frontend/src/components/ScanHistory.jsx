@@ -1,10 +1,10 @@
 /**
  * Last 20 scans from localStorage. List/table + Clear History.
+ * Dark Mode Only - No Light Mode
  */
 
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { useTheme } from '../context/ThemeContext';
 import { History, Trash2 } from 'lucide-react';
 
 const STORAGE_KEY = 'cybersentinel-scan-history';
@@ -33,8 +33,6 @@ export function addToScanHistory(scanId, url, verdict, date) {
 
 export default function ScanHistory({ onClear }) {
   const [items, setItems] = useState(loadHistory());
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   useEffect(() => {
     setItems(loadHistory());
@@ -49,7 +47,7 @@ export default function ScanHistory({ onClear }) {
   if (items.length === 0) return null;
 
   return (
-    <div className={`rounded-xl border p-4 ${isDark ? 'bg-gray-900/50 border-gray-700' : 'bg-white border-gray-200'}`}>
+    <div className="rounded-xl border p-4 bg-gray-900/50 border-gray-700">
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold flex items-center gap-2">
           <History className="w-4 h-4" />
@@ -68,17 +66,12 @@ export default function ScanHistory({ onClear }) {
         {items.map((item, i) => (
           <li key={`${item.id}-${i}`} className="flex items-center justify-between gap-2 text-sm">
             <span className="truncate flex-1" title={item.url}>{item.url}</span>
-            <span className={item.verdict === 'PHISHING' || item.verdict === 'HIGH' ? 'text-red-400' : 'text-green-400'}>
-              {item.verdict}
-            </span>
-            {item.id != null && (
-              <Link
-                to={`/share/${item.id}`}
-                className="text-cyan-400 hover:underline shrink-0"
-              >
-                Share
-              </Link>
-            )}
+            <Link
+              to={`/share/${item.id}`}
+              className="text-cyan-400 hover:text-cyan-300 shrink-0"
+            >
+              View
+            </Link>
           </li>
         ))}
       </ul>

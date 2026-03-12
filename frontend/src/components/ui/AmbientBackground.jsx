@@ -1,14 +1,10 @@
 /**
  * Ambient Background – Subtle radial glows behind the app (modern SaaS style).
+ * Dark Mode Only - No Light Mode
  * Fixed behind content (-z-10), does not scroll. No grid/dot patterns.
  */
 
-import { useTheme } from '../../context/ThemeContext';
-
 export default function AmbientBackground() {
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
-
   const orbBase = 'absolute rounded-full pointer-events-none';
   const orbSize = 'w-[min(80vw,400px)] h-[min(80vw,400px)] sm:w-[500px] sm:h-[500px]';
 
@@ -16,21 +12,15 @@ export default function AmbientBackground() {
     <div className="fixed inset-0 -z-10 overflow-hidden" aria-hidden>
       {/* Orb 1: Top-left (off-screen slightly) */}
       <div
-        className={`${orbBase} ${orbSize} -top-24 -left-24 sm:-top-32 sm:-left-32 ${
-          isDark ? 'bg-cyan-500/10 blur-[120px]' : 'bg-blue-500/25 blur-[100px]'
-        }`}
+        className={`${orbBase} ${orbSize} -top-24 -left-24 sm:-top-32 sm:-left-32 bg-cyan-500/10 blur-[120px]`}
       />
       {/* Orb 2: Top-right (off-screen slightly) */}
       <div
-        className={`${orbBase} ${orbSize} -top-24 -right-24 sm:-top-32 sm:-right-32 ${
-          isDark ? 'bg-indigo-500/10 blur-[120px]' : 'bg-purple-500/20 blur-[100px]'
-        }`}
+        className={`${orbBase} ${orbSize} -top-24 -right-24 sm:-top-32 sm:-right-32 bg-indigo-500/10 blur-[120px]`}
       />
       {/* Orb 3: Bottom-center (very faint) */}
       <div
-        className={`${orbBase} ${orbSize} bottom-0 left-1/2 -translate-x-1/2 translate-y-1/3 ${
-          isDark ? 'bg-cyan-500/5 blur-[140px]' : 'bg-blue-400/10 blur-[120px]'
-        }`}
+        className={`${orbBase} ${orbSize} bottom-0 left-1/2 -translate-x-1/2 translate-y-1/3 bg-cyan-500/5 blur-[140px]`}
       />
       {/* Optional: very faint noise overlay for texture */}
       <div

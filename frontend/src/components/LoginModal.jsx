@@ -1,5 +1,6 @@
 /**
  * Login Modal – Portal-rendered, fixed overlay, centered card with entry animation.
+ * Dark Mode Only - No Light Mode
  * Renders at document.body to avoid parent positioning/overflow issues.
  */
 
@@ -56,11 +57,11 @@ export default function LoginModal({ open, onClose, onLogin, error = '' }) {
       aria-labelledby="login-modal-title"
     >
       <div
-        className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden relative animate-login-modal-in"
+        className="w-full max-w-md bg-gray-900 rounded-2xl shadow-2xl border border-gray-700 overflow-hidden relative animate-login-modal-in"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6">
-          <h2 id="login-modal-title" className="text-lg font-bold text-gray-900 dark:text-white mb-4">
+          <h2 id="login-modal-title" className="text-lg font-bold text-white mb-4">
             Login
           </h2>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -70,7 +71,7 @@ export default function LoginModal({ open, onClose, onLogin, error = '' }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-700 bg-gray-800 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-colors"
             />
             <input
               type="password"
@@ -78,9 +79,9 @@ export default function LoginModal({ open, onClose, onLogin, error = '' }) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              className="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-colors"
+              className="w-full px-4 py-2.5 rounded-lg border border-gray-700 bg-gray-800 text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 focus:border-cyan-500 transition-colors"
             />
-            {localError && <p className="text-sm text-red-500 dark:text-red-400">{localError}</p>}
+            {localError && <p className="text-sm text-red-400">{localError}</p>}
             <button
               type="submit"
               disabled={submitting}
@@ -89,7 +90,7 @@ export default function LoginModal({ open, onClose, onLogin, error = '' }) {
               {submitting ? 'Signing in…' : 'Sign in'}
             </button>
           </form>
-          <p className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+          <p className="mt-3 text-xs text-gray-400">
             Demo: admin@cybersentinel.com / password123
           </p>
         </div>

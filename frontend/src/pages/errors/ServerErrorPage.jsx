@@ -1,24 +1,18 @@
 /**
  * 500 – System Malfunction / Mainframe Breach. Amber theme. Reload + Go Home.
+ * Dark Mode Only - No Light Mode
  */
 import { ServerCrash } from 'lucide-react';
 import { Home, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ErrorCard from '../../components/ErrorCard';
-import { useTheme } from '../../context/ThemeContext';
 
 export default function ServerErrorPage() {
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  const isDark = theme === 'dark';
 
   const btnBase = 'inline-flex items-center gap-2 px-5 py-2.5 rounded-lg font-medium transition-all';
-  const reloadClass = isDark
-    ? 'bg-amber-500/20 border border-amber-500/50 text-amber-400 hover:bg-amber-500/30'
-    : 'bg-amber-500/10 border border-amber-500/40 text-amber-600 hover:bg-amber-500/20';
-  const homeClass = isDark
-    ? 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/30'
-    : 'bg-cyan-500/10 border border-cyan-500/40 text-cyan-600 hover:bg-cyan-500/20';
+  const reloadClass = 'bg-amber-500/20 border border-amber-500/50 text-amber-400 hover:bg-amber-500/30';
+  const homeClass = 'bg-cyan-500/20 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/30';
 
   const action = (
     <>

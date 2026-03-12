@@ -1,5 +1,6 @@
 /**
- * Language switcher. In embedded mode: trigger is in layout flow (relative);
+ * Language switcher - Dark Mode Only
+ * In embedded mode: trigger is in layout flow (relative);
  * dropdown is absolute and floats above content (z-50).
  */
 import { useState } from 'react';
@@ -18,32 +19,23 @@ export default function LanguageSwitcher(props = {}) {
 
   const currentLanguage = languages.find((lang) => lang.code === i18n.language) || languages[0];
   const isEmbedded = !!props.embedded;
-  const theme = props.theme || 'dark';
-  const isDark = theme === 'dark';
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
     setIsOpen(false);
   };
 
-  // Trigger: static/relative, takes physical space in flex (no min-h that breaks h-16)
+  // Dark mode only trigger styles
   const triggerClass = isEmbedded
-    ? isDark
-      ? 'flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-600 hover:border-white hover:bg-white/10 text-gray-200 h-10'
-      : 'flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-300 hover:border-gray-900 hover:bg-gray-100 text-gray-700 h-10'
+    ? 'flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg border border-gray-600 hover:border-white hover:bg-white/10 text-gray-200 h-10'
     : 'flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/30 hover:bg-gray-800/90 text-gray-200';
 
-  const iconClass = isDark ? 'text-cyan-400' : 'text-blue-600';
-  const codeClass = isDark ? 'text-cyan-400 text-xs font-semibold' : 'text-blue-600 text-xs font-semibold';
+  const iconClass = 'text-cyan-400';
+  const codeClass = 'text-cyan-400 text-xs font-semibold';
 
-  // Dropdown: absolute, z-50 (floats over content)
-  const dropdownClass = isDark
-    ? 'absolute top-full right-0 mt-2 w-48 z-50 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden'
-    : 'absolute top-full right-0 mt-2 w-48 z-50 bg-white border border-gray-200 rounded-lg shadow-xl overflow-hidden';
-
-  const itemClass = isDark
-    ? 'w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 text-gray-200'
-    : 'w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-100 text-gray-700';
+  // Dark mode only dropdown styles
+  const dropdownClass = 'absolute top-full right-0 mt-2 w-48 z-50 bg-gray-900 border border-white/10 rounded-lg shadow-xl overflow-hidden';
+  const itemClass = 'w-full px-4 py-3 flex items-center gap-3 hover:bg-white/10 text-gray-200';
 
   if (!isEmbedded) {
     return (
@@ -66,7 +58,7 @@ export default function LanguageSwitcher(props = {}) {
                   key={lang.code}
                   type="button"
                   onClick={() => changeLanguage(lang.code)}
-                  className={`${itemClass} ${i18n.language === lang.code ? (isDark ? 'bg-cyan-500/20' : 'bg-blue-50') : ''}`}
+                  className={`${itemClass} ${i18n.language === lang.code ? 'bg-cyan-500/20' : ''}`}
                 >
                   <span className="text-xl">{lang.flag}</span>
                   <div className="text-left flex-1">
@@ -116,7 +108,7 @@ export default function LanguageSwitcher(props = {}) {
                   role="option"
                   aria-selected={i18n.language === lang.code}
                   onClick={() => changeLanguage(lang.code)}
-                  className={`${itemClass} ${i18n.language === lang.code ? (isDark ? 'bg-cyan-500/20' : 'bg-blue-50') : ''}`}
+                  className={`${itemClass} ${i18n.language === lang.code ? 'bg-cyan-500/20' : ''}`}
                 >
                   <span className="text-xl shrink-0">{lang.flag}</span>
                   <div className="text-left flex-1 min-w-0">

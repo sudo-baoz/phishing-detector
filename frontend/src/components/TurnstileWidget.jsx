@@ -1,16 +1,14 @@
 /**
  * Cloudflare Turnstile Widget Component
+ * Dark Mode Only - No Light Mode
  * Reusable human verification widget that integrates with Cloudflare Turnstile
  */
 
 import { Turnstile } from '@marsidev/react-turnstile';
-import { useTheme } from '../context/ThemeContext';
 import { Shield, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
 
 export default function TurnstileWidget({ onVerify, onExpire, onError }) {
-    const { theme } = useTheme();
-    const isDark = theme === 'dark';
     const [error, setError] = useState(null);
 
     // Get site key from environment variables
@@ -19,12 +17,7 @@ export default function TurnstileWidget({ onVerify, onExpire, onError }) {
     // Show error if site key is not configured
     if (!siteKey || siteKey === '1x00000000000000000000AA') {
         return (
-            <div
-                className={`rounded-lg border p-4 ${isDark
-                        ? 'bg-yellow-900/20 border-yellow-600/30 text-yellow-300'
-                        : 'bg-yellow-50 border-yellow-200 text-yellow-800'
-                    }`}
-            >
+            <div className="rounded-lg border p-4 bg-yellow-900/20 border-yellow-600/30 text-yellow-300">
                 <div className="flex items-start gap-3">
                     <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                     <div>
@@ -68,36 +61,29 @@ export default function TurnstileWidget({ onVerify, onExpire, onError }) {
         <div className="space-y-3">
             {/* Header */}
             <div className="flex items-center gap-2">
-                <Shield className={`w-5 h-5 ${isDark ? 'text-cyan-400' : 'text-cyan-600'}`} />
-                <h3 className={`font-semibold ${isDark ? 'text-slate-200' : 'text-gray-900'}`}>
+                <Shield className="w-5 h-5 text-cyan-400" />
+                <h3 className="font-semibold text-slate-200">
                     Human Verification
                 </h3>
             </div>
 
             {/* Turnstile Widget Container */}
-            <div
-                className={`rounded-lg border p-4 ${isDark
-                        ? 'bg-gray-900 border-gray-700'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-            >
+            <div className="rounded-lg border p-4 bg-gray-900 border-gray-700">
                 <Turnstile
                     siteKey={siteKey}
                     onSuccess={handleSuccess}
                     onExpire={handleExpire}
                     onError={handleError}
                     options={{
-                        theme: isDark ? 'dark' : 'light',
+                        theme: 'dark',
                         size: 'normal',
-                        // Retry if verification fails
                         retry: 'auto',
-                        // Timeout after 5 minutes
                         'retry-interval': 8000,
                     }}
                 />
 
                 {/* Info Text */}
-                <p className={`text-xs mt-3 ${isDark ? 'text-slate-400' : 'text-gray-500'}`}>
+                <p className="text-xs mt-3 text-slate-400">
                     This verification helps protect against automated abuse and ensures fair access
                     to our scanning service.
                 </p>
@@ -105,12 +91,7 @@ export default function TurnstileWidget({ onVerify, onExpire, onError }) {
 
             {/* Error Display */}
             {error && (
-                <div
-                    className={`rounded-lg border p-3 ${isDark
-                            ? 'bg-red-900/20 border-red-600/30 text-red-300'
-                            : 'bg-red-50 border-red-200 text-red-700'
-                        }`}
-                >
+                <div className="rounded-lg border p-3 bg-red-900/20 border-red-600/30 text-red-300">
                     <div className="flex items-start gap-2">
                         <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                         <p className="text-sm">{error}</p>

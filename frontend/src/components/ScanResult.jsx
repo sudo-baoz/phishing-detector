@@ -1,14 +1,14 @@
 /**
  * Scan Result – Full-bleed (100vw) wrapper; outer background stays transparent.
  * Threat/Safe styling is applied only to the inner card (border, glow shadow, subtle bg).
+ * Dark Mode Only - No Light Mode
  */
 
-import { useTheme } from '../context/ThemeContext';
 import AnalysisReport from './AnalysisReport';
 
-function getCardWrapperClasses(data, loading, isDark) {
+function getCardWrapperClasses(data, loading) {
   if (loading || !data) {
-    return 'rounded-xl border border-gray-200/50 dark:border-white/10';
+    return 'rounded-xl border border-white/10';
   }
   const verdict = data.verdict || {};
   const score = verdict.score ?? 0;
@@ -17,7 +17,7 @@ function getCardWrapperClasses(data, loading, isDark) {
   const isPhishing = !isUncertain && score >= 50;
 
   if (isUncertain) {
-    return 'rounded-xl border border-gray-200/50 dark:border-white/10';
+    return 'rounded-xl border border-white/10';
   }
   if (isPhishing) {
     return [
@@ -28,14 +28,13 @@ function getCardWrapperClasses(data, loading, isDark) {
   }
   return [
     'rounded-xl border border-emerald-500/50',
-    isDark ? 'bg-emerald-950/30' : 'bg-emerald-50/50',
+    'bg-emerald-950/30',
     'shadow-[0_0_30px_-5px_rgba(16,185,129,0.3)]',
   ].join(' ');
 }
 
 export default function ScanResult({ data, loading, ...rest }) {
-  const { theme } = useTheme();
-  const cardClass = getCardWrapperClasses(data, loading, theme === 'dark');
+  const cardClass = getCardWrapperClasses(data, loading);
 
   return (
     <div
